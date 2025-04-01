@@ -3,7 +3,17 @@
 // في بيئة الإنتاج، يجب استخدام خادم باكيند حقيقي
 
 // تخزين بيانات التطبيق محلياً
-const localDB = {
+interface LocalItem {
+  _id?: string;
+  id?: string;
+  [key: string]: any;
+}
+
+interface LocalDB {
+  [key: string]: LocalItem[];
+}
+
+const localDB: LocalDB = {
   countries: [],
   providers: [],
   phoneNumbers: [],
@@ -29,21 +39,21 @@ export const getCollection = async (collectionName: string) => {
     find: (query = {}) => ({
       toArray: async () => {
         // محاكاة استرجاع البيانات
-        return localDB[collectionName].map((item, index) => ({
+        return localDB[collectionName].map((item: LocalItem, index) => ({
           ...item,
           _id: item._id || `local_${index}`
         }));
       }
     }),
-    findOne: async (query = {}) => {
+    findOne: async (query: {_id?: string} = {}) => {
       // محاكاة البحث عن عنصر واحد
       const items = localDB[collectionName];
       if (query._id) {
-        return items.find(item => item._id === query._id) || null;
+        return items.find((item: LocalItem) => item._id === query._id) || null;
       }
       return items[0] || null;
     },
-    insertOne: async (document) => {
+    insertOne: async (document: LocalItem) => {
       // إضافة معرّف محلي إذا لم يكن موجوداً
       const _id = document._id || `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const newDoc = { ...document, _id };
@@ -56,7 +66,7 @@ export const getCollection = async (collectionName: string) => {
         acknowledged: true
       };
     },
-    insertMany: async (documents) => {
+    insertMany: async (documents: LocalItem[]) => {
       // إضافة عدة وثائق دفعة واحدة
       const insertedIds = [];
       
@@ -74,9 +84,9 @@ export const getCollection = async (collectionName: string) => {
         acknowledged: true
       };
     },
-    updateOne: async (filter, update) => {
+    updateOne: async (filter: {_id?: string}, update: {$set?: LocalItem}) => {
       // تحديث وثيقة واحدة
-      const index = localDB[collectionName].findIndex(item => 
+      const index = localDB[collectionName].findIndex((item: LocalItem) => 
         filter._id ? item._id === filter._id : true
       );
       
@@ -101,11 +111,11 @@ export const getCollection = async (collectionName: string) => {
         acknowledged: true
       };
     },
-    deleteOne: async (filter) => {
+    deleteOne: async (filter: {_id?: string}) => {
       // حذف وثيقة واحدة
       const initialLength = localDB[collectionName].length;
       
-      localDB[collectionName] = localDB[collectionName].filter(item => 
+      localDB[collectionName] = localDB[collectionName].filter((item: LocalItem) => 
         filter._id ? item._id !== filter._id : false
       );
       
