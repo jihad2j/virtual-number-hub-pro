@@ -1,12 +1,20 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
+import { closeConnection } from '@/services/database';
 
 export const DashboardLayout: React.FC = () => {
   const { isAuthenticated, loading } = useAuth();
+
+  useEffect(() => {
+    // إغلاق الاتصال بقاعدة البيانات عند تفكيك المكون
+    return () => {
+      closeConnection().catch(console.error);
+    };
+  }, []);
 
   if (loading) {
     return (
