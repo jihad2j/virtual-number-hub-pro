@@ -3,7 +3,7 @@
 const API_TOKEN = "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzUwNzkzNjEsImlhdCI6MTc0MzU0MzM2MSwicmF5IjoiYzViYjRjNWNiZjA0N2U2OTI1OWI0YWUzOTM0MmQ1YjQiLCJzdWIiOjEyODQ5OTF9.b1IL-DlhrrOMhcAnq6pxoucrlboVoSbDbjZAI1kcIV63lAr9Kk0WvmE5KQf8a0WH1nkbGZR71i8sCRxCloIVGp08RFVFGsYpSos7flQtzoZs6_TPbuhwJoJKYgPKjNMZVT1Vi9_ywMGRBuOvsbBn6qcAGOCRLKByGuW8PwS7pxmmJbvsB3HD40ek5vFTHpFTxEwVz4OpAOjbmq-Aj6Vz-bz8ymndpIm6D2yGBhRV9aQ4yRrrG-zHZfA-1ayd6vQz969aQIK6sM2tsXRrPKO-hpbF4f7vtsg-RX41DqcZy3t2BWnlB2JwvTB_lLlrm_al0J4k-pqr6lR9TnjsJ3WXBg";
 const API_BASE_URL = "https://5sim.net/v1";
 
-// الأنواع المستخدمة في API
+// Types used for 5Sim API
 export interface FiveSimCountry {
   id: number;
   name: string;
@@ -30,9 +30,27 @@ export interface FiveSimPhoneNumber {
   country: string;
 }
 
-// تنفيذ خدمة 5sim
+export interface FiveSimUserProfile {
+  id: number;
+  email: string;
+  vendor: string;
+  default_forwarding_number: string;
+  balance: number;
+  rating: number;
+  default_country: {
+    name: string;
+    iso: string;
+    prefix: string;
+  };
+  default_operator: {
+    name: string;
+  };
+  frozen_balance: number;
+}
+
+// 5sim service implementation
 export const fiveSimApi = {
-  // الحصول على قائمة الدول المتاحة
+  // Get list of available countries
   getCountries: async (): Promise<FiveSimCountry[]> => {
     try {
       const response = await fetch(`${API_BASE_URL}/guest/countries`, {
@@ -44,18 +62,18 @@ export const fiveSimApi = {
       });
 
       if (!response.ok) {
-        throw new Error(`فشل جلب الدول. الرمز: ${response.status}`);
+        throw new Error(`Failed to fetch countries. Status: ${response.status}`);
       }
 
       const data = await response.json();
       return Object.values(data);
     } catch (error) {
-      console.error("خطأ في جلب قائمة الدول من 5sim:", error);
+      console.error("Error fetching countries list from 5sim:", error);
       throw error;
     }
   },
 
-  // الحصول على المنتجات المتاحة للدولة
+  // Get available products for a country
   getProducts: async (country: string, operator: string = "any"): Promise<Record<string, FiveSimProduct>> => {
     try {
       const response = await fetch(`${API_BASE_URL}/guest/products/${country}/${operator}`, {
@@ -67,17 +85,17 @@ export const fiveSimApi = {
       });
 
       if (!response.ok) {
-        throw new Error(`فشل جلب المنتجات. الرمز: ${response.status}`);
+        throw new Error(`Failed to fetch products. Status: ${response.status}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error(`خطأ في جلب المنتجات من 5sim للدولة ${country}:`, error);
+      console.error(`Error fetching products from 5sim for country ${country}:`, error);
       throw error;
     }
   },
 
-  // شراء رقم
+  // Purchase a number
   purchaseNumber: async (country: string, operator: string, product: string): Promise<FiveSimPhoneNumber> => {
     try {
       const response = await fetch(`${API_BASE_URL}/user/buy/activation/${country}/${operator}/${product}`, {
@@ -89,17 +107,17 @@ export const fiveSimApi = {
       });
 
       if (!response.ok) {
-        throw new Error(`فشل شراء الرقم. الرمز: ${response.status}`);
+        throw new Error(`Failed to purchase number. Status: ${response.status}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error(`خطأ في شراء رقم من 5sim:`, error);
+      console.error(`Error purchasing number from 5sim:`, error);
       throw error;
     }
   },
 
-  // الحصول على حالة الرقم
+  // Check number status
   checkNumber: async (id: number): Promise<FiveSimPhoneNumber> => {
     try {
       const response = await fetch(`${API_BASE_URL}/user/check/${id}`, {
@@ -111,17 +129,17 @@ export const fiveSimApi = {
       });
 
       if (!response.ok) {
-        throw new Error(`فشل التحقق من الرقم. الرمز: ${response.status}`);
+        throw new Error(`Failed to check number. Status: ${response.status}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error(`خطأ في التحقق من حالة الرقم من 5sim:`, error);
+      console.error(`Error checking number status from 5sim:`, error);
       throw error;
     }
   },
 
-  // تعيين حالة الرقم إلى "انتهى"
+  // Set number status to "finished"
   finishNumber: async (id: number): Promise<FiveSimPhoneNumber> => {
     try {
       const response = await fetch(`${API_BASE_URL}/user/finish/${id}`, {
@@ -133,17 +151,17 @@ export const fiveSimApi = {
       });
 
       if (!response.ok) {
-        throw new Error(`فشل إنهاء الرقم. الرمز: ${response.status}`);
+        throw new Error(`Failed to finish number. Status: ${response.status}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error(`خطأ في إنهاء الرقم من 5sim:`, error);
+      console.error(`Error finishing number from 5sim:`, error);
       throw error;
     }
   },
 
-  // إلغاء الرقم
+  // Cancel number
   cancelNumber: async (id: number): Promise<FiveSimPhoneNumber> => {
     try {
       const response = await fetch(`${API_BASE_URL}/user/cancel/${id}`, {
@@ -155,18 +173,18 @@ export const fiveSimApi = {
       });
 
       if (!response.ok) {
-        throw new Error(`فشل إلغاء الرقم. الرمز: ${response.status}`);
+        throw new Error(`Failed to cancel number. Status: ${response.status}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error(`خطأ في إلغاء الرقم من 5sim:`, error);
+      console.error(`Error cancelling number from 5sim:`, error);
       throw error;
     }
   },
 
-  // الحصول على الرصيد
-  getBalance: async (): Promise<{ balance: number; currency: string }> => {
+  // Get account balance and profile
+  getProfile: async (): Promise<FiveSimUserProfile> => {
     try {
       const response = await fetch(`${API_BASE_URL}/user/profile`, {
         method: "GET",
@@ -177,13 +195,23 @@ export const fiveSimApi = {
       });
 
       if (!response.ok) {
-        throw new Error(`فشل جلب الرصيد. الرمز: ${response.status}`);
+        throw new Error(`Failed to fetch profile. Status: ${response.status}`);
       }
 
-      const data = await response.json();
-      return { balance: data.balance, currency: "RUB" };
+      return await response.json();
     } catch (error) {
-      console.error(`خطأ في جلب الرصيد من 5sim:`, error);
+      console.error(`Error fetching profile from 5sim:`, error);
+      throw error;
+    }
+  },
+  
+  // Get balance (simplified from getProfile for backward compatibility)
+  getBalance: async (): Promise<{ balance: number; currency: string }> => {
+    try {
+      const profile = await fiveSimApi.getProfile();
+      return { balance: profile.balance, currency: "RUB" };
+    } catch (error) {
+      console.error(`Error fetching balance from 5sim:`, error);
       throw error;
     }
   }

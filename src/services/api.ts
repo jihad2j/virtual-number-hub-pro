@@ -52,7 +52,7 @@ export interface Transaction {
   createdAt: string;
 }
 
-// بيانات تجريبية كبديل
+// Mock data as alternative
 const mockCountries: Country[] = [
   { id: '1', name: 'المملكة العربية السعودية', flag: '🇸🇦', code: 'sa', available: true },
   { id: '2', name: 'الإمارات العربية المتحدة', flag: '🇦🇪', code: 'ae', available: true },
@@ -85,17 +85,17 @@ const mockProviders: Provider[] = [
   },
 ];
 
-// طرق API
+// API methods
 export const api = {
-  // تهيئة البيانات المحلية
+  // Initialize local data
   initLocalData: async () => {
-    // استيراد البيانات المبدئية
+    // Import initial data
     importData('countries', mockCountries);
     importData('providers', mockProviders);
-    console.log('تم تهيئة البيانات المحلية');
+    console.log('Local data initialized');
   },
 
-  // الدول
+  // Countries
   getCountries: async (): Promise<Country[]> => {
     try {
       const collection = await getCollection('countries');
@@ -103,13 +103,13 @@ export const api = {
       
       return countries.map(country => ({
         id: country._id.toString(),
-        name: country.name,
-        flag: country.flag,
-        code: country.code,
-        available: country.available,
+        name: country.name || '',
+        flag: country.flag || '',
+        code: country.code || '',
+        available: country.available || false,
       }));
     } catch (error) {
-      console.error('خطأ في جلب الدول:', error);
+      console.error('Error fetching countries:', error);
       return mockCountries;
     }
   },
@@ -123,18 +123,18 @@ export const api = {
         .filter(country => country.available)
         .map(country => ({
           id: country._id.toString(),
-          name: country.name,
-          flag: country.flag,
-          code: country.code,
-          available: country.available,
+          name: country.name || '',
+          flag: country.flag || '',
+          code: country.code || '',
+          available: country.available || false,
         }));
     } catch (error) {
-      console.error('خطأ في جلب الدول المتاحة:', error);
+      console.error('Error fetching available countries:', error);
       return mockCountries.filter(country => country.available);
     }
   },
 
-  // مزودي الخدمة
+  // Service providers
   getProviders: async (): Promise<Provider[]> => {
     try {
       const collection = await getCollection('providers');
@@ -142,14 +142,14 @@ export const api = {
       
       return providers.map(provider => ({
         id: provider._id.toString(),
-        name: provider.name,
-        logo: provider.logo,
-        description: provider.description,
-        countries: provider.countries,
-        isActive: provider.isActive,
+        name: provider.name || '',
+        logo: provider.logo || '',
+        description: provider.description || '',
+        countries: provider.countries || [],
+        isActive: provider.isActive || false,
       }));
     } catch (error) {
-      console.error('خطأ في جلب مزودي الخدمة:', error);
+      console.error('Error fetching service providers:', error);
       return mockProviders;
     }
   },
@@ -166,7 +166,7 @@ export const api = {
       
       return provider;
     } catch (error) {
-      console.error('خطأ في تحديث مزود الخدمة:', error);
+      console.error('Error updating service provider:', error);
       return provider;
     }
   },
@@ -181,23 +181,23 @@ export const api = {
         id: result.insertedId.toString() 
       };
     } catch (error) {
-      console.error('خطأ في إضافة مزود الخدمة:', error);
+      console.error('Error adding service provider:', error);
       return { ...provider, id: Math.random().toString(36).substring(7) };
     }
   },
 
-  // أرقام الهاتف
+  // Phone numbers
   getPhoneNumbers: async (countryId: string): Promise<PhoneNumber[]> => {
     try {
       const collection = await getCollection('phoneNumbers');
       const phoneNumbers = await collection.find().toArray();
       
       const filteredNumbers = phoneNumbers.filter(
-        number => number.country === countryId && number.status === 'available'
+        number => (number.country === countryId && number.status === 'available')
       );
       
       if (filteredNumbers.length === 0) {
-        // إذا لم نجد أرقاماً، نُنشئ بعض البيانات التجريبية
+        // If no numbers found, create some mock data
         const mockNumbers = Array(5).fill(null).map((_, index) => ({
           _id: `${countryId}-${index}`,
           number: `+${Math.floor(Math.random() * 100000000000)}`,
@@ -207,7 +207,7 @@ export const api = {
           price: Math.floor(Math.random() * 5) + 1,
         }));
         
-        // حفظ الأرقام التجريبية في قاعدة البيانات المحلية
+        // Save mock numbers in local database
         for (const number of mockNumbers) {
           await collection.insertOne(number);
         }
@@ -224,14 +224,14 @@ export const api = {
       
       return filteredNumbers.map(number => ({
         id: number._id.toString(),
-        number: number.number,
-        country: number.country,
-        provider: number.provider,
-        status: number.status,
-        price: number.price,
+        number: number.number || '',
+        country: number.country || '',
+        provider: number.provider || '',
+        status: (number.status as 'available' | 'sold' | 'expired') || 'available',
+        price: number.price || 0,
       }));
     } catch (error) {
-      console.error('خطأ في جلب الأرقام:', error);
+      console.error('Error fetching numbers:', error);
       return Array(5).fill(null).map((_, index) => ({
         id: `${countryId}-${index}`,
         number: `+${Math.floor(Math.random() * 100000000000)}`,
@@ -248,39 +248,39 @@ export const api = {
       const phoneCollection = await getCollection('phoneNumbers');
       const transactionCollection = await getCollection('transactions');
       
-      // تحديث حالة الرقم إلى "مباع"
+      // Update number status to "sold"
       await phoneCollection.updateOne(
         { _id: numberId },
         { $set: { status: 'sold' } }
       );
       
-      // الحصول على بيانات الرقم المحدثة
+      // Get updated number details
       const phoneNumber = await phoneCollection.findOne({ _id: numberId });
       
       if (!phoneNumber) {
-        throw new Error('رقم الهاتف غير موجود');
+        throw new Error('Phone number not found');
       }
       
-      // إنشاء سجل عملية شراء
+      // Create purchase transaction record
       await transactionCollection.insertOne({
-        userId: '1', // استبدل برقم المستخدم الفعلي من سياق المصادقة
-        amount: phoneNumber.price,
+        userId: '1', // Replace with actual user ID from auth context
+        amount: phoneNumber.price || 0,
         type: 'purchase',
         status: 'completed',
-        description: `شراء رقم افتراضي ${phoneNumber.number}`,
+        description: `Purchase of virtual number ${phoneNumber.number || ''}`,
         createdAt: new Date().toISOString(),
       });
       
       return {
         id: phoneNumber._id.toString(),
-        number: phoneNumber.number,
-        country: phoneNumber.country,
-        provider: phoneNumber.provider,
+        number: phoneNumber.number || '',
+        country: phoneNumber.country || '',
+        provider: phoneNumber.provider || '',
         status: 'sold',
-        price: phoneNumber.price,
+        price: phoneNumber.price || 0,
       };
     } catch (error) {
-      console.error('خطأ في شراء الرقم:', error);
+      console.error('Error purchasing number:', error);
       return {
         id: numberId,
         number: `+${Math.floor(Math.random() * 100000000000)}`,
@@ -292,13 +292,13 @@ export const api = {
     }
   },
 
-  // الدعم الفني
+  // Support tickets
   createSupportTicket: async (subject: string, message: string): Promise<SupportTicket> => {
     try {
       const collection = await getCollection('supportTickets');
       
       const ticket = {
-        userId: '1', // استبدل برقم المستخدم الفعلي من سياق المصادقة
+        userId: '1', // Replace with actual user ID from auth context
         subject,
         message,
         status: 'open',
@@ -313,7 +313,7 @@ export const api = {
         id: result.insertedId.toString(),
       } as SupportTicket;
     } catch (error) {
-      console.error('خطأ في إنشاء تذكرة دعم:', error);
+      console.error('Error creating support ticket:', error);
       return {
         id: Math.random().toString(36).substring(7),
         userId: '1',
@@ -326,27 +326,27 @@ export const api = {
     }
   },
 
-  // المعاملات المالية
+  // Financial transactions
   getTransactions: async (): Promise<Transaction[]> => {
     try {
       const collection = await getCollection('transactions');
       const transactions = await collection.find().toArray();
       
-      const userTransactions = transactions.filter(tx => tx.userId === '1'); // استبدل برقم المستخدم الفعلي
+      const userTransactions = transactions.filter(tx => tx.userId === '1'); // Replace with actual user ID
       
       if (userTransactions.length === 0) {
-        // إنشاء بيانات تجريبية للمعاملات
+        // Create mock transaction data
         const mockTxs = Array(10).fill(null).map((_, index) => ({
           _id: index.toString(),
           userId: '1',
           amount: Math.random() * 100,
           type: Math.random() > 0.5 ? 'deposit' : 'purchase',
           status: 'completed',
-          description: Math.random() > 0.5 ? 'إيداع رصيد' : 'شراء رقم افتراضي',
+          description: Math.random() > 0.5 ? 'Balance deposit' : 'Virtual number purchase',
           createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
         }));
         
-        // حفظ المعاملات التجريبية في قاعدة البيانات المحلية
+        // Save mock transactions to local database
         for (const tx of mockTxs) {
           await collection.insertOne(tx);
         }
@@ -364,22 +364,22 @@ export const api = {
       
       return userTransactions.map(transaction => ({
         id: transaction._id.toString(),
-        userId: transaction.userId,
-        amount: transaction.amount,
-        type: transaction.type,
-        status: transaction.status,
-        description: transaction.description,
-        createdAt: transaction.createdAt,
+        userId: transaction.userId || '1',
+        amount: transaction.amount || 0,
+        type: (transaction.type as 'deposit' | 'purchase') || 'deposit',
+        status: (transaction.status as 'pending' | 'completed' | 'failed') || 'completed',
+        description: transaction.description || '',
+        createdAt: transaction.createdAt || new Date().toISOString(),
       }));
     } catch (error) {
-      console.error('خطأ في جلب المعاملات:', error);
+      console.error('Error fetching transactions:', error);
       return Array(10).fill(null).map((_, index) => ({
         id: index.toString(),
         userId: '1',
         amount: Math.random() * 100,
         type: Math.random() > 0.5 ? 'deposit' : 'purchase',
         status: 'completed',
-        description: Math.random() > 0.5 ? 'إيداع رصيد' : 'شراء رقم افتراضي',
+        description: Math.random() > 0.5 ? 'Balance deposit' : 'Virtual number purchase',
         createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
       }));
     }
@@ -390,11 +390,11 @@ export const api = {
       const collection = await getCollection('transactions');
       
       const transaction = {
-        userId: '1', // استبدل برقم المستخدم الفعلي من سياق المصادقة
+        userId: '1', // Replace with actual user ID from auth context
         amount,
         type: 'deposit',
         status: 'completed',
-        description: `إيداع رصيد عبر ${method === 'card' ? 'بطاقة الائتمان' : 'PayPal'}`,
+        description: `Balance deposit via ${method === 'card' ? 'credit card' : 'PayPal'}`,
         createdAt: new Date().toISOString(),
       };
       
@@ -405,27 +405,27 @@ export const api = {
         id: result.insertedId.toString(),
       } as Transaction;
     } catch (error) {
-      console.error('خطأ في إضافة الرصيد:', error);
+      console.error('Error adding funds:', error);
       return {
         id: Math.random().toString(36).substring(7),
         userId: '1',
         amount,
         type: 'deposit',
         status: 'completed',
-        description: `إيداع رصيد عبر ${method === 'card' ? 'بطاقة الائتمان' : 'PayPal'}`,
+        description: `Balance deposit via ${method === 'card' ? 'credit card' : 'PayPal'}`,
         createdAt: new Date().toISOString(),
       };
     }
   },
 
-  // تهيئة قاعدة البيانات
+  // Initialize database
   initDatabaseIfEmpty: async () => {
     try {
-      // قم باستدعاء initLocalData لتهيئة البيانات
+      // Call initLocalData to initialize data
       await api.initLocalData();
-      console.log('تم تهيئة قاعدة البيانات المحلية');
+      console.log('Local database initialized');
     } catch (error) {
-      console.error('خطأ في تهيئة قاعدة البيانات:', error);
+      console.error('Error initializing database:', error);
     }
   }
 };
