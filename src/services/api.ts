@@ -1,6 +1,5 @@
 
-import { MongoClient, ObjectId } from 'mongodb';
-import { connectToDatabase, getCollection } from './database';
+import { importData, getCollection } from './database';
 
 export interface Country {
   id: string;
@@ -53,7 +52,7 @@ export interface Transaction {
   createdAt: string;
 }
 
-// Mock data as fallback
+// بيانات تجريبية كبديل
 const mockCountries: Country[] = [
   { id: '1', name: 'المملكة العربية السعودية', flag: '🇸🇦', code: 'sa', available: true },
   { id: '2', name: 'الإمارات العربية المتحدة', flag: '🇦🇪', code: 'ae', available: true },
@@ -86,17 +85,21 @@ const mockProviders: Provider[] = [
   },
 ];
 
-// API Methods
+// طرق API
 export const api = {
-  // Countries
+  // تهيئة البيانات المحلية
+  initLocalData: async () => {
+    // استيراد البيانات المبدئية
+    importData('countries', mockCountries);
+    importData('providers', mockProviders);
+    console.log('تم تهيئة البيانات المحلية');
+  },
+
+  // الدول
   getCountries: async (): Promise<Country[]> => {
     try {
       const collection = await getCollection('countries');
       const countries = await collection.find().toArray();
-      
-      if (countries.length === 0) {
-        return mockCountries;
-      }
       
       return countries.map(country => ({
         id: country._id.toString(),
@@ -114,34 +117,28 @@ export const api = {
   getAvailableCountries: async (): Promise<Country[]> => {
     try {
       const collection = await getCollection('countries');
-      const countries = await collection.find({ available: true }).toArray();
+      const countries = await collection.find().toArray();
       
-      if (countries.length === 0) {
-        return mockCountries.filter(country => country.available);
-      }
-      
-      return countries.map(country => ({
-        id: country._id.toString(),
-        name: country.name,
-        flag: country.flag,
-        code: country.code,
-        available: country.available,
-      }));
+      return countries
+        .filter(country => country.available)
+        .map(country => ({
+          id: country._id.toString(),
+          name: country.name,
+          flag: country.flag,
+          code: country.code,
+          available: country.available,
+        }));
     } catch (error) {
       console.error('خطأ في جلب الدول المتاحة:', error);
       return mockCountries.filter(country => country.available);
     }
   },
 
-  // Providers
+  // مزودي الخدمة
   getProviders: async (): Promise<Provider[]> => {
     try {
       const collection = await getCollection('providers');
       const providers = await collection.find().toArray();
-      
-      if (providers.length === 0) {
-        return mockProviders;
-      }
       
       return providers.map(provider => ({
         id: provider._id.toString(),
@@ -163,7 +160,7 @@ export const api = {
       const { id, ...providerData } = provider;
       
       await collection.updateOne(
-        { _id: new ObjectId(id) },
+        { _id: id },
         { $set: providerData }
       );
       
@@ -189,25 +186,43 @@ export const api = {
     }
   },
 
-  // Phone Numbers
+  // أرقام الهاتف
   getPhoneNumbers: async (countryId: string): Promise<PhoneNumber[]> => {
     try {
       const collection = await getCollection('phoneNumbers');
-      const phoneNumbers = await collection.find({ country: countryId, status: 'available' }).toArray();
+      const phoneNumbers = await collection.find().toArray();
       
-      if (phoneNumbers.length === 0) {
-        // Fall back to mock data if no phone numbers found
-        return Array(5).fill(null).map((_, index) => ({
-          id: `${countryId}-${index}`,
+      const filteredNumbers = phoneNumbers.filter(
+        number => number.country === countryId && number.status === 'available'
+      );
+      
+      if (filteredNumbers.length === 0) {
+        // إذا لم نجد أرقاماً، نُنشئ بعض البيانات التجريبية
+        const mockNumbers = Array(5).fill(null).map((_, index) => ({
+          _id: `${countryId}-${index}`,
           number: `+${Math.floor(Math.random() * 100000000000)}`,
           country: countryId,
           provider: Math.random() > 0.5 ? '1' : '2',
           status: 'available',
           price: Math.floor(Math.random() * 5) + 1,
         }));
+        
+        // حفظ الأرقام التجريبية في قاعدة البيانات المحلية
+        for (const number of mockNumbers) {
+          await collection.insertOne(number);
+        }
+        
+        return mockNumbers.map(number => ({
+          id: number._id,
+          number: number.number,
+          country: number.country,
+          provider: number.provider,
+          status: number.status as 'available',
+          price: number.price,
+        }));
       }
       
-      return phoneNumbers.map(number => ({
+      return filteredNumbers.map(number => ({
         id: number._id.toString(),
         number: number.number,
         country: number.country,
@@ -233,22 +248,22 @@ export const api = {
       const phoneCollection = await getCollection('phoneNumbers');
       const transactionCollection = await getCollection('transactions');
       
-      // Update the phone number status to 'sold'
+      // تحديث حالة الرقم إلى "مباع"
       await phoneCollection.updateOne(
-        { _id: new ObjectId(numberId) },
+        { _id: numberId },
         { $set: { status: 'sold' } }
       );
       
-      // Get the updated phone number
-      const phoneNumber = await phoneCollection.findOne({ _id: new ObjectId(numberId) });
+      // الحصول على بيانات الرقم المحدثة
+      const phoneNumber = await phoneCollection.findOne({ _id: numberId });
       
       if (!phoneNumber) {
         throw new Error('رقم الهاتف غير موجود');
       }
       
-      // Create a transaction record
+      // إنشاء سجل عملية شراء
       await transactionCollection.insertOne({
-        userId: '1', // Replace with actual user ID from auth context
+        userId: '1', // استبدل برقم المستخدم الفعلي من سياق المصادقة
         amount: phoneNumber.price,
         type: 'purchase',
         status: 'completed',
@@ -277,13 +292,13 @@ export const api = {
     }
   },
 
-  // Support
+  // الدعم الفني
   createSupportTicket: async (subject: string, message: string): Promise<SupportTicket> => {
     try {
       const collection = await getCollection('supportTickets');
       
       const ticket = {
-        userId: '1', // Replace with actual user ID from auth context
+        userId: '1', // استبدل برقم المستخدم الفعلي من سياق المصادقة
         subject,
         message,
         status: 'open',
@@ -311,15 +326,18 @@ export const api = {
     }
   },
 
-  // Transactions
+  // المعاملات المالية
   getTransactions: async (): Promise<Transaction[]> => {
     try {
       const collection = await getCollection('transactions');
-      const transactions = await collection.find({ userId: '1' }).toArray(); // Replace with actual user ID
+      const transactions = await collection.find().toArray();
       
-      if (transactions.length === 0) {
-        return Array(10).fill(null).map((_, index) => ({
-          id: index.toString(),
+      const userTransactions = transactions.filter(tx => tx.userId === '1'); // استبدل برقم المستخدم الفعلي
+      
+      if (userTransactions.length === 0) {
+        // إنشاء بيانات تجريبية للمعاملات
+        const mockTxs = Array(10).fill(null).map((_, index) => ({
+          _id: index.toString(),
           userId: '1',
           amount: Math.random() * 100,
           type: Math.random() > 0.5 ? 'deposit' : 'purchase',
@@ -327,9 +345,24 @@ export const api = {
           description: Math.random() > 0.5 ? 'إيداع رصيد' : 'شراء رقم افتراضي',
           createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
         }));
+        
+        // حفظ المعاملات التجريبية في قاعدة البيانات المحلية
+        for (const tx of mockTxs) {
+          await collection.insertOne(tx);
+        }
+        
+        return mockTxs.map(tx => ({
+          id: tx._id,
+          userId: tx.userId,
+          amount: tx.amount,
+          type: tx.type as 'deposit' | 'purchase',
+          status: tx.status as 'completed',
+          description: tx.description,
+          createdAt: tx.createdAt,
+        }));
       }
       
-      return transactions.map(transaction => ({
+      return userTransactions.map(transaction => ({
         id: transaction._id.toString(),
         userId: transaction.userId,
         amount: transaction.amount,
@@ -357,7 +390,7 @@ export const api = {
       const collection = await getCollection('transactions');
       
       const transaction = {
-        userId: '1', // Replace with actual user ID from auth context
+        userId: '1', // استبدل برقم المستخدم الفعلي من سياق المصادقة
         amount,
         type: 'deposit',
         status: 'completed',
@@ -385,26 +418,12 @@ export const api = {
     }
   },
 
-  // Initialize data
+  // تهيئة قاعدة البيانات
   initDatabaseIfEmpty: async () => {
     try {
-      // Check and populate countries
-      const countriesCollection = await getCollection('countries');
-      const countriesCount = await countriesCollection.countDocuments();
-      
-      if (countriesCount === 0) {
-        await countriesCollection.insertMany(mockCountries.map(({ id, ...country }) => country));
-        console.log('تم تهيئة بيانات الدول');
-      }
-      
-      // Check and populate providers
-      const providersCollection = await getCollection('providers');
-      const providersCount = await providersCollection.countDocuments();
-      
-      if (providersCount === 0) {
-        await providersCollection.insertMany(mockProviders.map(({ id, ...provider }) => provider));
-        console.log('تم تهيئة بيانات مزودي الخدمة');
-      }
+      // قم باستدعاء initLocalData لتهيئة البيانات
+      await api.initLocalData();
+      console.log('تم تهيئة قاعدة البيانات المحلية');
     } catch (error) {
       console.error('خطأ في تهيئة قاعدة البيانات:', error);
     }

@@ -21,8 +21,8 @@ const queryClient = new QueryClient();
 
 const App = () => {
   useEffect(() => {
-    // تهيئة قاعدة البيانات عند بدء التشغيل
-    api.initDatabaseIfEmpty().catch(console.error);
+    // تهيئة البيانات المحلية
+    api.initLocalData().catch(console.error);
   }, []);
 
   return (
