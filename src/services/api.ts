@@ -52,6 +52,63 @@ export interface Transaction {
   createdAt: string;
 }
 
+// Define the database item interfaces with the same fields as the export interfaces
+interface DbCountry {
+  _id: string;
+  name: string;
+  flag: string;
+  code: string;
+  available: boolean;
+  [key: string]: any;
+}
+
+interface DbProvider {
+  _id: string;
+  name: string;
+  logo?: string;
+  description?: string;
+  countries: string[];
+  isActive: boolean;
+  [key: string]: any;
+}
+
+interface DbPhoneNumber {
+  _id: string;
+  number: string;
+  country: string;
+  provider: string;
+  status: 'available' | 'sold' | 'expired';
+  price: number;
+  [key: string]: any;
+}
+
+interface DbSupportTicket {
+  _id: string;
+  userId: string;
+  subject: string;
+  message: string;
+  status: 'open' | 'closed';
+  createdAt: string;
+  responses: {
+    id: string;
+    message: string;
+    fromAdmin: boolean;
+    createdAt: string;
+  }[];
+  [key: string]: any;
+}
+
+interface DbTransaction {
+  _id: string;
+  userId: string;
+  amount: number;
+  type: 'deposit' | 'purchase';
+  status: 'pending' | 'completed' | 'failed';
+  description: string;
+  createdAt: string;
+  [key: string]: any;
+}
+
 // Mock data as alternative
 const mockCountries: Country[] = [
   { id: '1', name: 'المملكة العربية السعودية', flag: '🇸🇦', code: 'sa', available: true },
@@ -99,7 +156,7 @@ export const api = {
   getCountries: async (): Promise<Country[]> => {
     try {
       const collection = await getCollection('countries');
-      const countries = await collection.find().toArray();
+      const countries = await collection.find().toArray() as DbCountry[];
       
       return countries.map(country => ({
         id: country._id.toString(),
@@ -117,7 +174,7 @@ export const api = {
   getAvailableCountries: async (): Promise<Country[]> => {
     try {
       const collection = await getCollection('countries');
-      const countries = await collection.find().toArray();
+      const countries = await collection.find().toArray() as DbCountry[];
       
       return countries
         .filter(country => country.available)
@@ -138,7 +195,7 @@ export const api = {
   getProviders: async (): Promise<Provider[]> => {
     try {
       const collection = await getCollection('providers');
-      const providers = await collection.find().toArray();
+      const providers = await collection.find().toArray() as DbProvider[];
       
       return providers.map(provider => ({
         id: provider._id.toString(),
@@ -190,7 +247,7 @@ export const api = {
   getPhoneNumbers: async (countryId: string): Promise<PhoneNumber[]> => {
     try {
       const collection = await getCollection('phoneNumbers');
-      const phoneNumbers = await collection.find().toArray();
+      const phoneNumbers = await collection.find().toArray() as DbPhoneNumber[];
       
       const filteredNumbers = phoneNumbers.filter(
         number => (number.country === countryId && number.status === 'available')
@@ -203,7 +260,7 @@ export const api = {
           number: `+${Math.floor(Math.random() * 100000000000)}`,
           country: countryId,
           provider: Math.random() > 0.5 ? '1' : '2',
-          status: 'available',
+          status: 'available' as const,
           price: Math.floor(Math.random() * 5) + 1,
         }));
         
@@ -217,7 +274,7 @@ export const api = {
           number: number.number,
           country: number.country,
           provider: number.provider,
-          status: number.status as 'available',
+          status: number.status,
           price: number.price,
         }));
       }
@@ -227,7 +284,7 @@ export const api = {
         number: number.number || '',
         country: number.country || '',
         provider: number.provider || '',
-        status: (number.status as 'available' | 'sold' | 'expired') || 'available',
+        status: number.status || 'available',
         price: number.price || 0,
       }));
     } catch (error) {
@@ -255,7 +312,7 @@ export const api = {
       );
       
       // Get updated number details
-      const phoneNumber = await phoneCollection.findOne({ _id: numberId });
+      const phoneNumber = await phoneCollection.findOne({ _id: numberId }) as DbPhoneNumber;
       
       if (!phoneNumber) {
         throw new Error('Phone number not found');
@@ -330,7 +387,7 @@ export const api = {
   getTransactions: async (): Promise<Transaction[]> => {
     try {
       const collection = await getCollection('transactions');
-      const transactions = await collection.find().toArray();
+      const transactions = await collection.find().toArray() as DbTransaction[];
       
       const userTransactions = transactions.filter(tx => tx.userId === '1'); // Replace with actual user ID
       
@@ -344,7 +401,7 @@ export const api = {
           status: 'completed',
           description: Math.random() > 0.5 ? 'Balance deposit' : 'Virtual number purchase',
           createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-        }));
+        } as DbTransaction));
         
         // Save mock transactions to local database
         for (const tx of mockTxs) {
@@ -366,8 +423,8 @@ export const api = {
         id: transaction._id.toString(),
         userId: transaction.userId || '1',
         amount: transaction.amount || 0,
-        type: (transaction.type as 'deposit' | 'purchase') || 'deposit',
-        status: (transaction.status as 'pending' | 'completed' | 'failed') || 'completed',
+        type: transaction.type || 'deposit',
+        status: transaction.status || 'completed',
         description: transaction.description || '',
         createdAt: transaction.createdAt || new Date().toISOString(),
       }));
