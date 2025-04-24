@@ -8,8 +8,11 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { api, Provider, Country } from '@/services/api';
-import { Server, Plus, Globe, Edit, Save, Trash2 } from 'lucide-react';
+import { Server, Plus, Globe, Check, Save, Trash2, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { fiveSimApi } from '@/services/fiveSimService';
 
 const Providers = () => {
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -21,8 +24,13 @@ const Providers = () => {
     description: '',
     countries: [] as string[],
     isActive: true,
+    apiKey: '',
+    apiUrl: '',
   });
   const [openNewProviderDialog, setOpenNewProviderDialog] = useState(false);
+  const [testingProviderConnection, setTestingProviderConnection] = useState<string | null>(null);
+  const [connectionStatuses, setConnectionStatuses] = useState<Record<string, boolean>>({});
+  const [apiKeyVisible, setApiKeyVisible] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchData();
@@ -37,8 +45,14 @@ const Providers = () => {
       ]);
       setProviders(providersData);
       setCountries(countriesData);
+      
+      // Test connection for each provider
+      for (const provider of providersData) {
+        testProviderConnection(provider.id);
+      }
     } catch (error) {
       console.error('Failed to fetch data', error);
+      toast.error('فشل في جلب البيانات');
     } finally {
       setIsLoading(false);
     }
@@ -90,9 +104,14 @@ const Providers = () => {
         description: '',
         countries: [],
         isActive: true,
+        apiKey: '',
+        apiUrl: '',
       });
       setOpenNewProviderDialog(false);
       toast.success(`تم إضافة مزود الخدمة ${addedProvider.name} بنجاح`);
+      
+      // Test connection for the new provider
+      testProviderConnection(addedProvider.id);
     } catch (error) {
       console.error('Failed to add provider', error);
       toast.error('حدث خطأ أثناء إضافة مزود الخدمة');
@@ -107,6 +126,103 @@ const Providers = () => {
       
       return { ...prev, countries: updatedCountries };
     });
+  };
+  
+  const testProviderConnection = async (providerId: string) => {
+    setTestingProviderConnection(providerId);
+    try {
+      // Find the provider
+      const provider = providers.find(p => p.id === providerId);
+      if (!provider) return;
+      
+      let success = false;
+      if (provider.name.toLowerCase().includes('5sim')) {
+        // Test 5Sim connection
+        const countries = await fiveSimApi.getCountries();
+        success = countries.length > 0;
+      } else {
+        // Test other providers - implement as needed
+        success = true; // Placeholder
+      }
+      
+      // Update connection status
+      setConnectionStatuses(prev => ({
+        ...prev,
+        [providerId]: success
+      }));
+      
+      if (success) {
+        toast.success(`تم الاتصال بمزود الخدمة ${provider.name} بنجاح`);
+      } else {
+        toast.error(`فشل الاتصال بمزود الخدمة ${provider.name}`);
+      }
+    } catch (error) {
+      console.error(`Failed to test connection for provider ${providerId}:`, error);
+      setConnectionStatuses(prev => ({
+        ...prev,
+        [providerId]: false
+      }));
+      toast.error('فشل اختبار الاتصال بالمزود');
+    } finally {
+      setTestingProviderConnection(null);
+    }
+  };
+  
+  const fetchProviderCountries = async (providerId: string) => {
+    try {
+      const provider = providers.find(p => p.id === providerId);
+      if (!provider) return;
+      
+      toast.info(`جاري جلب الدول المتاحة من ${provider.name}...`);
+      
+      // For 5Sim, we'll use our existing API
+      if (provider.name.toLowerCase().includes('5sim')) {
+        const fiveSimCountries = await fiveSimApi.getCountries();
+        
+        // Convert 5Sim countries to our country format
+        const newCountries: Country[] = fiveSimCountries.map(country => ({
+          id: country.iso,
+          name: country.name,
+          flag: getFlagEmoji(country.iso.toUpperCase()),
+          code: country.iso,
+          available: true
+        }));
+        
+        // Add any new countries to our countries list
+        const existingCountryCodes = countries.map(c => c.code);
+        const uniqueNewCountries = newCountries.filter(c => !existingCountryCodes.includes(c.code));
+        
+        if (uniqueNewCountries.length > 0) {
+          await api.addCountries(uniqueNewCountries);
+          setCountries([...countries, ...uniqueNewCountries]);
+          toast.success(`تم إضافة ${uniqueNewCountries.length} دولة جديدة`);
+        } else {
+          toast.info('لم يتم العثور على دول جديدة');
+        }
+      } else {
+        // For other providers, you'll need to implement their APIs
+        toast.info('هذه الميزة متاحة فقط لمزود 5Sim حاليًا');
+      }
+    } catch (error) {
+      console.error(`Failed to fetch countries from provider ${providerId}:`, error);
+      toast.error('فشل في جلب الدول من المزود');
+    }
+  };
+  
+  // Helper function to get flag emoji from country code
+  const getFlagEmoji = (countryCode: string) => {
+    const codePoints = countryCode
+      .toUpperCase()
+      .split('')
+      .map(char => 127397 + char.charCodeAt(0));
+    return String.fromCodePoint(...codePoints);
+  };
+  
+  const toggleApiKeyVisibility = (providerId: string) => {
+    setApiKeyVisible(prev => ({
+      ...prev,
+      [providerId]: !prev[providerId]
+    }));
   };
 
   if (isLoading) {
@@ -159,6 +275,27 @@ const Providers = () => {
               </div>
               
               <div className="space-y-2">
+                <Label htmlFor="provider-api-url">عنوان API</Label>
+                <Input
+                  id="provider-api-url"
+                  value={newProvider.apiUrl}
+                  onChange={(e) => setNewProvider({...newProvider, apiUrl: e.target.value})}
+                  placeholder="https://api.example.com"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="provider-api-key">مفتاح API</Label>
+                <Input
+                  id="provider-api-key"
+                  value={newProvider.apiKey}
+                  onChange={(e) => setNewProvider({...newProvider, apiKey: e.target.value})}
+                  type="password"
+                  placeholder="أدخل مفتاح API الخاص بالمزود"
+                />
+              </div>
+              
+              <div className="space-y-2">
                 <Label className="block mb-2">مزود نشط</Label>
                 <div className="flex items-center space-x-2">
                   <Switch
@@ -203,11 +340,22 @@ const Providers = () => {
             <CardHeader>
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-brand-100 flex items-center justify-center">
-                    <Server className="h-5 w-5 text-brand-600" />
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                    connectionStatuses[provider.id] ? 'bg-green-100' : 'bg-brand-100'
+                  }`}>
+                    <Server className={`h-5 w-5 ${
+                      connectionStatuses[provider.id] ? 'text-green-600' : 'text-brand-600'
+                    }`} />
                   </div>
                   <div>
-                    <CardTitle>{provider.name}</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <CardTitle>{provider.name}</CardTitle>
+                      {connectionStatuses[provider.id] !== undefined && (
+                        <Badge className={connectionStatuses[provider.id] ? 'bg-green-500' : 'bg-red-500'}>
+                          {connectionStatuses[provider.id] ? 'متصل' : 'غير متصل'}
+                        </Badge>
+                      )}
+                    </div>
                     <CardDescription>{provider.description}</CardDescription>
                   </div>
                 </div>
@@ -222,26 +370,96 @@ const Providers = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Globe className="h-5 w-5 text-gray-500" />
-                  <h3 className="font-medium">الدول المتاحة ({provider.countries.length})</h3>
+                <div className="flex flex-col gap-4">
+                  <div className="flex justify-between items-center border-b pb-2">
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-5 w-5 text-gray-500" />
+                      <h3 className="font-medium">إعدادات API</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className={testingProviderConnection === provider.id ? 'animate-pulse' : ''}
+                        onClick={() => testProviderConnection(provider.id)}
+                      >
+                        <RefreshCw className="h-4 w-4 ml-2" />
+                        اختبار الاتصال
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => fetchProviderCountries(provider.id)}
+                      >
+                        <Globe className="h-4 w-4 ml-2" />
+                        جلب الدول
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor={`api-url-${provider.id}`}>عنوان API</Label>
+                      <Input
+                        id={`api-url-${provider.id}`}
+                        value={(provider as any).apiUrl || ''}
+                        onChange={(e) => setProviders(providers.map(p => 
+                          p.id === provider.id ? { ...p, apiUrl: e.target.value } : p
+                        ))}
+                        placeholder="https://api.example.com"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor={`api-key-${provider.id}`}>مفتاح API</Label>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <Input
+                            id={`api-key-${provider.id}`}
+                            value={(provider as any).apiKey || ''}
+                            onChange={(e) => setProviders(providers.map(p => 
+                              p.id === provider.id ? { ...p, apiKey: e.target.value } : p
+                            ))}
+                            type={apiKeyVisible[provider.id] ? 'text' : 'password'}
+                            placeholder="أدخل مفتاح API الخاص بالمزود"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => toggleApiKeyVisibility(provider.id)}
+                        >
+                          {apiKeyVisible[provider.id] ? "إخفاء" : "إظهار"}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
                 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {countries.map(country => (
-                    <div 
-                      key={country.id} 
-                      className="flex items-center space-x-2"
-                    >
-                      <Switch
-                        checked={provider.countries.includes(country.id)}
-                        onCheckedChange={() => handleToggleCountry(provider.id, country.id)}
-                      />
-                      <span className="mr-2">
-                        {country.flag} {country.name}
-                      </span>
-                    </div>
-                  ))}
+                <div className="border-t pt-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Globe className="h-5 w-5 text-gray-500" />
+                    <h3 className="font-medium">الدول المتاحة ({provider.countries.length})</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {countries.map(country => (
+                      <div 
+                        key={country.id} 
+                        className="flex items-center space-x-2"
+                      >
+                        <Switch
+                          checked={provider.countries.includes(country.id)}
+                          onCheckedChange={() => handleToggleCountry(provider.id, country.id)}
+                        />
+                        <span className="mr-2">
+                          {country.flag} {country.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </CardContent>

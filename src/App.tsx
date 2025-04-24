@@ -14,6 +14,8 @@ import Countries from "./pages/Countries";
 import Balance from "./pages/Balance";
 import Support from "./pages/Support";
 import Providers from "./pages/admin/Providers";
+import CountriesManagement from "./pages/admin/Countries";
+import UsersManagement from "./pages/admin/Users";
 import { useEffect } from "react";
 import { api } from "./services/api";
 
@@ -44,6 +46,8 @@ const App = () => {
                 
                 {/* Admin Routes */}
                 <Route path="admin/providers" element={<Providers />} />
+                <Route path="admin/countries" element={<CountriesManagement />} />
+                <Route path="admin/users" element={<UsersManagement />} />
               </Route>
               
               {/* Redirect root to dashboard or login */}

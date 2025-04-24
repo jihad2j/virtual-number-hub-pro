@@ -16,6 +16,8 @@ export interface Provider {
   description?: string;
   countries: string[]; // Country IDs
   isActive: boolean;
+  apiKey?: string;
+  apiUrl?: string;
 }
 
 export interface PhoneNumber {
@@ -52,6 +54,17 @@ export interface Transaction {
   createdAt: string;
 }
 
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  role: 'admin' | 'user';
+  balance: number;
+  createdAt: string;
+  lastLogin?: string;
+  isActive: boolean;
+}
+
 // Define the database item interfaces with the same fields as the export interfaces
 interface DbCountry {
   _id: string;
@@ -69,6 +82,8 @@ interface DbProvider {
   description?: string;
   countries: string[];
   isActive: boolean;
+  apiKey?: string;
+  apiUrl?: string;
   [key: string]: any;
 }
 
@@ -109,6 +124,18 @@ interface DbTransaction {
   [key: string]: any;
 }
 
+interface DbUser {
+  _id: string;
+  username: string;
+  email: string;
+  role: 'admin' | 'user';
+  balance: number;
+  createdAt: string;
+  lastLogin?: string;
+  isActive: boolean;
+  [key: string]: any;
+}
+
 // Mock data as alternative
 const mockCountries: Country[] = [
   { id: '1', name: 'المملكة العربية السعودية', flag: '🇸🇦', code: 'sa', available: true },
@@ -130,7 +157,9 @@ const mockProviders: Provider[] = [
     logo: '/assets/5sim-logo.png', 
     description: 'المزود الرئيسي للأرقام الافتراضية',
     countries: ['1', '2', '3', '4', '5'], 
-    isActive: true 
+    isActive: true,
+    apiKey: 'eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzUwNzkzNjEsImlhdCI6MTc0MzU0MzM2MSwicmF5IjoiYzViYjRjNWNiZjA0N2U2OTI1OWI0YWUzOTM0MmQ1YjQiLCJzdWIiOjEyODQ5OTF9.b1IL-DlhrrOMhcAnq6pxoucrlboVoSbDbjZAI1kcIV63lAr9Kk0WvmE5KQf8a0WH1nkbGZR71i8sCRxCloIVGp08RFVFGsYpSos7flQtzoZs6_TPbuhwJoJKYgPKjNMZVT1Vi9_ywMGRBuOvsbBn6qcAGOCRLKByGuW8PwS7pxmmJbvsB3HD40ek5vFTHpFTxEwVz4OpAOjbmq-Aj6Vz-bz8ymndpIm6D2yGBhRV9aQ4yRrrG-zHZfA-1ayd6vQz969aQIK6sM2tsXRrPKO-hpbF4f7vtsg-RX41DqcZy3t2BWnlB2JwvTB_lLlrm_al0J4k-pqr6lR9TnjsJ3WXBg',
+    apiUrl: 'https://5sim.net/v1'
   },
   { 
     id: '2', 
@@ -138,7 +167,42 @@ const mockProviders: Provider[] = [
     logo: '/assets/sms-activate-logo.png',
     description: 'خدمة أرقام للتفعيل',
     countries: ['1', '2', '6', '7', '8', '10'], 
-    isActive: true 
+    isActive: true,
+    apiKey: '',
+    apiUrl: 'https://api.sms-activate.org/stubs/handler_api.php'
+  },
+];
+
+const mockUsers: User[] = [
+  {
+    id: '1',
+    username: 'admin',
+    email: 'admin@example.com',
+    role: 'admin',
+    balance: 1000,
+    createdAt: new Date().toISOString(),
+    lastLogin: new Date().toISOString(),
+    isActive: true,
+  },
+  {
+    id: '2',
+    username: 'user1',
+    email: 'user1@example.com',
+    role: 'user',
+    balance: 50,
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    lastLogin: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    isActive: true,
+  },
+  {
+    id: '3',
+    username: 'user2',
+    email: 'user2@example.com',
+    role: 'user',
+    balance: 25,
+    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+    lastLogin: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    isActive: true,
   },
 ];
 
@@ -149,6 +213,7 @@ export const api = {
     // Import initial data
     importData('countries', mockCountries);
     importData('providers', mockProviders);
+    importData('users', mockUsers);
     console.log('Local data initialized');
   },
 
@@ -190,6 +255,30 @@ export const api = {
       return mockCountries.filter(country => country.available);
     }
   },
+  
+  addCountries: async (countries: Omit<Country, 'id'>[]): Promise<Country[]> => {
+    try {
+      const collection = await getCollection('countries');
+      
+      // Add each country
+      const addedCountries: Country[] = [];
+      for (const country of countries) {
+        const result = await collection.insertOne(country);
+        addedCountries.push({
+          ...country,
+          id: result.insertedId.toString()
+        });
+      }
+      
+      return addedCountries;
+    } catch (error) {
+      console.error('Error adding countries:', error);
+      return countries.map((country, index) => ({
+        ...country,
+        id: `temp-${Date.now()}-${index}`
+      }));
+    }
+  },
 
   // Service providers
   getProviders: async (): Promise<Provider[]> => {
@@ -204,6 +293,8 @@ export const api = {
         description: provider.description || '',
         countries: provider.countries || [],
         isActive: provider.isActive || false,
+        apiKey: provider.apiKey || '',
+        apiUrl: provider.apiUrl || '',
       }));
     } catch (error) {
       console.error('Error fetching service providers:', error);
@@ -240,6 +331,17 @@ export const api = {
     } catch (error) {
       console.error('Error adding service provider:', error);
       return { ...provider, id: Math.random().toString(36).substring(7) };
+    }
+  },
+  
+  deleteProvider: async (providerId: string): Promise<boolean> => {
+    try {
+      const collection = await getCollection('providers');
+      const result = await collection.deleteOne({ _id: providerId });
+      return result.deletedCount > 0;
+    } catch (error) {
+      console.error('Error deleting service provider:', error);
+      return false;
     }
   },
 
@@ -346,6 +448,75 @@ export const api = {
         status: 'sold',
         price: Math.floor(Math.random() * 5) + 1,
       };
+    }
+  },
+
+  // Users
+  getUsers: async (): Promise<User[]> => {
+    try {
+      const collection = await getCollection('users');
+      const users = await collection.find().toArray() as DbUser[];
+      
+      return users.map(user => ({
+        id: user._id.toString(),
+        username: user.username || '',
+        email: user.email || '',
+        role: user.role || 'user',
+        balance: user.balance || 0,
+        createdAt: user.createdAt || new Date().toISOString(),
+        lastLogin: user.lastLogin,
+        isActive: user.isActive || false,
+      }));
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      return mockUsers;
+    }
+  },
+  
+  addUser: async (user: Omit<User, 'id'>): Promise<User> => {
+    try {
+      const collection = await getCollection('users');
+      const result = await collection.insertOne({
+        ...user,
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString(),
+      });
+      
+      return { 
+        ...user, 
+        id: result.insertedId.toString() 
+      };
+    } catch (error) {
+      console.error('Error adding user:', error);
+      return { ...user, id: Math.random().toString(36).substring(7) };
+    }
+  },
+  
+  updateUser: async (user: User): Promise<User> => {
+    try {
+      const collection = await getCollection('users');
+      const { id, ...userData } = user;
+      
+      await collection.updateOne(
+        { _id: id },
+        { $set: userData }
+      );
+      
+      return user;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      return user;
+    }
+  },
+  
+  deleteUser: async (userId: string): Promise<boolean> => {
+    try {
+      const collection = await getCollection('users');
+      const result = await collection.deleteOne({ _id: userId });
+      return result.deletedCount > 0;
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      return false;
     }
   },
 
