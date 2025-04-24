@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
-import { DollarSign, Phone, Globe, ShoppingCart, AlertCircle } from 'lucide-react';
+import { DollarSign, Phone, Globe, ShoppingCart, AlertCircle, RefreshCw } from 'lucide-react';
 import { fiveSimApi, FiveSimCountry, FiveSimProduct, FiveSimPhoneNumber } from '@/services/fiveSimService';
 
 const Dashboard = () => {
@@ -17,22 +17,27 @@ const Dashboard = () => {
   const [products, setProducts] = useState<Record<string, FiveSimProduct>>({});
   const [balance, setBalance] = useState<number | null>(null);
   const [purchasedNumber, setPurchasedNumber] = useState<FiveSimPhoneNumber | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   
   // Loading states
   const [isLoadingCountries, setIsLoadingCountries] = useState(false);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Error states
   const [countriesError, setCountriesError] = useState<string | null>(null);
   const [productsError, setProductsError] = useState<string | null>(null);
   const [balanceError, setBalanceError] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
-  // Fetch countries on mount
+  // Fetch countries and balance on mount
   useEffect(() => {
     fetchCountries();
     fetchBalance();
+    fetchUserProfile();
   }, []);
 
   // Fetch countries from 5Sim API
@@ -69,6 +74,49 @@ const Dashboard = () => {
       setBalanceError('فشل في جلب الرصيد، يرجى المحاولة مرة أخرى.');
     } finally {
       setIsLoadingBalance(false);
+    }
+  };
+  
+  // Fetch user profile from 5Sim API
+  const fetchUserProfile = async () => {
+    setIsLoadingProfile(true);
+    setProfileError(null);
+    
+    try {
+      const profileData = await fiveSimApi.getProfile();
+      setUserProfile(profileData);
+      setBalance(profileData.balance); // Update balance from profile data
+    } catch (error) {
+      console.error('Failed to fetch user profile', error);
+      setProfileError('فشل في جلب بيانات المستخدم، يرجى المحاولة مرة أخرى.');
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
+  // Refresh all data
+  const refreshData = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        fetchCountries(),
+        fetchUserProfile(),
+        selectedCountry ? fetchProducts(selectedCountry.iso) : Promise.resolve(),
+        purchasedNumber ? checkNumber(purchasedNumber.id) : Promise.resolve()
+      ]);
+      toast({
+        title: "تم التحديث",
+        description: "تم تحديث البيانات بنجاح",
+      });
+    } catch (error) {
+      console.error('Failed to refresh data', error);
+      toast({
+        title: "خطأ",
+        description: "فشل في تحديث البيانات",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -125,9 +173,39 @@ const Dashboard = () => {
       setIsPurchasing(null);
     }
   };
+  
+  // Check number for updates
+  const checkNumber = async (id: number) => {
+    try {
+      const updatedNumber = await fiveSimApi.checkNumber(id);
+      setPurchasedNumber(updatedNumber);
+      return updatedNumber;
+    } catch (error) {
+      console.error('Failed to check number status', error);
+      toast({
+        title: "خطأ",
+        description: "فشل في التحقق من حالة الرقم.",
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">لوحة التحكم</h1>
+        <Button 
+          variant="outline" 
+          onClick={refreshData} 
+          disabled={isRefreshing}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          تحديث البيانات
+        </Button>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6 flex items-center gap-4">
@@ -189,6 +267,37 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+      
+      {userProfile && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>معلومات الحساب</CardTitle>
+            <CardDescription>بيانات حساب 5sim</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className="text-sm text-gray-500">البريد الإلكتروني</p>
+                <p className="font-bold">{userProfile.email}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">الرصيد</p>
+                <p className="font-bold">{userProfile.balance.toFixed(2)} RUB</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">التقييم</p>
+                <p className="font-bold">{userProfile.rating} / 96</p>
+              </div>
+              {userProfile.default_country && (
+                <div>
+                  <p className="text-sm text-gray-500">الدولة الافتراضية</p>
+                  <p className="font-bold">{userProfile.default_country.name} ({userProfile.default_country.prefix})</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-1">
@@ -326,6 +435,14 @@ const Dashboard = () => {
                   <p className="text-sm text-gray-500">تاريخ الشراء</p>
                   <p className="font-bold">{new Date(purchasedNumber.created_at).toLocaleString()}</p>
                 </div>
+                <div>
+                  <p className="text-sm text-gray-500">الحالة</p>
+                  <p className="font-bold">{purchasedNumber.status}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">تاريخ الانتهاء</p>
+                  <p className="font-bold">{new Date(purchasedNumber.expires).toLocaleString()}</p>
+                </div>
               </div>
               
               <div className="mt-4 space-y-2">
@@ -334,7 +451,9 @@ const Dashboard = () => {
                   <div className="space-y-2">
                     {purchasedNumber.sms.map((sms, index) => (
                       <div key={index} className="border p-3 rounded-lg">
+                        <p className="font-medium">{sms.sender}</p>
                         <p>{sms.text}</p>
+                        {sms.code && <p className="font-bold text-green-600">الكود: {sms.code}</p>}
                         <p className="text-xs text-gray-500">
                           {new Date(sms.created_at).toLocaleString()}
                         </p>
@@ -368,6 +487,49 @@ const Dashboard = () => {
                   }}
                 >
                   إلغاء الرقم
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      await fiveSimApi.banNumber(purchasedNumber.id);
+                      setPurchasedNumber(null);
+                      toast({
+                        title: "تم الحظر",
+                        description: "تم حظر الرقم بنجاح",
+                      });
+                      fetchBalance();
+                    } catch (error) {
+                      toast({
+                        title: "خطأ",
+                        description: "فشل في حظر الرقم",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                >
+                  حظر الرقم
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      await fiveSimApi.finishNumber(purchasedNumber.id);
+                      const updated = await checkNumber(purchasedNumber.id);
+                      toast({
+                        title: "تم الانهاء",
+                        description: "تم انهاء الطلب بنجاح",
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "خطأ",
+                        description: "فشل في انهاء الطلب",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                >
+                  انهاء الطلب
                 </Button>
                 <Button 
                   onClick={async () => {
