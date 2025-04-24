@@ -16,6 +16,8 @@ import Support from "./pages/Support";
 import Providers from "./pages/admin/Providers";
 import CountriesManagement from "./pages/admin/Countries";
 import UsersManagement from "./pages/admin/Users";
+import MyOrders from "./pages/MyOrders";
+import SystemSettings from "./pages/SystemSettings";
 import { useEffect } from "react";
 import { api } from "./services/api";
 
@@ -43,6 +45,8 @@ const App = () => {
                 <Route path="countries" element={<Countries />} />
                 <Route path="balance" element={<Balance />} />
                 <Route path="support" element={<Support />} />
+                <Route path="orders" element={<MyOrders />} />
+                <Route path="settings" element={<SystemSettings />} />
                 
                 {/* Admin Routes */}
                 <Route path="admin/providers" element={<Providers />} />

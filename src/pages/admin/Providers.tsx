@@ -8,11 +8,11 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { api, Provider, Country } from '@/services/api';
-import { Server, Plus, Globe, Check, Save, Trash2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Server, Plus, Globe, Check, Save, Trash2, AlertCircle, RefreshCw, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { fiveSimApi } from '@/services/fiveSimService';
+import { fiveSimApi, phoneServiceApi, smsActivateApi } from '@/services/fiveSimService';
 
 const Providers = () => {
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -31,6 +31,8 @@ const Providers = () => {
   const [testingProviderConnection, setTestingProviderConnection] = useState<string | null>(null);
   const [connectionStatuses, setConnectionStatuses] = useState<Record<string, boolean>>({});
   const [apiKeyVisible, setApiKeyVisible] = useState<Record<string, boolean>>({});
+  const [providerBalances, setProviderBalances] = useState<Record<string, { balance: number; currency: string }>>({});
+  const [fetchingBalance, setFetchingBalance] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -138,8 +140,25 @@ const Providers = () => {
       let success = false;
       if (provider.name.toLowerCase().includes('5sim')) {
         // Test 5Sim connection
-        const countries = await fiveSimApi.getCountries();
-        success = countries.length > 0;
+        try {
+          const countries = await fiveSimApi.getCountries();
+          success = countries.length > 0;
+        } catch (error) {
+          console.error('Failed to test 5Sim connection:', error);
+          success = false;
+        }
+      } else if (provider.name.toLowerCase().includes('smsactivate')) {
+        // Test SMS Activate connection
+        try {
+          if (provider.apiKey) {
+            smsActivateApi.setApiKey(provider.apiKey);
+            await smsActivateApi.getBalance();
+            success = true;
+          }
+        } catch (error) {
+          console.error('Failed to test SMS Activate connection:', error);
+          success = false;
+        }
       } else {
         // Test other providers - implement as needed
         success = true; // Placeholder
@@ -153,6 +172,8 @@ const Providers = () => {
       
       if (success) {
         toast.success(`تم الاتصال بمزود الخدمة ${provider.name} بنجاح`);
+        // After successful connection, fetch balance
+        fetchProviderBalance(providerId);
       } else {
         toast.error(`فشل الاتصال بمزود الخدمة ${provider.name}`);
       }
@@ -168,6 +189,34 @@ const Providers = () => {
     }
   };
   
+  const fetchProviderBalance = async (providerId: string) => {
+    setFetchingBalance(providerId);
+    try {
+      const provider = providers.find(p => p.id === providerId);
+      if (!provider) return;
+      
+      let balance = { balance: 0, currency: "Unknown" };
+      
+      if (provider.name.toLowerCase().includes('5sim')) {
+        balance = await phoneServiceApi.getProviderBalance('5sim');
+      } else if (provider.name.toLowerCase().includes('smsactivate') && provider.apiKey) {
+        balance = await phoneServiceApi.getProviderBalance('smsactivate', provider.apiKey);
+      }
+      
+      setProviderBalances(prev => ({
+        ...prev,
+        [providerId]: balance
+      }));
+      
+      toast.success(`تم جلب رصيد مزود الخدمة ${provider.name} بنجاح`);
+    } catch (error) {
+      console.error(`Failed to fetch balance for provider ${providerId}:`, error);
+      toast.error('فشل في جلب رصيد المزود');
+    } finally {
+      setFetchingBalance(null);
+    }
+  };
+  
   const fetchProviderCountries = async (providerId: string) => {
     try {
       const provider = providers.find(p => p.id === providerId);
@@ -175,12 +224,14 @@ const Providers = () => {
       
       toast.info(`جاري جلب الدول المتاحة من ${provider.name}...`);
       
+      let fetchedCountries: any[] = [];
+      
       // For 5Sim, we'll use our existing API
       if (provider.name.toLowerCase().includes('5sim')) {
-        const fiveSimCountries = await fiveSimApi.getCountries();
+        const fiveSimCountries = await phoneServiceApi.getProviderCountries('5sim');
         
         // Convert 5Sim countries to our country format
-        const newCountries: Country[] = fiveSimCountries.map(country => ({
+        const newCountries: Country[] = fiveSimCountries.map((country: any) => ({
           id: country.iso,
           name: country.name,
           flag: getFlagEmoji(country.iso.toUpperCase()),
@@ -188,9 +239,34 @@ const Providers = () => {
           available: true
         }));
         
+        fetchedCountries = newCountries;
+      } 
+      // For SMS Activate
+      else if (provider.name.toLowerCase().includes('smsactivate') && provider.apiKey) {
+        smsActivateApi.setApiKey(provider.apiKey);
+        const smsActivateCountries = await smsActivateApi.getCountries();
+        
+        // Convert SMS Activate countries to our country format
+        const newCountries: Country[] = smsActivateCountries.map(country => ({
+          id: country.id,
+          name: country.name,
+          flag: country.code ? getFlagEmoji(country.code.toUpperCase()) : '🌍',
+          code: country.code || '',
+          available: true
+        }));
+        
+        fetchedCountries = newCountries;
+      }
+      // For other providers, you'll need to implement their APIs
+      else {
+        toast.info('هذه الميزة غير متاحة لهذا المزود حاليًا');
+        return;
+      }
+      
+      if (fetchedCountries.length > 0) {
         // Add any new countries to our countries list
         const existingCountryCodes = countries.map(c => c.code);
-        const uniqueNewCountries = newCountries.filter(c => !existingCountryCodes.includes(c.code));
+        const uniqueNewCountries = fetchedCountries.filter(c => !existingCountryCodes.includes(c.code));
         
         if (uniqueNewCountries.length > 0) {
           await api.addCountries(uniqueNewCountries);
@@ -200,8 +276,7 @@ const Providers = () => {
           toast.info('لم يتم العثور على دول جديدة');
         }
       } else {
-        // For other providers, you'll need to implement their APIs
-        toast.info('هذه الميزة متاحة فقط لمزود 5Sim حاليًا');
+        toast.warning('لم يتم العثور على أي دول');
       }
     } catch (error) {
       console.error(`Failed to fetch countries from provider ${providerId}:`, error);
@@ -355,6 +430,16 @@ const Providers = () => {
                           {connectionStatuses[provider.id] ? 'متصل' : 'غير متصل'}
                         </Badge>
                       )}
+                      
+                      {/* Show balance if available */}
+                      {providerBalances[provider.id] && (
+                        <Badge className="bg-blue-500 mr-2">
+                          <Wallet className="h-3 w-3 ml-1" />
+                          {providerBalances[provider.id].balance} 
+                          {" "}
+                          {providerBalances[provider.id].currency}
+                        </Badge>
+                      )}
                     </div>
                     <CardDescription>{provider.description}</CardDescription>
                   </div>
@@ -393,6 +478,15 @@ const Providers = () => {
                       >
                         <Globe className="h-4 w-4 ml-2" />
                         جلب الدول
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className={fetchingBalance === provider.id ? 'animate-pulse' : ''}
+                        onClick={() => fetchProviderBalance(provider.id)}
+                      >
+                        <Wallet className="h-4 w-4 ml-2" />
+                        جلب الرصيد
                       </Button>
                     </div>
                   </div>
