@@ -1,3 +1,8 @@
+import { MongoClient, Db } from 'mongodb';
+import { MONGODB_URI, collections } from '../config/mongodb';
+
+let client: MongoClient | null = null;
+let db: Db | null = null;
 
 // خدمة قاعدة البيانات المحلية للتطوير
 // في بيئة الإنتاج، يجب استخدام خادم باكيند حقيقي
@@ -22,19 +27,38 @@ const localDB: LocalDB = {
   users: []
 };
 
-// وظائف التعامل مع قاعدة البيانات المحلية
+// Connect to MongoDB
 export const connectToDatabase = async () => {
-  console.log('تم الاتصال بقاعدة البيانات المحلية');
-  return true;
+  try {
+    if (!client) {
+      client = await MongoClient.connect(MONGODB_URI);
+      db = client.db();
+      console.log('تم الاتصال بقاعدة البيانات بنجاح');
+    }
+    return true;
+  } catch (error) {
+    console.error('خطأ في الاتصال بقاعدة البيانات:', error);
+    return false;
+  }
 };
 
+// وظائف التعامل مع قاعدة البيانات
 export const getCollection = async (collectionName: string) => {
+  if (!db) {
+    await connectToDatabase();
+  }
+
   // التأكد من وجود المجموعة
   if (!localDB[collectionName]) {
     localDB[collectionName] = [];
   }
-  
-  // إرجاع واجهة تشبه MongoDB للتعامل مع المجموعة
+
+  // في حالة الاتصال بقاعدة البيانات
+  if (db) {
+    return db.collection(collections[collectionName as keyof typeof collections]);
+  }
+
+  // إرجاع واجهة تشبه MongoDB للتعامل مع المجموعة المحلية
   return {
     find: (query = {}) => ({
       toArray: async () => {

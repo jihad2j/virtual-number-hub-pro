@@ -4,6 +4,7 @@ import { Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
+import { BottomNav } from './BottomNav';
 
 export const DashboardLayout: React.FC = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -25,9 +26,10 @@ export const DashboardLayout: React.FC = () => {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 pb-20">
           <Outlet />
         </main>
+        <BottomNav />
       </div>
     </div>
   );
