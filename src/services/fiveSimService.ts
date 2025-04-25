@@ -7,10 +7,7 @@ const PROXY_URL = "";
 // Default headers for all requests
 const defaultHeaders = {
   "Authorization": `Bearer ${API_TOKEN}`,
-  "Accept": "application/json",
   "Content-Type": "application/json",
-  "Origin": window.location.origin,
-  "Referer": window.location.origin
 };
 
 // Types used for 5Sim API
