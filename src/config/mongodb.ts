@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb';
 
-export const MONGODB_URI = "mongodb://localhost:27017/sms-service";
+export const MONGODB_URI = "mongodb+srv://zoolka:zzzzz11111@masarproject.daj3l2l.mongodb.net/?retryWrites=true&w=majority&appName=masarproject";
 
 export const collections = {
   users: "users",
