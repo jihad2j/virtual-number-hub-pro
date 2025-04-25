@@ -1,16 +1,19 @@
-import { IS_BROWSER, collections, getQueryId } from '../config/mongodb';
+
+import { IS_BROWSER, collections, getQueryId, ObjectId } from '../config/mongodb';
 import { Document } from 'mongodb';
 
 // Browser-safe imports - only used in non-browser environments
 let MongoClient: any;
-let ObjectId: any;
 
 // Only import MongoDB in non-browser environments
 if (!IS_BROWSER) {
-  // This code will not run in the browser
-  const mongodb = require('mongodb');
-  MongoClient = mongodb.MongoClient;
-  ObjectId = mongodb.ObjectId;
+  try {
+    // This code will not run in the browser
+    const mongodb = require('mongodb');
+    MongoClient = mongodb.MongoClient;
+  } catch (error) {
+    console.error('Failed to import MongoDB in Node environment:', error);
+  }
 }
 
 // Interface definitions
@@ -46,7 +49,7 @@ export const connectToDatabase = async () => {
   
   // This code will not execute in browser environments
   try {
-    if (!db) {
+    if (!db && MongoClient) {
       const client = await MongoClient.connect(process.env.MONGODB_URI);
       db = client.db();
       console.log('Successfully connected to MongoDB database');
