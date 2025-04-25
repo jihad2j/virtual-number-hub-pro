@@ -170,7 +170,7 @@ const mockProviders: Provider[] = [
     description: 'خدمة أرقام للتفعيل',
     countries: ['1', '2', '6', '7', '8', '10'], 
     isActive: true,
-    apiKey: '',
+    apiKey: '89b3e2eeA774ffbcdbe2e4d81fcc4408',
     apiUrl: 'https://api.sms-activate.org/stubs/handler_api.php'
   },
 ];
