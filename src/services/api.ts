@@ -1,5 +1,7 @@
 
 import { importData, getCollection } from './database';
+import { ObjectId } from 'mongodb';
+import { toObjectId, getQueryId } from '../config/mongodb';
 
 export interface Country {
   id: string;
@@ -67,7 +69,7 @@ export interface User {
 
 // Define the database item interfaces with the same fields as the export interfaces
 interface DbCountry {
-  _id: string;
+  _id: string | ObjectId;
   name: string;
   flag: string;
   code: string;
@@ -76,7 +78,7 @@ interface DbCountry {
 }
 
 interface DbProvider {
-  _id: string;
+  _id: string | ObjectId;
   name: string;
   logo?: string;
   description?: string;
@@ -88,7 +90,7 @@ interface DbProvider {
 }
 
 interface DbPhoneNumber {
-  _id: string;
+  _id: string | ObjectId;
   number: string;
   country: string;
   provider: string;
@@ -98,7 +100,7 @@ interface DbPhoneNumber {
 }
 
 interface DbSupportTicket {
-  _id: string;
+  _id: string | ObjectId;
   userId: string;
   subject: string;
   message: string;
@@ -114,7 +116,7 @@ interface DbSupportTicket {
 }
 
 interface DbTransaction {
-  _id: string;
+  _id: string | ObjectId;
   userId: string;
   amount: number;
   type: 'deposit' | 'purchase';
@@ -125,7 +127,7 @@ interface DbTransaction {
 }
 
 interface DbUser {
-  _id: string;
+  _id: string | ObjectId;
   username: string;
   email: string;
   role: 'admin' | 'user';
@@ -263,7 +265,7 @@ export const api = {
       // Add each country
       const addedCountries: Country[] = [];
       for (const country of countries) {
-        const result = await collection.insertOne(country);
+        const result = await collection.insertOne(country as any);
         addedCountries.push({
           ...country,
           id: result.insertedId.toString()
@@ -308,7 +310,7 @@ export const api = {
       const { id, ...providerData } = provider;
       
       await collection.updateOne(
-        { _id: id },
+        { _id: getQueryId(id) },
         { $set: providerData }
       );
       
@@ -322,7 +324,7 @@ export const api = {
   addProvider: async (provider: Omit<Provider, 'id'>): Promise<Provider> => {
     try {
       const collection = await getCollection('providers');
-      const result = await collection.insertOne(provider);
+      const result = await collection.insertOne(provider as any);
       
       return { 
         ...provider, 
@@ -337,7 +339,7 @@ export const api = {
   deleteProvider: async (providerId: string): Promise<boolean> => {
     try {
       const collection = await getCollection('providers');
-      const result = await collection.deleteOne({ _id: providerId });
+      const result = await collection.deleteOne({ _id: getQueryId(providerId) });
       return result.deletedCount > 0;
     } catch (error) {
       console.error('Error deleting service provider:', error);
@@ -358,7 +360,6 @@ export const api = {
       if (filteredNumbers.length === 0) {
         // If no numbers found, create some mock data
         const mockNumbers = Array(5).fill(null).map((_, index) => ({
-          _id: `${countryId}-${index}`,
           number: `+${Math.floor(Math.random() * 100000000000)}`,
           country: countryId,
           provider: Math.random() > 0.5 ? '1' : '2',
@@ -368,16 +369,22 @@ export const api = {
         
         // Save mock numbers in local database
         for (const number of mockNumbers) {
-          await collection.insertOne(number);
+          await collection.insertOne(number as any);
         }
         
-        return mockNumbers.map(number => ({
-          id: number._id,
-          number: number.number,
-          country: number.country,
-          provider: number.provider,
-          status: number.status,
-          price: number.price,
+        // Get the updated numbers with their IDs
+        const savedNumbers = await collection.find().toArray() as DbPhoneNumber[];
+        const filteredSavedNumbers = savedNumbers.filter(
+          number => (number.country === countryId && number.status === 'available')
+        );
+        
+        return filteredSavedNumbers.map(number => ({
+          id: number._id.toString(),
+          number: number.number || '',
+          country: number.country || '',
+          provider: number.provider || '',
+          status: number.status || 'available',
+          price: number.price || 0,
         }));
       }
       
@@ -409,12 +416,12 @@ export const api = {
       
       // Update number status to "sold"
       await phoneCollection.updateOne(
-        { _id: numberId },
+        { _id: getQueryId(numberId) },
         { $set: { status: 'sold' } }
       );
       
       // Get updated number details
-      const phoneNumber = await phoneCollection.findOne({ _id: numberId }) as DbPhoneNumber;
+      const phoneNumber = await phoneCollection.findOne({ _id: getQueryId(numberId) }) as DbPhoneNumber;
       
       if (!phoneNumber) {
         throw new Error('Phone number not found');
@@ -428,7 +435,7 @@ export const api = {
         status: 'completed',
         description: `Purchase of virtual number ${phoneNumber.number || ''}`,
         createdAt: new Date().toISOString(),
-      });
+      } as any);
       
       return {
         id: phoneNumber._id.toString(),
@@ -480,7 +487,7 @@ export const api = {
         ...user,
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
-      });
+      } as any);
       
       return { 
         ...user, 
@@ -498,7 +505,7 @@ export const api = {
       const { id, ...userData } = user;
       
       await collection.updateOne(
-        { _id: id },
+        { _id: getQueryId(id) },
         { $set: userData }
       );
       
@@ -512,7 +519,7 @@ export const api = {
   deleteUser: async (userId: string): Promise<boolean> => {
     try {
       const collection = await getCollection('users');
-      const result = await collection.deleteOne({ _id: userId });
+      const result = await collection.deleteOne({ _id: getQueryId(userId) });
       return result.deletedCount > 0;
     } catch (error) {
       console.error('Error deleting user:', error);
@@ -565,28 +572,31 @@ export const api = {
       if (userTransactions.length === 0) {
         // Create mock transaction data
         const mockTxs = Array(10).fill(null).map((_, index) => ({
-          _id: index.toString(),
           userId: '1',
           amount: Math.random() * 100,
           type: Math.random() > 0.5 ? 'deposit' : 'purchase',
           status: 'completed',
           description: Math.random() > 0.5 ? 'Balance deposit' : 'Virtual number purchase',
           createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-        } as DbTransaction));
+        }));
         
         // Save mock transactions to local database
         for (const tx of mockTxs) {
-          await collection.insertOne(tx);
+          await collection.insertOne(tx as any);
         }
         
-        return mockTxs.map(tx => ({
-          id: tx._id,
-          userId: tx.userId,
-          amount: tx.amount,
-          type: tx.type as 'deposit' | 'purchase',
-          status: tx.status as 'completed',
-          description: tx.description,
-          createdAt: tx.createdAt,
+        // Get the transactions with their IDs
+        const savedTxs = await collection.find().toArray() as DbTransaction[];
+        const filteredTxs = savedTxs.filter(tx => tx.userId === '1');
+        
+        return filteredTxs.map(transaction => ({
+          id: transaction._id.toString(),
+          userId: transaction.userId,
+          amount: transaction.amount,
+          type: transaction.type as 'deposit' | 'purchase',
+          status: transaction.status as 'completed',
+          description: transaction.description,
+          createdAt: transaction.createdAt,
         }));
       }
       
