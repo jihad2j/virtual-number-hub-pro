@@ -1,5 +1,6 @@
-import { MongoClient, Db } from 'mongodb';
-import { MONGODB_URI, collections } from '../config/mongodb';
+
+import { MongoClient, Db, ObjectId, Document } from 'mongodb';
+import { MONGODB_URI, collections, getQueryId } from '../config/mongodb';
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
@@ -69,17 +70,18 @@ export const getCollection = async (collectionName: string) => {
         }));
       }
     }),
-    findOne: async (query: {_id?: string} = {}) => {
+    findOne: async (query: {_id?: string | ObjectId} = {}) => {
       // محاكاة البحث عن عنصر واحد
       const items = localDB[collectionName];
       if (query._id) {
-        return items.find((item: LocalItem) => item._id === query._id) || null;
+        const idString = query._id.toString();
+        return items.find((item: LocalItem) => item._id === idString) || null;
       }
       return items[0] || null;
     },
-    insertOne: async (document: LocalItem) => {
+    insertOne: async (document: Document & {_id?: ObjectId | string} & LocalItem) => {
       // إضافة معرّف محلي إذا لم يكن موجوداً
-      const _id = document._id || `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const _id = document._id?.toString() || `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const newDoc = { ...document, _id };
       
       // إضافة الوثيقة إلى المجموعة
@@ -90,12 +92,12 @@ export const getCollection = async (collectionName: string) => {
         acknowledged: true
       };
     },
-    insertMany: async (documents: LocalItem[]) => {
+    insertMany: async (documents: Document[]) => {
       // إضافة عدة وثائق دفعة واحدة
       const insertedIds = [];
       
       for (const doc of documents) {
-        const _id = doc._id || `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const _id = doc._id?.toString() || `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const newDoc = { ...doc, _id };
         
         localDB[collectionName].push(newDoc);
@@ -108,10 +110,11 @@ export const getCollection = async (collectionName: string) => {
         acknowledged: true
       };
     },
-    updateOne: async (filter: {_id?: string}, update: {$set?: LocalItem}) => {
+    updateOne: async (filter: {_id?: string | ObjectId}, update: {$set?: LocalItem}) => {
       // تحديث وثيقة واحدة
+      const idString = filter._id?.toString();
       const index = localDB[collectionName].findIndex((item: LocalItem) => 
-        filter._id ? item._id === filter._id : true
+        idString ? item._id === idString : true
       );
       
       if (index !== -1) {
@@ -135,12 +138,13 @@ export const getCollection = async (collectionName: string) => {
         acknowledged: true
       };
     },
-    deleteOne: async (filter: {_id?: string}) => {
+    deleteOne: async (filter: {_id?: string | ObjectId}) => {
       // حذف وثيقة واحدة
+      const idString = filter._id?.toString();
       const initialLength = localDB[collectionName].length;
       
       localDB[collectionName] = localDB[collectionName].filter((item: LocalItem) => 
-        filter._id ? item._id !== filter._id : false
+        idString ? item._id !== idString : false
       );
       
       const deletedCount = initialLength - localDB[collectionName].length;
