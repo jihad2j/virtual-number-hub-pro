@@ -1,16 +1,21 @@
+import { IS_BROWSER, collections, getQueryId } from '../config/mongodb';
+import { Document } from 'mongodb';
 
-import { MongoClient, Db, ObjectId, Document } from 'mongodb';
-import { MONGODB_URI, collections, getQueryId } from '../config/mongodb';
+// Browser-safe imports - only used in non-browser environments
+let MongoClient: any;
+let ObjectId: any;
 
-let client: MongoClient | null = null;
-let db: Db | null = null;
+// Only import MongoDB in non-browser environments
+if (!IS_BROWSER) {
+  // This code will not run in the browser
+  const mongodb = require('mongodb');
+  MongoClient = mongodb.MongoClient;
+  ObjectId = mongodb.ObjectId;
+}
 
-// خدمة قاعدة البيانات المحلية للتطوير
-// في بيئة الإنتاج، يجب استخدام خادم باكيند حقيقي
-
-// تخزين بيانات التطبيق محلياً
+// Interface definitions
 interface LocalItem {
-  _id?: string;
+  _id?: string | any; // Allow both string and ObjectId
   id?: string;
   [key: string]: any;
 }
@@ -19,6 +24,7 @@ interface LocalDB {
   [key: string]: LocalItem[];
 }
 
+// Local database for browser environments
 const localDB: LocalDB = {
   countries: [],
   providers: [],
@@ -28,63 +34,70 @@ const localDB: LocalDB = {
   users: []
 };
 
-// Connect to MongoDB
+// Mock database client
+let db: any = null;
+
+// Connect to database function - works differently in browser vs server
 export const connectToDatabase = async () => {
+  if (IS_BROWSER) {
+    console.log('Running in browser environment. Using local storage database.');
+    return true;
+  }
+  
+  // This code will not execute in browser environments
   try {
-    if (!client) {
-      client = await MongoClient.connect(MONGODB_URI);
+    if (!db) {
+      const client = await MongoClient.connect(process.env.MONGODB_URI);
       db = client.db();
-      console.log('تم الاتصال بقاعدة البيانات بنجاح');
+      console.log('Successfully connected to MongoDB database');
     }
     return true;
   } catch (error) {
-    console.error('خطأ في الاتصال بقاعدة البيانات:', error);
+    console.error('Database connection error:', error);
     return false;
   }
 };
 
-// وظائف التعامل مع قاعدة البيانات
+// Get database collection - works in both environments
 export const getCollection = async (collectionName: string) => {
-  if (!db) {
-    await connectToDatabase();
-  }
-
-  // التأكد من وجود المجموعة
+  // Make sure the collection exists in our local DB
   if (!localDB[collectionName]) {
     localDB[collectionName] = [];
   }
 
-  // في حالة الاتصال بقاعدة البيانات
-  if (db) {
+  // If not in browser and connected to real MongoDB, use it
+  if (!IS_BROWSER && db) {
     return db.collection(collections[collectionName as keyof typeof collections]);
   }
 
-  // إرجاع واجهة تشبه MongoDB للتعامل مع المجموعة المحلية
+  // Otherwise return a MongoDB-like interface for the local collection
   return {
     find: (query = {}) => ({
       toArray: async () => {
-        // محاكاة استرجاع البيانات
+        // Simulate data retrieval
         return localDB[collectionName].map((item: LocalItem, index) => ({
           ...item,
           _id: item._id || `local_${index}`
         }));
       }
     }),
-    findOne: async (query: {_id?: string | ObjectId} = {}) => {
-      // محاكاة البحث عن عنصر واحد
+    findOne: async (query: {_id?: string | any} = {}) => {
+      // Simulate finding a single item
       const items = localDB[collectionName];
       if (query._id) {
         const idString = query._id.toString();
-        return items.find((item: LocalItem) => item._id === idString) || null;
+        return items.find((item: LocalItem) => 
+          item._id?.toString() === idString
+        ) || null;
       }
       return items[0] || null;
     },
-    insertOne: async (document: Document & {_id?: ObjectId | string} & LocalItem) => {
-      // إضافة معرّف محلي إذا لم يكن موجوداً
+    insertOne: async (document: Document & {_id?: any} & LocalItem) => {
+      // Generate local ID if none provided
       const _id = document._id?.toString() || `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const newDoc = { ...document, _id };
       
-      // إضافة الوثيقة إلى المجموعة
+      // Add document to collection
       localDB[collectionName].push(newDoc);
       
       return { 
@@ -93,7 +106,7 @@ export const getCollection = async (collectionName: string) => {
       };
     },
     insertMany: async (documents: Document[]) => {
-      // إضافة عدة وثائق دفعة واحدة
+      // Add multiple documents
       const insertedIds = [];
       
       for (const doc of documents) {
@@ -110,11 +123,11 @@ export const getCollection = async (collectionName: string) => {
         acknowledged: true
       };
     },
-    updateOne: async (filter: {_id?: string | ObjectId}, update: {$set?: LocalItem}) => {
-      // تحديث وثيقة واحدة
+    updateOne: async (filter: {_id?: string | any}, update: {$set?: LocalItem}) => {
+      // Update a document
       const idString = filter._id?.toString();
       const index = localDB[collectionName].findIndex((item: LocalItem) => 
-        idString ? item._id === idString : true
+        idString ? item._id?.toString() === idString : false
       );
       
       if (index !== -1) {
@@ -138,13 +151,13 @@ export const getCollection = async (collectionName: string) => {
         acknowledged: true
       };
     },
-    deleteOne: async (filter: {_id?: string | ObjectId}) => {
-      // حذف وثيقة واحدة
+    deleteOne: async (filter: {_id?: string | any}) => {
+      // Delete a document
       const idString = filter._id?.toString();
       const initialLength = localDB[collectionName].length;
       
       localDB[collectionName] = localDB[collectionName].filter((item: LocalItem) => 
-        idString ? item._id !== idString : false
+        idString ? item._id?.toString() !== idString : false
       );
       
       const deletedCount = initialLength - localDB[collectionName].length;
@@ -155,23 +168,24 @@ export const getCollection = async (collectionName: string) => {
       };
     },
     countDocuments: async () => {
-      // إحصاء عدد الوثائق
+      // Count documents
       return localDB[collectionName].length;
     }
   };
 };
 
+// Close connection - mock implementation for browser
 export const closeConnection = async () => {
-  console.log('تم إغلاق الاتصال بقاعدة البيانات المحلية');
+  console.log('Database connection closed');
   return true;
 };
 
-// استيراد البيانات إلى قاعدة البيانات المحلية
+// Import data helper function
 export const importData = (collectionName: string, data: any[]) => {
   localDB[collectionName] = data.map(item => ({
     ...item,
     _id: item.id || item._id || `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
   }));
   
-  console.log(`تم استيراد ${data.length} سجل إلى ${collectionName}`);
+  console.log(`Imported ${data.length} records to ${collectionName}`);
 };

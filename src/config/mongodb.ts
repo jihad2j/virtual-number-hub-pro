@@ -1,6 +1,11 @@
+
 import { ObjectId } from 'mongodb';
 
-export const MONGODB_URI = "mongodb+srv://zoolka:zzzzz11111@masarproject.daj3l2l.mongodb.net/?retryWrites=true&w=majority&appName=masarproject";
+// Check if we're running in a browser environment
+export const IS_BROWSER = typeof window !== 'undefined';
+
+// Connection URI - Note: in browser environments, this will only be used for formatting
+export const MONGODB_URI = "mongodb://localhost:27017/masarDB";
 
 export const collections = {
   users: "users",
@@ -36,4 +41,3 @@ export const getQueryId = (id: string | ObjectId): ObjectId | string => {
     return id.toString();
   }
 };
- 
