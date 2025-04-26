@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,10 +32,11 @@ const CountriesManagement = () => {
     setIsLoading(true);
     try {
       const countriesData = await api.getCountries();
-      setCountries(countriesData);
+      setCountries(Array.isArray(countriesData) ? countriesData : []);
     } catch (error) {
       console.error('Failed to fetch countries', error);
       toast.error('فشل في جلب بيانات الدول');
+      setCountries([]);
     } finally {
       setIsLoading(false);
     }
@@ -53,10 +53,6 @@ const CountriesManagement = () => {
 
   const handleSaveCountry = async (country: Country) => {
     try {
-      // Update country in database (assuming api has this function)
-      // await api.updateCountry(country);
-      
-      // For now just update in local state
       setCountries(prevCountries => 
         prevCountries.map(c => c.id === country.id ? country : c)
       );
@@ -110,10 +106,12 @@ const CountriesManagement = () => {
     }
   };
 
-  const filteredCountries = countries.filter(country => 
-    country.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    country.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCountries = Array.isArray(countries) 
+    ? countries.filter(country => 
+        country.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        country.code.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
 
   if (isLoading) {
     return (

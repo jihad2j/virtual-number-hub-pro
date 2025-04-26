@@ -1,4 +1,3 @@
-
 import apiClient from './apiClient';
 import { toast } from 'sonner';
 import { getQueryId } from '../config/mongodb';
@@ -105,7 +104,8 @@ export const api = {
   getCountries: async (): Promise<Country[]> => {
     try {
       const response = await apiClient.get('/countries');
-      return response.data;
+      return Array.isArray(response.data) ? response.data : 
+             (Array.isArray(response.data.data) ? response.data.data : []);
     } catch (error) {
       console.error('Error fetching countries:', error);
       toast.error('فشل في جلب الدول');
