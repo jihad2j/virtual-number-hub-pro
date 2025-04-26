@@ -1,37 +1,33 @@
 
-import { Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { toast } from '@/components/ui/use-toast';
-import { IS_BROWSER } from '../config/mongodb';
+import { useAuth } from '../contexts/AuthContext';
 
 const Index = () => {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
   useEffect(() => {
-    // Check if we're in a browser environment
-    if (IS_BROWSER) {
-      console.log('Running in browser environment. Using local storage database.');
-      toast({
-        title: "Browser Environment Detected",
-        description: "Using local storage mode for database operations.",
-      });
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    } else {
+      navigate('/login');
     }
+    
+    // Initialize local data if needed
+    const initData = async () => {
+      try {
+        await api.initLocalData();
+      } catch (error) {
+        console.error('Failed to initialize data:', error);
+      }
+    };
+    
+    initData();
+  }, [isAuthenticated, navigate]);
 
-    // Initialize database
-    api.initDatabaseIfEmpty()
-      .then(() => {
-        console.log('Database initialized successfully');
-      })
-      .catch((error) => {
-        console.error('Error initializing database:', error);
-        toast({
-          title: "Database Error",
-          description: "Failed to initialize database. Using local storage mode.",
-          variant: "destructive"
-        });
-      });
-  }, []);
-
-  return <Navigate to="/dashboard" replace />;
+  return <div></div>;
 };
 
 export default Index;

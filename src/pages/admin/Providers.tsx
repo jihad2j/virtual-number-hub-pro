@@ -46,7 +46,7 @@ const Providers = () => {
         api.getCountries()
       ]);
       setProviders(providersData);
-      setCountries(countriesData);
+      setCountries(countriesData || []); // Ensure countries is always an array
       
       // Test connection for each provider
       for (const provider of providersData) {
@@ -384,15 +384,19 @@ const Providers = () => {
               <div className="space-y-2">
                 <Label className="block mb-2">الدول المتاحة</Label>
                 <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                  {countries.map(country => (
-                    <div key={country.id} className="flex items-center space-x-2">
-                      <Switch
-                        checked={newProvider.countries.includes(country.id)}
-                        onCheckedChange={() => handleToggleNewProviderCountry(country.id)}
-                      />
-                      <span className="mr-2">{country.flag} {country.name}</span>
-                    </div>
-                  ))}
+                  {Array.isArray(countries) && countries.length > 0 ? (
+                    countries.map(country => (
+                      <div key={country.id} className="flex items-center space-x-2">
+                        <Switch
+                          checked={newProvider.countries.includes(country.id)}
+                          onCheckedChange={() => handleToggleNewProviderCountry(country.id)}
+                        />
+                        <span className="mr-2">{country.flag} {country.name}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div>لا توجد دول متاحة حاليًا</div>
+                  )}
                 </div>
               </div>
             </div>
@@ -539,20 +543,24 @@ const Providers = () => {
                   </div>
                   
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {countries.map(country => (
-                      <div 
-                        key={country.id} 
-                        className="flex items-center space-x-2"
-                      >
-                        <Switch
-                          checked={provider.countries.includes(country.id)}
-                          onCheckedChange={() => handleToggleCountry(provider.id, country.id)}
-                        />
-                        <span className="mr-2">
-                          {country.flag} {country.name}
-                        </span>
-                      </div>
-                    ))}
+                    {Array.isArray(countries) && countries.length > 0 ? (
+                      countries.map(country => (
+                        <div 
+                          key={country.id} 
+                          className="flex items-center space-x-2"
+                        >
+                          <Switch
+                            checked={provider.countries.includes(country.id)}
+                            onCheckedChange={() => handleToggleCountry(provider.id, country.id)}
+                          />
+                          <span className="mr-2">
+                            {country.flag} {country.name}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div>لا توجد دول متاحة حاليًا</div>
+                    )}
                   </div>
                 </div>
               </div>

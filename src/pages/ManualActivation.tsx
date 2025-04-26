@@ -49,7 +49,7 @@ const ManualActivation = () => {
   const fetchServices = async () => {
     try {
       const servicesData = await api.getManualServices();
-      setServices(servicesData.filter(service => service.available));
+      setServices(Array.isArray(servicesData) ? servicesData.filter(service => service.available) : []);
     } catch (error) {
       console.error('Failed to fetch manual services:', error);
       toast.error('فشل في جلب خدمات التفعيل اليدوي');
