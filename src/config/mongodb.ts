@@ -1,4 +1,3 @@
-import { ObjectId } from 'mongodb';
 
 // Check if we're running in a browser environment
 export const IS_BROWSER = typeof window !== 'undefined';
@@ -37,7 +36,8 @@ export const collections = {
   transactions: "transactions",
   providers: "providers",
   countries: "countries",
-  settings: "settings"
+  settings: "settings",
+  manualRequests: "manualRequests" // Added for manual activation requests
 };
 
 // Export ObjectId to use throughout the application

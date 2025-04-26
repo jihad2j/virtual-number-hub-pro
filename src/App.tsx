@@ -16,8 +16,11 @@ import Support from "./pages/Support";
 import Providers from "./pages/admin/Providers";
 import CountriesManagement from "./pages/admin/Countries";
 import UsersManagement from "./pages/admin/Users";
+import ManualRequests from "./pages/admin/ManualRequests";
 import MyOrders from "./pages/MyOrders";
 import SystemSettings from "./pages/SystemSettings";
+import ManualActivation from "./pages/ManualActivation";
+import Index from "./pages/Index";
 import { useEffect } from "react";
 import { api } from "./services/api";
 
@@ -40,6 +43,8 @@ const App = () => {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               
+              <Route path="/" element={<Index />} />
+              
               <Route path="/dashboard" element={<DashboardLayout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="countries" element={<Countries />} />
@@ -47,15 +52,15 @@ const App = () => {
                 <Route path="support" element={<Support />} />
                 <Route path="orders" element={<MyOrders />} />
                 <Route path="settings" element={<SystemSettings />} />
+                <Route path="manual-activation" element={<ManualActivation />} />
                 
                 {/* Admin Routes */}
                 <Route path="admin/providers" element={<Providers />} />
                 <Route path="admin/countries" element={<CountriesManagement />} />
                 <Route path="admin/users" element={<UsersManagement />} />
+                <Route path="admin/manual-requests" element={<ManualRequests />} />
               </Route>
               
-              {/* Redirect root to dashboard or login */}
-              <Route path="/" element={<Login />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

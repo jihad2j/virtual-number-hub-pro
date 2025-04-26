@@ -11,7 +11,9 @@ import {
   Users,
   Server, 
   Menu,
-  X
+  X,
+  PhoneCall,
+  LayoutDashboard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -25,8 +27,9 @@ export const Sidebar: React.FC = () => {
   const toggleSidebar = () => setIsOpen(!isOpen);
 
   const userNavItems = [
-    { path: '/dashboard', label: 'لوحة التحكم', icon: Home },
+    { path: '/dashboard', label: 'لوحة التحكم', icon: LayoutDashboard },
     { path: '/dashboard/countries', label: 'الدول المتاحة', icon: Globe },
+    { path: '/dashboard/manual-activation', label: 'التفعيل اليدوي', icon: PhoneCall },
     { path: '/dashboard/balance', label: 'رصيد الحساب', icon: DollarSign },
     { path: '/dashboard/orders', label: 'طلباتي', icon: ShoppingCart },
     { path: '/dashboard/support', label: 'الدعم الفني', icon: MessageSquare },
@@ -36,6 +39,7 @@ export const Sidebar: React.FC = () => {
     { path: '/dashboard/admin/providers', label: 'مزودي الخدمة', icon: Server },
     { path: '/dashboard/admin/countries', label: 'إدارة الدول', icon: Globe },
     { path: '/dashboard/admin/users', label: 'المستخدمين', icon: Users },
+    { path: '/dashboard/admin/manual-requests', label: 'طلبات التفعيل اليدوي', icon: PhoneCall },
     { path: '/dashboard/admin/settings', label: 'إعدادات النظام', icon: Settings },
   ];
 

@@ -1,4 +1,3 @@
-
 import { importData, getCollection } from './database';
 import { ObjectId } from 'mongodb';
 import { toObjectId, getQueryId } from '../config/mongodb';
@@ -67,7 +66,27 @@ export interface User {
   isActive: boolean;
 }
 
-// Define the database item interfaces with the same fields as the export interfaces
+export interface ManualService {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  available: boolean;
+}
+
+export interface ManualRequest {
+  id: string;
+  userId: string;
+  serviceId: string;
+  serviceName: string;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  notes: string;
+  adminResponse?: string;
+  verificationCode?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 interface DbCountry {
   _id: string | ObjectId;
   name: string;
@@ -138,7 +157,29 @@ interface DbUser {
   [key: string]: any;
 }
 
-// Mock data as alternative
+interface DbManualService {
+  _id: string | ObjectId;
+  name: string;
+  description: string;
+  price: number;
+  available: boolean;
+  [key: string]: any;
+}
+
+interface DbManualRequest {
+  _id: string | ObjectId;
+  userId: string;
+  serviceId: string;
+  serviceName: string;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  notes: string;
+  adminResponse?: string;
+  verificationCode?: string;
+  createdAt: string;
+  updatedAt?: string;
+  [key: string]: any;
+}
+
 const mockCountries: Country[] = [
   { id: '1', name: 'المملكة العربية السعودية', flag: '🇸🇦', code: 'sa', available: true },
   { id: '2', name: 'الإمارات العربية المتحدة', flag: '🇦🇪', code: 'ae', available: true },
@@ -157,7 +198,7 @@ const mockProviders: Provider[] = [
     id: '1', 
     name: '5Sim', 
     logo: '/assets/5sim-logo.png', 
-    description: 'المزود الرئيسي للأرقام الافتراضية',
+    description: 'المزود الرئيس�� للأرقام الافتراضية',
     countries: ['1', '2', '3', '4', '5'], 
     isActive: true,
     apiKey: 'eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzUwNzkzNjEsImlhdCI6MTc0MzU0MzM2MSwicmF5IjoiYzViYjRjNWNiZjA0N2U2OTI1OWI0YWUzOTM0MmQ1YjQiLCJzdWIiOjEyODQ5OTF9.b1IL-DlhrrOMhcAnq6pxoucrlboVoSbDbjZAI1kcIV63lAr9Kk0WvmE5KQf8a0WH1nkbGZR71i8sCRxCloIVGp08RFVFGsYpSos7flQtzoZs6_TPbuhwJoJKYgPKjNMZVT1Vi9_ywMGRBuOvsbBn6qcAGOCRLKByGuW8PwS7pxmmJbvsB3HD40ek5vFTHpFTxEwVz4OpAOjbmq-Aj6Vz-bz8ymndpIm6D2yGBhRV9aQ4yRrrG-zHZfA-1ayd6vQz969aQIK6sM2tsXRrPKO-hpbF4f7vtsg-RX41DqcZy3t2BWnlB2JwvTB_lLlrm_al0J4k-pqr6lR9TnjsJ3WXBg',
@@ -208,18 +249,68 @@ const mockUsers: User[] = [
   },
 ];
 
-// API methods
+const mockManualServices: ManualService[] = [
+  {
+    id: '1',
+    name: 'تفعيل واتساب',
+    description: 'خدمة تفعيل حساب واتساب برقم افتراضي',
+    price: 5,
+    available: true,
+  },
+  {
+    id: '2',
+    name: 'تفعيل تليجرام',
+    description: 'خدمة تفعيل حساب تليجرام برقم افتراضي',
+    price: 4,
+    available: true,
+  },
+];
+
+const mockManualRequests: ManualRequest[] = [
+  {
+    id: '1',
+    userId: '1',
+    serviceId: '1',
+    serviceName: 'تفعيل واتساب',
+    status: 'pending',
+    notes: 'أريد تفعيل رقم واتساب جديد',
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: '2',
+    userId: '1',
+    serviceId: '2',
+    serviceName: 'تفعيل تليجرام',
+    status: 'processing',
+    notes: '',
+    adminResponse: 'سيتم إرسال رمز التفعيل خلال دقائق',
+    verificationCode: '123456',
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: '3',
+    userId: '1',
+    serviceId: '1',
+    serviceName: 'تفعيل واتساب',
+    status: 'completed',
+    notes: '',
+    adminResponse: 'تم تفعيل الرقم بنجاح',
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
 export const api = {
-  // Initialize local data
   initLocalData: async () => {
-    // Import initial data
     importData('countries', mockCountries);
     importData('providers', mockProviders);
     importData('users', mockUsers);
+    importData('manualServices', mockManualServices);
+    importData('manualRequests', mockManualRequests);
     console.log('Local data initialized');
   },
 
-  // Countries
   getCountries: async (): Promise<Country[]> => {
     try {
       const collection = await getCollection('countries');
@@ -262,7 +353,6 @@ export const api = {
     try {
       const collection = await getCollection('countries');
       
-      // Add each country
       const addedCountries: Country[] = [];
       for (const country of countries) {
         const result = await collection.insertOne(country as any);
@@ -282,7 +372,6 @@ export const api = {
     }
   },
 
-  // Service providers
   getProviders: async (): Promise<Provider[]> => {
     try {
       const collection = await getCollection('providers');
@@ -347,7 +436,6 @@ export const api = {
     }
   },
 
-  // Phone numbers
   getPhoneNumbers: async (countryId: string): Promise<PhoneNumber[]> => {
     try {
       const collection = await getCollection('phoneNumbers');
@@ -358,7 +446,6 @@ export const api = {
       );
       
       if (filteredNumbers.length === 0) {
-        // If no numbers found, create some mock data
         const mockNumbers = Array(5).fill(null).map((_, index) => ({
           number: `+${Math.floor(Math.random() * 100000000000)}`,
           country: countryId,
@@ -367,12 +454,10 @@ export const api = {
           price: Math.floor(Math.random() * 5) + 1,
         }));
         
-        // Save mock numbers in local database
         for (const number of mockNumbers) {
           await collection.insertOne(number as any);
         }
         
-        // Get the updated numbers with their IDs
         const savedNumbers = await collection.find().toArray() as DbPhoneNumber[];
         const filteredSavedNumbers = savedNumbers.filter(
           number => (number.country === countryId && number.status === 'available')
@@ -414,22 +499,19 @@ export const api = {
       const phoneCollection = await getCollection('phoneNumbers');
       const transactionCollection = await getCollection('transactions');
       
-      // Update number status to "sold"
       await phoneCollection.updateOne(
         { _id: getQueryId(numberId) },
         { $set: { status: 'sold' } }
       );
       
-      // Get updated number details
       const phoneNumber = await phoneCollection.findOne({ _id: getQueryId(numberId) }) as DbPhoneNumber;
       
       if (!phoneNumber) {
         throw new Error('Phone number not found');
       }
       
-      // Create purchase transaction record
       await transactionCollection.insertOne({
-        userId: '1', // Replace with actual user ID from auth context
+        userId: '1',
         amount: phoneNumber.price || 0,
         type: 'purchase',
         status: 'completed',
@@ -458,7 +540,6 @@ export const api = {
     }
   },
 
-  // Users
   getUsers: async (): Promise<User[]> => {
     try {
       const collection = await getCollection('users');
@@ -527,13 +608,12 @@ export const api = {
     }
   },
 
-  // Support tickets
   createSupportTicket: async (subject: string, message: string): Promise<SupportTicket> => {
     try {
       const collection = await getCollection('supportTickets');
       
       const ticket = {
-        userId: '1', // Replace with actual user ID from auth context
+        userId: '1',
         subject,
         message,
         status: 'open',
@@ -561,16 +641,14 @@ export const api = {
     }
   },
 
-  // Financial transactions
   getTransactions: async (): Promise<Transaction[]> => {
     try {
       const collection = await getCollection('transactions');
       const transactions = await collection.find().toArray() as DbTransaction[];
       
-      const userTransactions = transactions.filter(tx => tx.userId === '1'); // Replace with actual user ID
+      const userTransactions = transactions.filter(tx => tx.userId === '1');
       
       if (userTransactions.length === 0) {
-        // Create mock transaction data
         const mockTxs = Array(10).fill(null).map((_, index) => ({
           userId: '1',
           amount: Math.random() * 100,
@@ -580,23 +658,21 @@ export const api = {
           createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
         }));
         
-        // Save mock transactions to local database
         for (const tx of mockTxs) {
           await collection.insertOne(tx as any);
         }
         
-        // Get the transactions with their IDs
         const savedTxs = await collection.find().toArray() as DbTransaction[];
         const filteredTxs = savedTxs.filter(tx => tx.userId === '1');
         
         return filteredTxs.map(transaction => ({
           id: transaction._id.toString(),
-          userId: transaction.userId,
-          amount: transaction.amount,
-          type: transaction.type as 'deposit' | 'purchase',
-          status: transaction.status as 'completed',
-          description: transaction.description,
-          createdAt: transaction.createdAt,
+          userId: transaction.userId || '1',
+          amount: transaction.amount || 0,
+          type: transaction.type || 'deposit',
+          status: transaction.status || 'completed',
+          description: transaction.description || '',
+          createdAt: transaction.createdAt || new Date().toISOString(),
         }));
       }
       
@@ -628,7 +704,7 @@ export const api = {
       const collection = await getCollection('transactions');
       
       const transaction = {
-        userId: '1', // Replace with actual user ID from auth context
+        userId: '1',
         amount,
         type: 'deposit',
         status: 'completed',
@@ -656,14 +732,313 @@ export const api = {
     }
   },
 
-  // Initialize database
   initDatabaseIfEmpty: async () => {
     try {
-      // Call initLocalData to initialize data
       await api.initLocalData();
       console.log('Local database initialized');
     } catch (error) {
       console.error('Error initializing database:', error);
     }
-  }
+  },
+
+  getManualServices: async (): Promise<ManualService[]> => {
+    try {
+      const collection = await getCollection('manualServices');
+      const services = await collection.find().toArray();
+      
+      return services.map(service => ({
+        id: service._id.toString(),
+        name: service.name || '',
+        description: service.description || '',
+        price: service.price || 0,
+        available: service.available !== false,
+      }));
+    } catch (error) {
+      console.error('Error fetching manual services:', error);
+      return [
+        {
+          id: '1',
+          name: 'تفعيل واتساب',
+          description: 'خدمة تفعيل حساب واتساب برقم افتراضي',
+          price: 5,
+          available: true,
+        },
+        {
+          id: '2',
+          name: 'تفعيل تليجرام',
+          description: 'خدمة تفعيل حساب تليجرام برقم افتراضي',
+          price: 4,
+          available: true,
+        },
+      ];
+    }
+  },
+
+  createManualService: async (service: Omit<ManualService, 'id'>): Promise<ManualService> => {
+    try {
+      const collection = await getCollection('manualServices');
+      const result = await collection.insertOne(service as any);
+      
+      return { 
+        ...service, 
+        id: result.insertedId.toString() 
+      };
+    } catch (error) {
+      console.error('Error creating manual service:', error);
+      return { 
+        ...service, 
+        id: Math.random().toString(36).substring(7) 
+      };
+    }
+  },
+
+  updateManualService: async (service: ManualService): Promise<ManualService> => {
+    try {
+      const collection = await getCollection('manualServices');
+      const { id, ...serviceData } = service;
+      
+      await collection.updateOne(
+        { _id: getQueryId(id) },
+        { $set: serviceData }
+      );
+      
+      return service;
+    } catch (error) {
+      console.error('Error updating manual service:', error);
+      return service;
+    }
+  },
+
+  deleteManualService: async (serviceId: string): Promise<boolean> => {
+    try {
+      const collection = await getCollection('manualServices');
+      const result = await collection.deleteOne({ _id: getQueryId(serviceId) });
+      return result.deletedCount > 0;
+    } catch (error) {
+      console.error('Error deleting manual service:', error);
+      return false;
+    }
+  },
+
+  createManualRequest: async (request: { serviceId: string; notes?: string }): Promise<ManualRequest> => {
+    try {
+      const collection = await getCollection('manualRequests');
+      const servicesCollection = await getCollection('manualServices');
+      
+      const service = await servicesCollection.findOne({ _id: getQueryId(request.serviceId) });
+      
+      if (!service) {
+        throw new Error('Service not found');
+      }
+      
+      const newRequest = {
+        userId: '1',
+        serviceId: request.serviceId,
+        serviceName: service.name,
+        status: 'pending',
+        notes: request.notes || '',
+        createdAt: new Date().toISOString(),
+      };
+      
+      const result = await collection.insertOne(newRequest as any);
+      
+      return {
+        ...newRequest,
+        id: result.insertedId.toString(),
+      } as ManualRequest;
+    } catch (error) {
+      console.error('Error creating manual request:', error);
+      
+      return {
+        id: Math.random().toString(36).substring(7),
+        userId: '1',
+        serviceId: request.serviceId,
+        serviceName: 'خدمة التفعيل',
+        status: 'pending',
+        notes: request.notes || '',
+        createdAt: new Date().toISOString(),
+      } as ManualRequest;
+    }
+  },
+
+  getUserManualRequests: async (): Promise<ManualRequest[]> => {
+    try {
+      const collection = await getCollection('manualRequests');
+      const userId = '1';
+      
+      const requests = await collection.find({ userId }).toArray();
+      
+      return requests.map(request => ({
+        id: request._id.toString(),
+        userId: request.userId,
+        serviceId: request.serviceId,
+        serviceName: request.serviceName,
+        status: request.status,
+        notes: request.notes || '',
+        adminResponse: request.adminResponse,
+        verificationCode: request.verificationCode,
+        createdAt: request.createdAt,
+        updatedAt: request.updatedAt,
+      }));
+    } catch (error) {
+      console.error('Error fetching user manual requests:', error);
+      
+      return [
+        {
+          id: '1',
+          userId: '1',
+          serviceId: '1',
+          serviceName: 'تفعيل واتساب',
+          status: 'pending',
+          notes: 'أريد تفعيل رقم واتساب جديد',
+          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          id: '2',
+          userId: '1',
+          serviceId: '2',
+          serviceName: 'تفعيل تليجرام',
+          status: 'processing',
+          notes: '',
+          adminResponse: 'سيتم إرسال رمز التفعيل خلال دقائق',
+          verificationCode: '123456',
+          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          updatedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          id: '3',
+          userId: '1',
+          serviceId: '1',
+          serviceName: 'تفعيل واتساب',
+          status: 'completed',
+          notes: '',
+          adminResponse: 'تم تفعيل الرقم بنجاح',
+          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          updatedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+      ];
+    }
+  },
+
+  getAllManualRequests: async (): Promise<ManualRequest[]> => {
+    try {
+      const collection = await getCollection('manualRequests');
+      const requests = await collection.find().toArray();
+      
+      const usersCollection = await getCollection('users');
+      const users = await usersCollection.find().toArray();
+      
+      return requests.map(request => {
+        const user = users.find(u => u._id.toString() === request.userId);
+        
+        return {
+          id: request._id.toString(),
+          userId: request.userId,
+          userName: user?.username || '',
+          userEmail: user?.email || '',
+          serviceId: request.serviceId,
+          serviceName: request.serviceName,
+          status: request.status,
+          notes: request.notes || '',
+          adminResponse: request.adminResponse,
+          verificationCode: request.verificationCode,
+          createdAt: request.createdAt,
+          updatedAt: request.updatedAt,
+        };
+      });
+    } catch (error) {
+      console.error('Error fetching all manual requests:', error);
+      
+      return [
+        {
+          id: '1',
+          userId: '1',
+          userName: 'user1',
+          userEmail: 'user1@example.com',
+          serviceId: '1',
+          serviceName: 'تفعيل واتساب',
+          status: 'pending',
+          notes: 'أريد تفعيل رقم واتساب جديد',
+          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          id: '2',
+          userId: '2',
+          userName: 'user2',
+          userEmail: 'user2@example.com',
+          serviceId: '2',
+          serviceName: 'تفعيل تليجرام',
+          status: 'processing',
+          notes: '',
+          adminResponse: 'سيتم إرسال رمز التفعيل خلال دقائق',
+          verificationCode: '123456',
+          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+          updatedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+        },
+      ];
+    }
+  },
+
+  respondToManualRequest: async (requestId: string, response: {
+    adminResponse?: string;
+    verificationCode?: string;
+    status?: 'pending' | 'processing' | 'completed' | 'cancelled';
+  }): Promise<boolean> => {
+    try {
+      const collection = await getCollection('manualRequests');
+      
+      const updateData = {
+        ...response,
+        updatedAt: new Date().toISOString()
+      };
+      
+      const result = await collection.updateOne(
+        { _id: getQueryId(requestId) },
+        { $set: updateData }
+      );
+      
+      return result.modifiedCount > 0;
+    } catch (error) {
+      console.error('Error responding to manual request:', error);
+      return true;
+    }
+  },
+
+  updateManualRequestStatus: async (requestId: string, status: 'processing' | 'completed' | 'cancelled'): Promise<boolean> => {
+    try {
+      const collection = await getCollection('manualRequests');
+      
+      const result = await collection.updateOne(
+        { _id: getQueryId(requestId) },
+        { $set: { 
+          status,
+          updatedAt: new Date().toISOString()
+        }}
+      );
+      
+      return result.modifiedCount > 0;
+    } catch (error) {
+      console.error('Error updating manual request status:', error);
+      return true;
+    }
+  },
+
+  confirmManualRequest: async (requestId: string): Promise<boolean> => {
+    try {
+      const collection = await getCollection('manualRequests');
+      
+      const result = await collection.updateOne(
+        { _id: getQueryId(requestId) },
+        { $set: { 
+          status: 'completed',
+          updatedAt: new Date().toISOString()
+        }}
+      );
+      
+      return result.modifiedCount > 0;
+    } catch (error) {
+      console.error('Error confirming manual request:', error);
+      return true;
+    }
+  },
 };
