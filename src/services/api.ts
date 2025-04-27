@@ -1,3 +1,4 @@
+
 import apiClient from './apiClient';
 import { toast } from 'sonner';
 import { getQueryId } from '../config/mongodb';
@@ -104,8 +105,21 @@ export const api = {
   getCountries: async (): Promise<Country[]> => {
     try {
       const response = await apiClient.get('/countries');
-      return Array.isArray(response.data) ? response.data : 
-             (Array.isArray(response.data.data) ? response.data.data : []);
+      // تحقق من هيكل البيانات واستخراج مصفوفة الدول بشكل صحيح
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        // إذا كانت البيانات موجودة في حقل data
+        return response.data.data.map((country: any) => ({
+          id: country.id || country._id,
+          name: country.name,
+          flag: country.flag,
+          code: country.code,
+          available: country.available
+        }));
+      } else if (Array.isArray(response.data)) {
+        // إذا كانت البيانات مباشرة في response.data
+        return response.data;
+      }
+      return [];
     } catch (error) {
       console.error('Error fetching countries:', error);
       toast.error('فشل في جلب الدول');
@@ -116,7 +130,19 @@ export const api = {
   getAvailableCountries: async (): Promise<Country[]> => {
     try {
       const response = await apiClient.get('/countries/available');
-      return response.data;
+      // تطبيق نفس منطق المعالجة كما في getCountries
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data.map((country: any) => ({
+          id: country.id || country._id,
+          name: country.name,
+          flag: country.flag,
+          code: country.code,
+          available: country.available
+        }));
+      } else if (Array.isArray(response.data)) {
+        return response.data;
+      }
+      return [];
     } catch (error) {
       console.error('Error fetching available countries:', error);
       toast.error('فشل في جلب الدول المتاحة');
@@ -127,7 +153,12 @@ export const api = {
   addCountries: async (countries: Omit<Country, 'id'>[]): Promise<Country[]> => {
     try {
       const response = await apiClient.post('/countries', countries);
-      return response.data;
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data;
+      } else if (Array.isArray(response.data)) {
+        return response.data;
+      }
+      return [];
     } catch (error) {
       console.error('Error adding countries:', error);
       toast.error('فشل في إضافة الدول');

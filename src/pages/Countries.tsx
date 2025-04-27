@@ -17,18 +17,23 @@ const Countries = () => {
   const fetchCountries = async () => {
     setIsLoading(true);
     try {
-      const data = await api.getCountries();
-      setCountries(data);
+      console.log("Fetching countries for user view...");
+      const data = await api.getAvailableCountries();
+      console.log("Fetched countries for user:", data);
+      setCountries(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to fetch countries', error);
+      setCountries([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const filteredCountries = countries.filter(country => 
-    country.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCountries = Array.isArray(countries) 
+    ? countries.filter(country => 
+        country.name.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
 
   return (
     <div className="space-y-6">
@@ -61,15 +66,10 @@ const Countries = () => {
               {filteredCountries.map(country => (
                 <div 
                   key={country.id} 
-                  className={`border rounded-lg p-4 text-center card-hover ${country.available ? 'bg-white' : 'bg-gray-50'}`}
+                  className="border rounded-lg p-4 text-center card-hover bg-white hover:shadow-md transition-all cursor-pointer"
                 >
                   <div className="text-4xl mb-2">{country.flag}</div>
                   <h3 className="font-medium">{country.name}</h3>
-                  <div className={`text-sm mt-2 inline-block px-2 py-1 rounded-full ${
-                    country.available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                  }`}>
-                    {country.available ? 'متاحة' : 'غير متاحة'}
-                  </div>
                 </div>
               ))}
             </div>

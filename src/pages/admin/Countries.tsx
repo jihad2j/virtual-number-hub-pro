@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ const CountriesManagement = () => {
     setIsLoading(true);
     try {
       const countriesData = await api.getCountries();
+      console.log("Fetched countries data:", countriesData); // للتأكد من البيانات المستلمة
       setCountries(Array.isArray(countriesData) ? countriesData : []);
     } catch (error) {
       console.error('Failed to fetch countries', error);
@@ -53,6 +55,9 @@ const CountriesManagement = () => {
 
   const handleSaveCountry = async (country: Country) => {
     try {
+      // هنا يمكن إضافة استدعاء API لتحديث الدولة في قاعدة البيانات
+      // await api.updateCountry(country);
+      
       setCountries(prevCountries => 
         prevCountries.map(c => c.id === country.id ? country : c)
       );
@@ -106,6 +111,7 @@ const CountriesManagement = () => {
     }
   };
 
+  // تأكد من أن countries مصفوفة قبل استخدام filter
   const filteredCountries = Array.isArray(countries) 
     ? countries.filter(country => 
         country.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
