@@ -53,14 +53,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       // Use the API to login with backend authentication
-      const response = await api.login(email, password);
+      const userData = await api.login(email, password);
       
       const user: User = {
-        id: response.user.id,
-        name: response.user.username,
-        email: response.user.email,
-        balance: response.user.balance,
-        role: response.user.role,
+        id: userData.id || userData._id,
+        name: userData.username,
+        email: userData.email,
+        balance: userData.balance,
+        role: userData.role,
       };
 
       setUser(user);
@@ -77,14 +77,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       // Use the API to register with backend
-      const response = await api.register(name, email, password);
+      const userData = await api.register(name, email, password);
       
       const user: User = {
-        id: response.user.id,
-        name: response.user.username,
-        email: response.user.email,
-        balance: response.user.balance || 0,
-        role: response.user.role || 'user',
+        id: userData.id || userData._id,
+        name: userData.username,
+        email: userData.email,
+        balance: userData.balance || 0,
+        role: userData.role || 'user',
       };
 
       setUser(user);
