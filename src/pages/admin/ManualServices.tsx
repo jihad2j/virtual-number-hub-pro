@@ -1,110 +1,287 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { api, ManualService } from '@/services/api';
-import { Plus, Save, Trash2, Settings, CheckCircle } from 'lucide-react';
-import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { api } from "@/services/api";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Loader2, Plus, Edit, DollarSign, Info } from "lucide-react";
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
+interface ManualService {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  available: boolean;
+  image?: string;
+}
+
+const AddServiceDialog = ({ onSuccess }: { onSuccess: () => void }) => {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
+  const [image, setImage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const handleAddService = async () => {
+    if (!name || !description || !price) {
+      toast.error('يرجى ملء جميع الحقول المطلوبة');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.createManualService({
+        name,
+        description,
+        price: Number(price),
+        available: true,
+        image
+      });
+
+      setName('');
+      setDescription('');
+      setPrice('');
+      setImage('');
+      setOpen(false);
+      onSuccess();
+      toast.success('تمت إضافة الخدمة بنجاح');
+    } catch (error) {
+      console.error('Failed to add service:', error);
+      toast.error('فشل في إضافة الخدمة');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="gradient-bg">
+          <Plus className="w-4 h-4 ml-2" />
+          إضافة خدمة جديدة
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>إضافة خدمة تفعيل يدوي جديدة</DialogTitle>
+          <DialogDescription>
+            أدخل تفاصيل الخدمة الجديدة التي تريد إضافتها
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">اسم الخدمة</Label>
+            <Input 
+              id="name" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              placeholder="اسم الخدمة" 
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="description">وصف الخدمة</Label>
+            <Textarea 
+              id="description" 
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)} 
+              placeholder="وصف الخدمة" 
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="price">السعر</Label>
+            <Input 
+              id="price" 
+              type="number" 
+              value={price} 
+              onChange={(e) => setPrice(e.target.value)} 
+              placeholder="سعر الخدمة" 
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="image">رابط الصورة (اختياري)</Label>
+            <Input 
+              id="image" 
+              value={image} 
+              onChange={(e) => setImage(e.target.value)} 
+              placeholder="رابط صورة الخدمة" 
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button 
+            onClick={handleAddService} 
+            className="gradient-bg" 
+            disabled={loading}
+          >
+            {loading ? 'جاري الإضافة...' : 'إضافة الخدمة'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const EditServiceDialog = ({ service, onSuccess }: { service: ManualService, onSuccess: () => void }) => {
+  const [name, setName] = useState(service.name);
+  const [description, setDescription] = useState(service.description);
+  const [price, setPrice] = useState(service.price.toString());
+  const [image, setImage] = useState(service.image || '');
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const handleUpdateService = async () => {
+    if (!name || !description || !price) {
+      toast.error('يرجى ملء جميع الحقول المطلوبة');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.updateManualService(service.id, {
+        name,
+        description,
+        price: Number(price),
+        image
+      });
+
+      setOpen(false);
+      onSuccess();
+      toast.success('تم تحديث الخدمة بنجاح');
+    } catch (error) {
+      console.error('Failed to update service:', error);
+      toast.error('فشل في تحديث الخدمة');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Edit className="w-4 h-4 ml-1" />
+          تعديل
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>تعديل خدمة التفعيل اليدوي</DialogTitle>
+          <DialogDescription>
+            تعديل تفاصيل خدمة "{service.name}"
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit-name">اسم الخدمة</Label>
+            <Input 
+              id="edit-name" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              placeholder="اسم الخدمة" 
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-description">وصف الخدمة</Label>
+            <Textarea 
+              id="edit-description" 
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)} 
+              placeholder="وصف الخدمة" 
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-price">السعر</Label>
+            <Input 
+              id="edit-price" 
+              type="number" 
+              value={price} 
+              onChange={(e) => setPrice(e.target.value)} 
+              placeholder="سعر الخدمة" 
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-image">رابط الصورة (اختياري)</Label>
+            <Input 
+              id="edit-image" 
+              value={image} 
+              onChange={(e) => setImage(e.target.value)} 
+              placeholder="رابط صورة الخدمة" 
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button 
+            onClick={handleUpdateService} 
+            className="gradient-bg" 
+            disabled={loading}
+          >
+            {loading ? 'جاري التحديث...' : 'تحديث الخدمة'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const ManualServices = () => {
   const [services, setServices] = useState<ManualService[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [openNewServiceDialog, setOpenNewServiceDialog] = useState(false);
-  const [serviceToDelete, setServiceToDelete] = useState<string | null>(null);
-  const [newService, setNewService] = useState<Omit<ManualService, 'id'>>({
-    name: '',
-    description: '',
-    price: 0,
-    available: true
-  });
-  const [editingService, setEditingService] = useState<ManualService | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { isAdmin } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
+    if (!isAdmin) {
+      navigate('/dashboard');
+      return;
+    }
     fetchServices();
-  }, []);
+  }, [isAdmin, navigate]);
 
   const fetchServices = async () => {
-    setIsLoading(true);
     try {
-      const data = await api.getManualServices();
-      setServices(data);
+      setLoading(true);
+      const servicesData = await api.getManualServices();
+      setServices(Array.isArray(servicesData) ? servicesData : (servicesData.data || []));
     } catch (error) {
       console.error('Failed to fetch manual services:', error);
       toast.error('فشل في جلب خدمات التفعيل اليدوي');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleAddService = async () => {
-    if (!newService.name) {
-      toast.error('الرجاء إدخال اسم الخدمة');
-      return;
-    }
-
+  const handleToggleAvailability = async (serviceId: string, currentAvailability: boolean) => {
     try {
-      const addedService = await api.createManualService(newService);
-      setServices([...services, addedService]);
-      setNewService({
-        name: '',
-        description: '',
-        price: 0,
-        available: true
+      await api.updateManualService(serviceId, {
+        available: !currentAvailability
       });
-      setOpenNewServiceDialog(false);
-      toast.success(`تم إضافة خدمة ${addedService.name} بنجاح`);
+      
+      // Update the services state locally
+      setServices(services.map(service => 
+        service.id === serviceId ? 
+        { ...service, available: !service.available } : 
+        service
+      ));
+      
+      toast.success(`تم ${!currentAvailability ? 'تفعيل' : 'تعطيل'} الخدمة بنجاح`);
     } catch (error) {
-      console.error('Failed to add service:', error);
-      toast.error('فشل في إضافة الخدمة');
+      console.error('Failed to toggle service availability:', error);
+      toast.error('فشل في تغيير حالة الخدمة');
     }
   };
 
-  const handleSaveService = async (service: ManualService) => {
-    try {
-      await api.updateManualService(service);
-      setServices(services.map(s => s.id === service.id ? service : s));
-      setEditingService(null);
-      toast.success(`تم تحديث خدمة ${service.name} بنجاح`);
-    } catch (error) {
-      console.error('Failed to save service:', error);
-      toast.error('فشل في حفظ الخدمة');
-    }
-  };
-
-  const handleDeleteService = async () => {
-    if (!serviceToDelete) return;
-
-    try {
-      await api.deleteManualService(serviceToDelete);
-      setServices(services.filter(s => s.id !== serviceToDelete));
-      setServiceToDelete(null);
-      toast.success('تم حذف الخدمة بنجاح');
-    } catch (error) {
-      console.error('Failed to delete service:', error);
-      toast.error('فشل في حذف الخدمة');
-    }
-  };
-
-  const handleToggleAvailability = (serviceId: string) => {
-    setServices(services.map(service => {
-      if (service.id === serviceId) {
-        return { ...service, available: !service.available };
-      }
-      return service;
-    }));
-  };
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -113,207 +290,64 @@ const ManualServices = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">إدارة خدمات التفعيل اليدوي</h1>
-        
-        <Dialog open={openNewServiceDialog} onOpenChange={setOpenNewServiceDialog}>
-          <DialogTrigger asChild>
-            <Button className="gradient-bg">
-              <Plus className="ml-2 h-4 w-4" />
-              إضافة خدمة جديدة
+        <AddServiceDialog onSuccess={fetchServices} />
+      </div>
+      
+      {services.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center text-gray-500">
+            <Info className="mx-auto h-12 w-12 mb-4" />
+            <p>لا توجد خدمات تفعيل يدوي حالياً</p>
+            <Button className="mt-4 gradient-bg" onClick={() => document.querySelector<HTMLButtonElement>('[data-trigger="add-service"]')?.click()}>
+              <Plus className="w-4 h-4 ml-2" />
+              إضافة أول خدمة
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>إضافة خدمة تفعيل يدوي جديدة</DialogTitle>
-              <DialogDescription>
-                أدخل معلومات الخدمة الجديدة
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="service-name">اسم الخدمة</Label>
-                <Input
-                  id="service-name"
-                  value={newService.name}
-                  onChange={(e) => setNewService({...newService, name: e.target.value})}
-                  placeholder="أدخل اسم الخدمة"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="service-description">وصف الخدمة</Label>
-                <Textarea
-                  id="service-description"
-                  value={newService.description}
-                  onChange={(e) => setNewService({...newService, description: e.target.value})}
-                  placeholder="أدخل وصفًا مختصرًا للخدمة"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="service-price">السعر (بالريال)</Label>
-                <Input
-                  id="service-price"
-                  type="number"
-                  value={newService.price}
-                  onChange={(e) => setNewService({...newService, price: Number(e.target.value)})}
-                  placeholder="أدخل سعر الخدمة"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="block mb-2">الخدمة متاحة</Label>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={newService.available}
-                    onCheckedChange={(checked) => setNewService({...newService, available: checked})}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {services.map((service) => (
+            <Card key={service.id}>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-lg">{service.name}</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Switch 
+                      checked={service.available}
+                      onCheckedChange={() => handleToggleAvailability(service.id, service.available)}
+                    />
+                    <span className={service.available ? "text-green-600" : "text-gray-400"}>
+                      {service.available ? "متاح" : "غير متاح"}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center text-green-600 font-bold">
+                  <DollarSign className="h-4 w-4 mr-1" />
+                  {service.price} ريال
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {service.image && (
+                  <div className="h-40 overflow-hidden rounded-md">
+                    <img 
+                      src={service.image} 
+                      alt={service.name} 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <p className="text-gray-600">{service.description}</p>
+                <div className="flex justify-end pt-4">
+                  <EditServiceDialog 
+                    service={service} 
+                    onSuccess={fetchServices} 
                   />
-                  <span className="mr-2">{newService.available ? 'متاحة' : 'غير متاحة'}</span>
                 </div>
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpenNewServiceDialog(false)}>
-                إلغاء
-              </Button>
-              <Button className="gradient-bg" onClick={handleAddService}>
-                إضافة الخدمة
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {services.map(service => (
-          <Card key={service.id} className={!service.available ? 'opacity-70' : ''}>
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    {service.name}
-                    {service.available ? (
-                      <Badge className="bg-green-500">متاحة</Badge>
-                    ) : (
-                      <Badge variant="secondary">غير متاحة</Badge>
-                    )}
-                  </CardTitle>
-                  <CardDescription className="mt-1">
-                    {service.price} ريال
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => setEditingService(service)}
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="destructive" 
-                    size="icon"
-                    onClick={() => setServiceToDelete(service.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">{service.description}</p>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Switch
-                checked={service.available}
-                onCheckedChange={() => handleToggleAvailability(service.id)}
-              />
-              <span>{service.available ? 'متاحة للمستخدمين' : 'غير متاحة'}</span>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-
-      {/* Edit Service Dialog */}
-      {editingService && (
-        <Dialog open={!!editingService} onOpenChange={(open) => !open && setEditingService(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>تعديل خدمة {editingService.name}</DialogTitle>
-            </DialogHeader>
-            
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-service-name">اسم الخدمة</Label>
-                <Input
-                  id="edit-service-name"
-                  value={editingService.name}
-                  onChange={(e) => setEditingService({...editingService, name: e.target.value})}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="edit-service-description">وصف الخدمة</Label>
-                <Textarea
-                  id="edit-service-description"
-                  value={editingService.description}
-                  onChange={(e) => setEditingService({...editingService, description: e.target.value})}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="edit-service-price">السعر (بالريال)</Label>
-                <Input
-                  id="edit-service-price"
-                  type="number"
-                  value={editingService.price}
-                  onChange={(e) => setEditingService({...editingService, price: Number(e.target.value)})}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="block mb-2">الخدمة متاحة</Label>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={editingService.available}
-                    onCheckedChange={(checked) => setEditingService({...editingService, available: checked})}
-                  />
-                  <span className="mr-2">{editingService.available ? 'متاحة' : 'غير متاحة'}</span>
-                </div>
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditingService(null)}>
-                إلغاء
-              </Button>
-              <Button onClick={() => handleSaveService(editingService)}>
-                <Save className="ml-2 h-4 w-4" />
-                حفظ التغييرات
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
-
-      {/* Delete Service Confirmation */}
-      <AlertDialog open={!!serviceToDelete} onOpenChange={(open) => !open && setServiceToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>هل أنت متأكد من حذف هذه الخدمة؟</AlertDialogTitle>
-            <AlertDialogDescription>
-              لا يمكن التراجع عن هذا الإجراء بعد الحذف.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteService} className="bg-red-600 hover:bg-red-700">
-              حذف
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -40,6 +39,7 @@ export const Sidebar: React.FC = () => {
     { path: '/dashboard/admin/countries', label: 'إدارة الدول', icon: Globe },
     { path: '/dashboard/admin/users', label: 'المستخدمين', icon: Users },
     { path: '/dashboard/admin/manual-requests', label: 'طلبات التفعيل اليدوي', icon: PhoneCall },
+    { path: '/dashboard/admin/manual-services', label: 'خدمات التفعيل اليدوي', icon: PhoneCall },
     { path: '/dashboard/admin/settings', label: 'إعدادات النظام', icon: Settings },
   ];
 

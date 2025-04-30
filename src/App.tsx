@@ -17,6 +17,7 @@ import Providers from "./pages/admin/Providers";
 import CountriesManagement from "./pages/admin/Countries";
 import UsersManagement from "./pages/admin/Users";
 import ManualRequests from "./pages/admin/ManualRequests";
+import ManualServices from "./pages/admin/ManualServices";
 import MyOrders from "./pages/MyOrders";
 import SystemSettings from "./pages/SystemSettings";
 import ManualActivation from "./pages/ManualActivation";
@@ -59,6 +60,7 @@ const App = () => {
                 <Route path="admin/countries" element={<CountriesManagement />} />
                 <Route path="admin/users" element={<UsersManagement />} />
                 <Route path="admin/manual-requests" element={<ManualRequests />} />
+                <Route path="admin/manual-services" element={<ManualServices />} />
               </Route>
               
               <Route path="*" element={<NotFound />} />

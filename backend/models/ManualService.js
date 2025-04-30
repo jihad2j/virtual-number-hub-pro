@@ -29,5 +29,10 @@ const manualServiceSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
+// تحويل _id إلى id لسهولة الاستخدام في الواجهة
+manualServiceSchema.virtual('id').get(function() {
+  return this._id.toHexString();
+});
+
 const ManualService = mongoose.model('ManualService', manualServiceSchema);
 module.exports = ManualService;

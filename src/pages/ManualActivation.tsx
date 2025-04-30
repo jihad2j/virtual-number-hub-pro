@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from '@/services/api';
-import { MessageSquare, PhoneCall, CheckCircle, Plus } from 'lucide-react';
+import { MessageSquare, PhoneCall, CheckCircle, Plus, DollarSign } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from '@/contexts/AuthContext';
@@ -162,7 +161,12 @@ const ManualActivation = () => {
   const fetchServices = async () => {
     try {
       const servicesData = await api.getManualServices();
-      setServices(Array.isArray(servicesData) ? servicesData.filter(service => service.available) : []);
+      const filteredServices = Array.isArray(servicesData) 
+        ? servicesData.filter(service => service.available) 
+        : Array.isArray(servicesData.data) 
+          ? servicesData.data.filter(service => service.available)
+          : [];
+      setServices(filteredServices);
     } catch (error) {
       console.error('Failed to fetch manual services:', error);
       toast.error('فشل في جلب خدمات التفعيل اليدوي');
@@ -172,22 +176,17 @@ const ManualActivation = () => {
   const fetchRequests = async () => {
     try {
       const requestsData = await api.getUserManualRequests();
-      setRequests(requestsData);
+      setRequests(Array.isArray(requestsData) ? requestsData : requestsData.data || []);
     } catch (error) {
       console.error('Failed to fetch user requests:', error);
       toast.error('فشل في جلب طلبات التفعيل');
     }
   };
 
-  const handleSubmitRequest = async () => {
-    if (!selectedService) {
-      toast.error('الرجاء اختيار الخدمة المطلوبة');
-      return;
-    }
-
+  const handleSubmitRequest = async (serviceId: string) => {
     setLoading(true);
     try {
-      const selectedServiceObj = services.find(s => s.id === selectedService);
+      const selectedServiceObj = services.find(s => s.id === serviceId);
       if (!selectedServiceObj) {
         toast.error('الخدمة المختارة غير متوفرة');
         setLoading(false);
@@ -195,7 +194,7 @@ const ManualActivation = () => {
       }
 
       await api.createManualRequest({
-        serviceId: selectedService,
+        serviceId: serviceId,
         notes: notes
       });
 
@@ -205,7 +204,7 @@ const ManualActivation = () => {
       fetchRequests(); // Refresh requests
     } catch (error) {
       console.error('Failed to submit manual request:', error);
-      toast.error('فشل في إرسال طلب التفعيل');
+      toast.error('فشل في إرسال ��لب التفعيل');
     } finally {
       setLoading(false);
     }
@@ -254,61 +253,78 @@ const ManualActivation = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">طلب التفعيل اليدوي</h1>
-        <AddServiceDialog />
-      </div>
+      <h1 className="text-2xl font-bold">طلب التفعيل اليدوي</h1>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>طلب خدمة تفعيل يدوية جديدة</CardTitle>
-          <CardDescription>
-            اختر الخدمة المطلوبة وأضف أي ملاحظات إضافية
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="service">الخدمة المطلوبة</Label>
-            <Select
-              value={selectedService}
-              onValueChange={setSelectedService}
-            >
-              <SelectTrigger id="service">
-                <SelectValue placeholder="اختر الخدمة" />
-              </SelectTrigger>
-              <SelectContent>
-                {services.map((service) => (
-                  <SelectItem key={service.id} value={service.id}>
-                    {service.name} - {service.price} ريال
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {selectedService && (
-            <div className="space-y-2">
-              <Label htmlFor="notes">ملاحظات إضافية (اختياري)</Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="أي معلومات إضافية تريد إضافتها للطلب"
-                className="min-h-[100px]"
-              />
-            </div>
-          )}
-        </CardContent>
-        <CardFooter>
-          <Button 
-            onClick={handleSubmitRequest} 
-            disabled={!selectedService || loading}
-            className="gradient-bg w-full"
-          >
-            {loading ? 'جاري الإرسال...' : 'إرسال الطلب'}
-          </Button>
-        </CardFooter>
-      </Card>
+      {services.length === 0 ? (
+        <Card className="text-center py-8">
+          <CardContent>
+            <PhoneCall className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <p className="text-gray-500">لا توجد خدمات تفعيل يدوي متاحة حالياً</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {services.map((service) => (
+            <Card key={service.id} className="overflow-hidden">
+              {service.image && (
+                <div className="h-40 overflow-hidden">
+                  <img 
+                    src={service.image} 
+                    alt={service.name} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <CardHeader>
+                <CardTitle>{service.name}</CardTitle>
+                <CardDescription className="flex items-center">
+                  <DollarSign className="h-4 w-4 mr-1 text-green-600" />
+                  <span>{service.price} ريال</span>
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">{service.description}</p>
+              </CardContent>
+              <CardFooter>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="w-full gradient-bg">طلب الخدمة</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>طلب خدمة: {service.name}</DialogTitle>
+                      <DialogDescription>
+                        سعر الخدمة: {service.price} ريال
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="notes">ملاحظات إضافية (اختياري)</Label>
+                        <Textarea
+                          id="notes"
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          placeholder="أي معلومات إضافية تريد إضافتها للطلب"
+                          className="min-h-[100px]"
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        onClick={() => handleSubmitRequest(service.id)}
+                        disabled={loading}
+                        className="gradient-bg w-full"
+                      >
+                        {loading ? 'جاري الإرسال...' : 'إرسال الطلب'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
       
       <h2 className="text-xl font-bold mt-8">طلباتي السابقة</h2>
       
