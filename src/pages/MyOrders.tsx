@@ -9,9 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
+// Adjust the interface to match the transaction data structure
 interface Order {
   id: string;
-  service: string;
+  description: string;
   amount: number;
   status: 'pending' | 'completed' | 'cancelled' | 'failed';
   createdAt: string;
@@ -19,10 +20,19 @@ interface Order {
 
 const MyOrders = () => {
   // This would be replaced with actual orders API endpoint
-  const { data: orders = [], isLoading } = useQuery({
+  const { data: transactions = [], isLoading } = useQuery({
     queryKey: ['orders'],
     queryFn: () => api.getUserTransactions()
   });
+
+  // Map the transactions to the Order format required by the UI
+  const orders: Order[] = transactions.map(transaction => ({
+    id: transaction.id,
+    description: transaction.description || 'غير محدد',
+    amount: transaction.amount,
+    status: transaction.status,
+    createdAt: transaction.createdAt
+  }));
 
   const columns: ColumnDef<Order>[] = [
     {
@@ -30,7 +40,7 @@ const MyOrders = () => {
       header: 'رقم الطلب',
     },
     {
-      accessorKey: 'service',
+      accessorKey: 'description',
       header: 'الخدمة',
       cell: ({ row }) => row.original.description || 'غير محدد',
     },
@@ -87,8 +97,8 @@ const MyOrders = () => {
           ) : (
             <DataTable 
               columns={columns} 
-              data={orders as Order[]} 
-              searchKey="service"
+              data={orders} 
+              searchKey="description"
               searchPlaceholder="البحث عن خدمة..."
             />
           )}
