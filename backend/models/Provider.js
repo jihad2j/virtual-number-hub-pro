@@ -7,6 +7,12 @@ const providerSchema = new mongoose.Schema({
     required: [true, 'اسم المزود مطلوب'],
     trim: true
   },
+  code: {
+    type: String,
+    required: [true, 'رمز المزود مطلوب'],
+    trim: true,
+    unique: true
+  },
   logo: {
     type: String
   },
@@ -27,6 +33,36 @@ const providerSchema = new mongoose.Schema({
   },
   apiUrl: {
     type: String
+  },
+  endpoints: {
+    balance: {
+      type: String,
+      default: '/balance'
+    },
+    countries: {
+      type: String,
+      default: '/countries'
+    },
+    products: {
+      type: String,
+      default: '/products'
+    },
+    purchase: {
+      type: String,
+      default: '/purchase'
+    },
+    status: {
+      type: String,
+      default: '/status'
+    },
+    cancel: {
+      type: String,
+      default: '/cancel'
+    }
+  },
+  settings: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   }
 }, {
   timestamps: true,

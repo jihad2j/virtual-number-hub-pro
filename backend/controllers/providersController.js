@@ -2,6 +2,7 @@
 const Provider = require('../models/Provider');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
+const { ProviderFactory } = require('../services/providerFactory');
 
 // الحصول على جميع مزودي الخدمة
 exports.getAllProviders = catchAsync(async (req, res, next) => {
@@ -30,6 +31,11 @@ exports.getProvider = catchAsync(async (req, res, next) => {
 
 // إنشاء مزود خدمة جديد
 exports.createProvider = catchAsync(async (req, res, next) => {
+  // تأكد من وجود رمز فريد للمزود
+  if (!req.body.code) {
+    req.body.code = req.body.name.toLowerCase().replace(/\s+/g, '');
+  }
+  
   const newProvider = await Provider.create(req.body);
   
   res.status(201).json({
@@ -71,4 +77,108 @@ exports.deleteProvider = catchAsync(async (req, res, next) => {
     status: 'success',
     data: null
   });
+});
+
+// اختبار الاتصال بمزود خدمة
+exports.testProviderConnection = catchAsync(async (req, res, next) => {
+  // البحث عن المزود مع استرجاع apiKey (محمي عادة)
+  const provider = await Provider.findById(req.params.id).select('+apiKey');
+  
+  if (!provider) {
+    return next(new AppError('لم يتم العثور على مزود خدمة بهذا المعرف', 404));
+  }
+  
+  // إنشاء كائن المزود المناسب باستخدام مصنع المزودين
+  const providerService = ProviderFactory.createProvider(provider);
+  
+  try {
+    const connectionResult = await providerService.testConnection();
+    
+    res.status(200).json({
+      status: 'success',
+      connected: connectionResult
+    });
+  } catch (error) {
+    res.status(200).json({
+      status: 'success',
+      connected: false,
+      message: error.message
+    });
+  }
+});
+
+// جلب رصيد مزود الخدمة
+exports.getProviderBalance = catchAsync(async (req, res, next) => {
+  // البحث عن المزود مع استرجاع apiKey (محمي عادة)
+  const provider = await Provider.findById(req.params.id).select('+apiKey');
+  
+  if (!provider) {
+    return next(new AppError('لم يتم العثور على مزود خدمة بهذا المعرف', 404));
+  }
+  
+  // إنشاء كائن المزود المناسب باستخدام مصنع المزودين
+  const providerService = ProviderFactory.createProvider(provider);
+  
+  try {
+    const balance = await providerService.getBalance();
+    
+    res.status(200).json({
+      status: 'success',
+      data: balance
+    });
+  } catch (error) {
+    return next(new AppError(`فشل في جلب رصيد المزود: ${error.message}`, 400));
+  }
+});
+
+// جلب الدول المتاحة من مزود الخدمة
+exports.getProviderCountries = catchAsync(async (req, res, next) => {
+  // البحث عن المزود مع استرجاع apiKey (محمي عادة)
+  const provider = await Provider.findById(req.params.id).select('+apiKey');
+  
+  if (!provider) {
+    return next(new AppError('لم يتم العثور على مزود خدمة بهذا المعرف', 404));
+  }
+  
+  // إنشاء كائن المزود المناسب باستخدام مصنع المزودين
+  const providerService = ProviderFactory.createProvider(provider);
+  
+  try {
+    const countries = await providerService.getCountries();
+    
+    res.status(200).json({
+      status: 'success',
+      results: countries.length,
+      data: countries
+    });
+  } catch (error) {
+    return next(new AppError(`فشل في جلب الدول المتاحة: ${error.message}`, 400));
+  }
+});
+
+// جلب الخدمات المتاحة لدولة معينة من مزود الخدمة
+exports.getProviderServices = catchAsync(async (req, res, next) => {
+  // البحث عن المزود مع استرجاع apiKey (محمي عادة)
+  const provider = await Provider.findById(req.params.id).select('+apiKey');
+  
+  if (!provider) {
+    return next(new AppError('لم يتم العثور على مزود خدمة بهذا المعرف', 404));
+  }
+  
+  const { countryCode } = req.params;
+  
+  // إنشاء كائن المزود المناسب باستخدام مصنع المزودين
+  const providerService = ProviderFactory.createProvider(provider);
+  
+  try {
+    const services = await providerService.getServices(countryCode);
+    
+    res.status(200).json({
+      status: 'success',
+      results: services.length,
+      data: services
+    });
+  } catch (error) {
+    return next(new AppError(`فشل في جلب الخدمات المتاحة: ${error.message}`, 400));
+  }
 });
