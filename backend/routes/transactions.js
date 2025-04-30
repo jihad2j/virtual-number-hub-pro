@@ -8,7 +8,6 @@ const router = express.Router();
 router.use(authController.protect);
 router.get('/', transactionsController.getUserTransactions);
 router.post('/deposit', transactionsController.createDepositTransaction);
-router.post('/gift', transactionsController.giftBalance);
 
 // المسارات المحمية للمشرفين فقط
 router.use(authController.restrictTo('admin'));

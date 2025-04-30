@@ -1,62 +1,33 @@
+import apiClient from './apiClient';
+import { toast } from 'sonner';
+import { getQueryId } from '../config/mongodb';
 
-import axios, { AxiosResponse } from 'axios';
-import { apiClient } from './apiClient';
-
-// Define types
 export interface Country {
   id: string;
   name: string;
-  code: string;
   flag: string;
+  code: string;
   available: boolean;
-  services: Array<any>;
-}
-
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  balance: number;
-  role: 'user' | 'admin';
-  isActive?: boolean;
-  createdAt?: string;
-  lastLogin?: string;
-}
-
-export interface LoginResponse {
-  status: string;
-  token: string;
-  user: User;
 }
 
 export interface Provider {
   id: string;
   name: string;
-  slug: string;
-  apiKey: string;
-  baseUrl: string;
-  settings: Record<string, any>;
-  isActive: boolean;
-  priority: number;
-  createdAt: string;
-  updatedAt: string;
-  // Add the missing properties
-  apiUrl?: string;
+  logo?: string;
   description?: string;
-  countries: string[];
+  countries: string[]; // Country IDs
+  isActive: boolean;
+  apiKey?: string;
+  apiUrl?: string;
 }
 
-export interface Transaction {
+export interface PhoneNumber {
   id: string;
-  userId: string;
-  type: 'deposit' | 'withdrawal' | 'purchase' | 'gift' | 'refund';
-  amount: number;
-  status: 'pending' | 'completed' | 'failed';
-  paymentMethod?: string;
-  receipt?: string;
-  description?: string;
-  createdAt: string;
-  updatedAt: string;
+  number: string;
+  country: string;
+  provider: string;
+  status: 'available' | 'sold' | 'expired';
+  price: number;
 }
 
 export interface SupportTicket {
@@ -64,15 +35,35 @@ export interface SupportTicket {
   userId: string;
   subject: string;
   message: string;
-  status: 'open' | 'closed' | 'pending';
+  status: 'open' | 'closed';
   createdAt: string;
-  updatedAt: string;
-  responses: Array<{
+  responses: {
     id: string;
     message: string;
-    isAdmin: boolean;
+    fromAdmin: boolean;
     createdAt: string;
-  }>;
+  }[];
+}
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  amount: number;
+  type: 'deposit' | 'purchase';
+  status: 'pending' | 'completed' | 'failed';
+  description: string;
+  createdAt: string;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  role: 'admin' | 'user';
+  balance: number;
+  createdAt: string;
+  lastLogin?: string;
+  isActive: boolean;
 }
 
 export interface ManualService {
@@ -80,253 +71,739 @@ export interface ManualService {
   name: string;
   description: string;
   price: number;
+  available: boolean;
   image?: string;
-  isActive: boolean;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 export interface ManualRequest {
   id: string;
   userId: string;
+  userName?: string; // Only used in admin interfaces
+  userEmail?: string; // Only used in admin interfaces
   serviceId: string;
   serviceName: string;
-  status: 'pending' | 'processing' | 'completed' | 'rejected';
-  notes?: string;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  notes: string;
   adminResponse?: string;
   verificationCode?: string;
   createdAt: string;
   updatedAt?: string;
 }
 
-// API functions
 export const api = {
-  // Auth endpoints
-  login: async (email: string, password: string): Promise<LoginResponse> => {
-    const response = await apiClient.post('/auth/login', { email, password });
-    if (response.data.token) {
-      localStorage.setItem('authToken', response.data.token);
+  initLocalData: async () => {
+    try {
+      await apiClient.post('/init');
+      console.log('Data initialized via API');
+      return true;
+    } catch (error) {
+      console.error('Failed to initialize data:', error);
+      return false;
     }
-    return response.data;
-  },
-  
-  register: async (username: string, email: string, password: string): Promise<LoginResponse> => {
-    const response = await apiClient.post('/auth/register', { username, email, password });
-    if (response.data.token) {
-      localStorage.setItem('authToken', response.data.token);
-    }
-    return response.data;
-  },
-  
-  // Country endpoints
-  getAvailableCountries: async (): Promise<Country[]> => {
-    const response = await apiClient.get('/countries/available');
-    return response.data.data;
-  },
-  
-  getAllCountries: async (): Promise<Country[]> => {
-    const response = await apiClient.get('/countries');
-    return response.data.data;
-  },
-  
-  createCountry: async (country: Omit<Country, 'id'>): Promise<Country> => {
-    const response = await apiClient.post('/countries', country);
-    return response.data.data;
-  },
-  
-  updateCountry: async (id: string, data: Partial<Country>): Promise<Country> => {
-    const response = await apiClient.put(`/countries/${id}`, data);
-    return response.data.data;
-  },
-  
-  deleteCountry: async (id: string): Promise<void> => {
-    await apiClient.delete(`/countries/${id}`);
   },
 
-  // Add missing countries function
-  addCountries: async (countries: Partial<Country>[]): Promise<Country[]> => {
-    const response = await apiClient.post('/countries/batch', countries);
-    return response.data.data;
-  },
-  
-  // Provider endpoints
-  getAllProviders: async (): Promise<Provider[]> => {
-    const response = await apiClient.get('/providers');
-    return response.data.data;
-  },
-
-  // Alias for getAllProviders to fix naming mismatch
-  getProviders: async (): Promise<Provider[]> => {
-    return api.getAllProviders();
-  },
-  
-  // Alias for getAllCountries to fix naming mismatch
   getCountries: async (): Promise<Country[]> => {
-    return api.getAllCountries();
-  },
-  
-  createProvider: async (provider: Omit<Provider, 'id' | 'createdAt' | 'updatedAt'>): Promise<Provider> => {
-    const response = await apiClient.post('/providers', provider);
-    return response.data.data;
-  },
-  
-  updateProvider: async (id: string, data: Partial<Provider>): Promise<Provider> => {
-    const response = await apiClient.put(`/providers/${id}`, data);
-    return response.data.data;
+    try {
+      const response = await apiClient.get('/countries');
+      // تحقق من هيكل البيانات واستخراج مصفوفة الدول بشكل صحيح
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data.map((country: any) => ({
+          id: country.id || country._id,
+          name: country.name,
+          flag: country.flag,
+          code: country.code,
+          available: country.available
+        }));
+      } else if (Array.isArray(response.data)) {
+        return response.data.map((country: any) => ({
+          id: country.id || country._id,
+          name: country.name,
+          flag: country.flag,
+          code: country.code,
+          available: country.available
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching countries:', error);
+      toast.error('فشل في جلب الدول');
+      return [];
+    }
   },
 
-  // Fix the expected 2 arguments issue
+  getAvailableCountries: async (): Promise<Country[]> => {
+    try {
+      const response = await apiClient.get('/countries/available');
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data.map((country: any) => ({
+          id: country.id || country._id,
+          name: country.name,
+          flag: country.flag,
+          code: country.code,
+          available: country.available
+        }));
+      } else if (Array.isArray(response.data)) {
+        return response.data.map((country: any) => ({
+          id: country.id || country._id,
+          name: country.name,
+          flag: country.flag,
+          code: country.code,
+          available: country.available
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching available countries:', error);
+      toast.error('فشل في جلب الدول المتاحة');
+      return [];
+    }
+  },
+  
+  addCountries: async (countries: Omit<Country, 'id'>[]): Promise<Country[]> => {
+    try {
+      const response = await apiClient.post('/countries', countries);
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data.map((country: any) => ({
+          id: country.id || country._id,
+          name: country.name,
+          flag: country.flag,
+          code: country.code,
+          available: country.available
+        }));
+      } else if (Array.isArray(response.data)) {
+        return response.data.map((country: any) => ({
+          id: country.id || country._id,
+          name: country.name,
+          flag: country.flag,
+          code: country.code,
+          available: country.available
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Error adding countries:', error);
+      toast.error('فشل في إضافة الدول');
+      return [];
+    }
+  },
+
+  getProviders: async (): Promise<Provider[]> => {
+    try {
+      const response = await apiClient.get('/providers');
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data.map((provider: any) => ({
+          id: provider.id || provider._id,
+          name: provider.name,
+          logo: provider.logo,
+          description: provider.description,
+          countries: Array.isArray(provider.countries) ? provider.countries : [],
+          isActive: provider.isActive,
+          apiKey: provider.apiKey,
+          apiUrl: provider.apiUrl,
+        }));
+      } else if (Array.isArray(response.data)) {
+        return response.data.map((provider: any) => ({
+          id: provider.id || provider._id,
+          name: provider.name,
+          logo: provider.logo,
+          description: provider.description,
+          countries: Array.isArray(provider.countries) ? provider.countries : [],
+          isActive: provider.isActive,
+          apiKey: provider.apiKey,
+          apiUrl: provider.apiUrl,
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching providers:', error);
+      toast.error('فشل في جلب مزودي الخدمة');
+      return [];
+    }
+  },
+
   updateProvider: async (provider: Provider): Promise<Provider> => {
-    const response = await apiClient.put(`/providers/${provider.id}`, provider);
-    return response.data.data;
+    try {
+      const response = await apiClient.put(`/providers/${provider.id}`, provider);
+      if (response.data && response.data.data) {
+        const updatedProvider = response.data.data;
+        toast.success('تم تحديث مزود الخدمة بنجاح');
+        return {
+          id: updatedProvider.id || updatedProvider._id,
+          name: updatedProvider.name,
+          logo: updatedProvider.logo,
+          description: updatedProvider.description,
+          countries: Array.isArray(updatedProvider.countries) ? updatedProvider.countries : [],
+          isActive: updatedProvider.isActive,
+          apiKey: updatedProvider.apiKey,
+          apiUrl: updatedProvider.apiUrl
+        };
+      }
+      toast.success('تم تحديث مزود الخدمة بنجاح');
+      return provider;
+    } catch (error) {
+      console.error('Error updating provider:', error);
+      toast.error('فشل في تحديث مزود الخدمة');
+      return provider;
+    }
   },
 
-  // Add missing addProvider function
-  addProvider: async (provider: Partial<Provider>): Promise<Provider> => {
-    const response = await apiClient.post('/providers', provider);
-    return response.data.data;
+  addProvider: async (provider: Omit<Provider, 'id'>): Promise<Provider> => {
+    try {
+      const response = await apiClient.post('/providers', provider);
+      if (response.data && response.data.data) {
+        const newProvider = response.data.data;
+        toast.success('تم إضافة مزود الخدمة بنجاح');
+        return {
+          id: newProvider.id || newProvider._id,
+          name: newProvider.name,
+          logo: newProvider.logo,
+          description: newProvider.description,
+          countries: Array.isArray(newProvider.countries) ? newProvider.countries : [],
+          isActive: newProvider.isActive,
+          apiKey: newProvider.apiKey,
+          apiUrl: newProvider.apiUrl
+        };
+      }
+      toast.success('تم إضافة مزود الخدمة بنجاح');
+      return { ...provider, id: Math.random().toString(36).substring(7) };
+    } catch (error) {
+      console.error('Error adding provider:', error);
+      toast.error('فشل في إضافة مزود الخدمة');
+      return { ...provider, id: Math.random().toString(36).substring(7) };
+    }
   },
   
-  deleteProvider: async (id: string): Promise<void> => {
-    await apiClient.delete(`/providers/${id}`);
-  },
-  
-  // Support ticket endpoints
-  createSupportTicket: async (subject: string, message: string): Promise<SupportTicket> => {
-    const response = await apiClient.post('/support', { subject, message });
-    return response.data.data;
-  },
-  
-  getUserSupportTickets: async (): Promise<SupportTicket[]> => {
-    const response = await apiClient.get('/support/user');
-    return response.data.data;
-  },
-  
-  getAllSupportTickets: async (): Promise<SupportTicket[]> => {
-    const response = await apiClient.get('/support');
-    return response.data.data;
-  },
-  
-  respondToTicket: async (ticketId: string, message: string): Promise<SupportTicket> => {
-    const response = await apiClient.post(`/support/${ticketId}/respond`, { message });
-    return response.data.data;
-  },
-  
-  closeTicket: async (ticketId: string): Promise<SupportTicket> => {
-    const response = await apiClient.put(`/support/${ticketId}/close`);
-    return response.data.data;
-  },
-  
-  // Transaction endpoints
-  getUserTransactions: async (): Promise<Transaction[]> => {
-    const response = await apiClient.get('/transactions');
-    return response.data.data;
-  },
-  
-  // Alias for getUserTransactions to fix naming mismatch
-  getTransactions: async (): Promise<Transaction[]> => {
-    return api.getUserTransactions();
-  },
-  
-  createDepositTransaction: async (amount: number, paymentMethod: string, receipt?: string): Promise<Transaction> => {
-    const response = await apiClient.post('/transactions/deposit', { amount, paymentMethod, receipt });
-    return response.data.data;
+  deleteProvider: async (providerId: string): Promise<boolean> => {
+    try {
+      await apiClient.delete(`/providers/${providerId}`);
+      toast.success('تم حذف مزود الخدمة بنجاح');
+      return true;
+    } catch (error) {
+      console.error('Error deleting provider:', error);
+      toast.error('فشل في حذف مزود الخدمة');
+      return false;
+    }
   },
 
-  // Add missing addFunds function
-  addFunds: async (amount: number, paymentMethod: string, receipt?: string): Promise<Transaction> => {
-    return api.createDepositTransaction(amount, paymentMethod, receipt);
+  getPhoneNumbers: async (countryId: string): Promise<PhoneNumber[]> => {
+    try {
+      const response = await apiClient.get(`/numbers/country/${countryId}`);
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data.map((number: any) => ({
+          id: number.id || number._id,
+          number: number.number,
+          country: number.country,
+          provider: number.provider,
+          status: number.status,
+          price: number.price
+        }));
+      } else if (Array.isArray(response.data)) {
+        return response.data.map((number: any) => ({
+          id: number.id || number._id,
+          number: number.number,
+          country: number.country,
+          provider: number.provider,
+          status: number.status,
+          price: number.price
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching phone numbers:', error);
+      toast.error('فشل في جلب الأرقام');
+      return [];
+    }
   },
-  
-  giftBalance: async (recipientId: string, amount: number): Promise<Transaction> => {
-    const response = await apiClient.post('/transactions/gift', { recipientId, amount });
-    return response.data.data;
+
+  purchaseNumber: async (numberId: string): Promise<PhoneNumber> => {
+    try {
+      const response = await apiClient.post(`/numbers/purchase/${numberId}`);
+      if (response.data && response.data.data) {
+        const purchasedNumber = response.data.data;
+        toast.success('تم شراء الرقم بنجاح');
+        return {
+          id: purchasedNumber.id || purchasedNumber._id,
+          number: purchasedNumber.number,
+          country: purchasedNumber.country,
+          provider: purchasedNumber.provider,
+          status: purchasedNumber.status,
+          price: purchasedNumber.price
+        };
+      }
+      toast.success('تم شراء الرقم بنجاح');
+      throw new Error('Invalid response format');
+    } catch (error) {
+      console.error('Error purchasing number:', error);
+      toast.error('فشل في شراء الرقم');
+      throw error;
+    }
   },
-  
-  // Manual services endpoints
-  getManualServices: async (): Promise<ManualService[]> => {
-    const response = await apiClient.get('/manual-services');
-    return response.data.data;
-  },
-  
-  getManualService: async (id: string): Promise<ManualService> => {
-    const response = await apiClient.get(`/manual-services/${id}`);
-    return response.data.data;
-  },
-  
-  createManualService: async (service: Omit<ManualService, 'id' | 'createdAt'>): Promise<ManualService> => {
-    const response = await apiClient.post('/manual-services', service);
-    return response.data.data;
-  },
-  
-  updateManualService: async (service: ManualService): Promise<ManualService> => {
-    const response = await apiClient.put(`/manual-services/${service.id}`, service);
-    return response.data.data;
-  },
-  
-  deleteManualService: async (id: string): Promise<void> => {
-    await apiClient.delete(`/manual-services/${id}`);
-  },
-  
-  // Manual requests endpoints
-  getUserManualRequests: async (): Promise<ManualRequest[]> => {
-    const response = await apiClient.get('/manual-requests/user');
-    return response.data.data;
-  },
-  
-  getAllManualRequests: async (): Promise<ManualRequest[]> => {
-    const response = await apiClient.get('/manual-requests');
-    return response.data.data;
-  },
-  
-  createManualRequest: async (data: { serviceId: string, notes?: string }): Promise<ManualRequest> => {
-    const response = await apiClient.post('/manual-requests', data);
-    return response.data.data;
-  },
-  
-  respondToManualRequest: async (requestId: string, data: { adminResponse?: string, verificationCode?: string, status?: string }): Promise<ManualRequest> => {
-    const response = await apiClient.put(`/manual-requests/${requestId}/respond`, data);
-    return response.data.data;
-  },
-  
-  updateManualRequestStatus: async (requestId: string, status: 'pending' | 'processing' | 'completed' | 'rejected'): Promise<ManualRequest> => {
-    const response = await apiClient.put(`/manual-requests/${requestId}/status`, { status });
-    return response.data.data;
-  },
-  
-  confirmManualRequest: async (requestId: string): Promise<ManualRequest> => {
-    const response = await apiClient.put(`/manual-requests/${requestId}/confirm`);
-    return response.data.data;
-  },
-  
-  // User management endpoints
+
   getUsers: async (): Promise<User[]> => {
-    const response = await apiClient.get('/users');
-    return response.data.data;
+    try {
+      const response = await apiClient.get('/users');
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data.map((user: any) => ({
+          id: user.id || user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          balance: user.balance,
+          createdAt: user.createdAt,
+          lastLogin: user.lastLogin,
+          isActive: user.isActive
+        }));
+      } else if (Array.isArray(response.data)) {
+        return response.data.map((user: any) => ({
+          id: user.id || user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          balance: user.balance,
+          createdAt: user.createdAt,
+          lastLogin: user.lastLogin,
+          isActive: user.isActive
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('فشل في جلب المستخدمين');
+      return [];
+    }
   },
   
-  addUser: async (userData: Partial<User>): Promise<User> => {
-    const response = await apiClient.post('/users', userData);
-    return response.data.data;
+  addUser: async (user: Omit<User, 'id'>): Promise<User> => {
+    try {
+      const response = await apiClient.post('/users', user);
+      if (response.data && response.data.data) {
+        const newUser = response.data.data;
+        toast.success('تم إضافة المستخدم بنجاح');
+        return {
+          id: newUser.id || newUser._id,
+          username: newUser.username,
+          email: newUser.email,
+          role: newUser.role,
+          balance: newUser.balance,
+          createdAt: newUser.createdAt,
+          lastLogin: newUser.lastLogin,
+          isActive: newUser.isActive
+        };
+      }
+      toast.success('تم إضافة المستخدم بنجاح');
+      return { ...user, id: Math.random().toString(36).substring(7) };
+    } catch (error) {
+      console.error('Error adding user:', error);
+      toast.error('فشل في إضافة المستخدم');
+      return { ...user, id: Math.random().toString(36).substring(7) };
+    }
   },
   
   updateUser: async (user: User): Promise<User> => {
-    const response = await apiClient.put(`/users/${user.id}`, user);
-    return response.data.data;
+    try {
+      const response = await apiClient.put(`/users/${user.id}`, user);
+      if (response.data && response.data.data) {
+        const updatedUser = response.data.data;
+        toast.success('تم تحديث المستخدم بنجاح');
+        return {
+          id: updatedUser.id || updatedUser._id,
+          username: updatedUser.username,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          balance: updatedUser.balance,
+          createdAt: updatedUser.createdAt,
+          lastLogin: updatedUser.lastLogin,
+          isActive: updatedUser.isActive
+        };
+      }
+      toast.success('تم تحديث المستخدم بنجاح');
+      return user;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast.error('فشل في تح��يث المستخدم');
+      return user;
+    }
   },
   
-  deleteUser: async (userId: string): Promise<void> => {
-    await apiClient.delete(`/users/${userId}`);
+  deleteUser: async (userId: string): Promise<boolean> => {
+    try {
+      await apiClient.delete(`/users/${userId}`);
+      toast.success('تم حذف المستخدم بنجاح');
+      return true;
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error('فشل في حذف المستخدم');
+      return false;
+    }
   },
 
-  // Application initialization
-  initLocalData: async () => {
+  createSupportTicket: async (subject: string, message: string): Promise<SupportTicket> => {
     try {
-      const response = await apiClient.get('/init/data');
-      return response.data;
+      const response = await apiClient.post('/support', { subject, message });
+      if (response.data && response.data.data) {
+        const ticket = response.data.data;
+        toast.success('تم إرسال تذكرة الدعم بنجاح');
+        return {
+          id: ticket.id || ticket._id,
+          userId: ticket.userId,
+          subject: ticket.subject,
+          message: ticket.message,
+          status: ticket.status,
+          createdAt: ticket.createdAt,
+          responses: ticket.responses || []
+        };
+      }
+      toast.success('تم إرسال تذكرة الدعم بنجاح');
+      throw new Error('Invalid response format');
     } catch (error) {
-      console.error('Failed to initialize local data:', error);
+      console.error('Error creating support ticket:', error);
+      toast.error('فشل في إرسال تذكرة الدعم');
       throw error;
     }
-  }
+  },
+
+  getTransactions: async (): Promise<Transaction[]> => {
+    try {
+      const response = await apiClient.get('/transactions');
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data.map((transaction: any) => ({
+          id: transaction.id || transaction._id,
+          userId: transaction.userId,
+          amount: transaction.amount,
+          type: transaction.type,
+          status: transaction.status,
+          description: transaction.description,
+          createdAt: transaction.createdAt
+        }));
+      } else if (Array.isArray(response.data)) {
+        return response.data.map((transaction: any) => ({
+          id: transaction.id || transaction._id,
+          userId: transaction.userId,
+          amount: transaction.amount,
+          type: transaction.type,
+          status: transaction.status,
+          description: transaction.description,
+          createdAt: transaction.createdAt
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      toast.error('فشل في جلب المعاملات');
+      return [];
+    }
+  },
+
+  addFunds: async (amount: number, method: 'card' | 'paypal'): Promise<Transaction> => {
+    try {
+      const response = await apiClient.post('/transactions/deposit', { amount, method });
+      if (response.data && response.data.data) {
+        const transaction = response.data.data;
+        toast.success('تمت إضافة الرصيد بنجاح');
+        return {
+          id: transaction.id || transaction._id,
+          userId: transaction.userId,
+          amount: transaction.amount,
+          type: transaction.type,
+          status: transaction.status,
+          description: transaction.description,
+          createdAt: transaction.createdAt
+        };
+      }
+      toast.success('تمت إضافة الرصيد بنجاح');
+      throw new Error('Invalid response format');
+    } catch (error) {
+      console.error('Error adding funds:', error);
+      toast.error('فشل في إضافة الرصيد');
+      throw error;
+    }
+  },
+
+  getManualServices: async (): Promise<ManualService[]> => {
+    try {
+      const response = await apiClient.get('/manual-services');
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data.map((service: any) => ({
+          id: service.id || service._id,
+          name: service.name,
+          description: service.description,
+          price: service.price,
+          available: service.available,
+          image: service.image
+        }));
+      } else if (Array.isArray(response.data)) {
+        return response.data.map((service: any) => ({
+          id: service.id || service._id,
+          name: service.name,
+          description: service.description,
+          price: service.price,
+          available: service.available,
+          image: service.image
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching manual services:', error);
+      toast.error('فشل في جلب خدمات التفعيل اليدوي');
+      return [];
+    }
+  },
+
+  createManualService: async (service: Omit<ManualService, 'id'>): Promise<ManualService> => {
+    try {
+      const response = await apiClient.post('/manual-services', service);
+      if (response.data && response.data.data) {
+        const newService = response.data.data;
+        toast.success('تم إضافة خدمة التفعيل اليدوي بنجاح');
+        return {
+          id: newService.id || newService._id,
+          name: newService.name,
+          description: newService.description,
+          price: newService.price,
+          available: newService.available,
+          image: newService.image
+        };
+      }
+      toast.success('تم إضافة خدمة التفعيل اليدوي بنجاح');
+      return { ...service, id: Math.random().toString(36).substring(7) };
+    } catch (error) {
+      console.error('Error creating manual service:', error);
+      toast.error('فشل في إضافة خدمة التفعيل اليدوي');
+      return { ...service, id: Math.random().toString(36).substring(7) };
+    }
+  },
+
+  updateManualService: async (service: ManualService): Promise<ManualService> => {
+    try {
+      const response = await apiClient.put(`/manual-services/${service.id}`, service);
+      if (response.data && response.data.data) {
+        const updatedService = response.data.data;
+        toast.success('تم تحديث خدمة التفعيل اليدوي بنجاح');
+        return {
+          id: updatedService.id || updatedService._id,
+          name: updatedService.name,
+          description: updatedService.description,
+          price: updatedService.price,
+          available: updatedService.available,
+          image: updatedService.image
+        };
+      }
+      toast.success('تم تحديث خدمة التفعيل اليدوي بنجاح');
+      return service;
+    } catch (error) {
+      console.error('Error updating manual service:', error);
+      toast.error('فشل في تحديث خدمة التفعيل اليدوي');
+      return service;
+    }
+  },
+
+  deleteManualService: async (serviceId: string): Promise<boolean> => {
+    try {
+      await apiClient.delete(`/manual-services/${serviceId}`);
+      toast.success('تم حذف خدمة التفعيل اليدوي بنجاح');
+      return true;
+    } catch (error) {
+      console.error('Error deleting manual service:', error);
+      toast.error('فشل في حذف خدمة التفعيل اليدوي');
+      return false;
+    }
+  },
+
+  createManualRequest: async (request: { serviceId: string; notes?: string }): Promise<ManualRequest> => {
+    try {
+      const response = await apiClient.post('/manual-requests', request);
+      toast.success('تم إرسال طلب التفعيل اليدوي بنجاح');
+      return response.data;
+    } catch (error) {
+      console.error('Error creating manual request:', error);
+      toast.error('فشل في إرسال طلب التفعيل اليدوي');
+      throw error;
+    }
+  },
+
+  getUserManualRequests: async (): Promise<ManualRequest[]> => {
+    try {
+      const response = await apiClient.get('/manual-requests/user');
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data.map((request: any) => ({
+          id: request.id || request._id,
+          userId: request.userId,
+          userName: request.userName,
+          userEmail: request.userEmail,
+          serviceId: request.serviceId,
+          serviceName: request.serviceName,
+          status: request.status,
+          notes: request.notes,
+          adminResponse: request.adminResponse,
+          verificationCode: request.verificationCode,
+          createdAt: request.createdAt,
+          updatedAt: request.updatedAt
+        }));
+      } else if (Array.isArray(response.data)) {
+        return response.data.map((request: any) => ({
+          id: request.id || request._id,
+          userId: request.userId,
+          userName: request.userName,
+          userEmail: request.userEmail,
+          serviceId: request.serviceId,
+          serviceName: request.serviceName,
+          status: request.status,
+          notes: request.notes,
+          adminResponse: request.adminResponse,
+          verificationCode: request.verificationCode,
+          createdAt: request.createdAt,
+          updatedAt: request.updatedAt
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching user manual requests:', error);
+      toast.error('فشل في جلب طلبات التفعيل اليدوي');
+      return [];
+    }
+  },
+
+  getAllManualRequests: async (): Promise<ManualRequest[]> => {
+    try {
+      const response = await apiClient.get('/manual-requests');
+      if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        return response.data.data.map((request: any) => ({
+          id: request.id || request._id,
+          userId: request.userId,
+          userName: request.userName,
+          userEmail: request.userEmail,
+          serviceId: request.serviceId,
+          serviceName: request.serviceName,
+          status: request.status,
+          notes: request.notes,
+          adminResponse: request.adminResponse,
+          verificationCode: request.verificationCode,
+          createdAt: request.createdAt,
+          updatedAt: request.updatedAt
+        }));
+      } else if (Array.isArray(response.data)) {
+        return response.data.map((request: any) => ({
+          id: request.id || request._id,
+          userId: request.userId,
+          userName: request.userName,
+          userEmail: request.userEmail,
+          serviceId: request.serviceId,
+          serviceName: request.serviceName,
+          status: request.status,
+          notes: request.notes,
+          adminResponse: request.adminResponse,
+          verificationCode: request.verificationCode,
+          createdAt: request.createdAt,
+          updatedAt: request.updatedAt
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching all manual requests:', error);
+      toast.error('فشل في جلب جميع طلبات التفعيل اليدوي');
+      return [];
+    }
+  },
+
+  respondToManualRequest: async (requestId: string, response: {
+    adminResponse?: string;
+    verificationCode?: string;
+    status?: 'pending' | 'processing' | 'completed' | 'cancelled';
+  }): Promise<boolean> => {
+    try {
+      await apiClient.put(`/manual-requests/${requestId}/respond`, response);
+      toast.success('تم الرد على طلب التفعيل اليدوي بنجاح');
+      return true;
+    } catch (error) {
+      console.error('Error responding to manual request:', error);
+      toast.error('فشل في الرد على طلب التفعيل اليدوي');
+      return false;
+    }
+  },
+
+  updateManualRequestStatus: async (requestId: string, status: 'processing' | 'completed' | 'cancelled'): Promise<boolean> => {
+    try {
+      await apiClient.put(`/manual-requests/${requestId}/status`, { status });
+      toast.success('تم تحديث حالة طلب التفعيل اليدوي بنجاح');
+      return true;
+    } catch (error) {
+      console.error('Error updating manual request status:', error);
+      toast.error('فشل في تحديث حالة طلب التفعيل اليدوي');
+      return false;
+    }
+  },
+
+  confirmManualRequest: async (requestId: string): Promise<boolean> => {
+    try {
+      await apiClient.put(`/manual-requests/${requestId}/confirm`);
+      toast.success('تم تأكيد اكتمال طلب التفعيل اليدوي بنجاح');
+      return true;
+    } catch (error) {
+      console.error('Error confirming manual request:', error);
+      toast.error('فشل في تأكيد اكتمال طلب التفعيل اليدوي');
+      return false;
+    }
+  },
+
+  login: async (email: string, password: string) => {
+    try {
+      const response = await apiClient.post('/auth/login', { email, password });
+      
+      if (response.data && response.data.token && response.data.data && response.data.data.user) {
+        // Store the token for authenticated requests
+        localStorage.setItem('authToken', response.data.token);
+        
+        const user = response.data.data.user;
+        // Store user data in localStorage for persistence
+        localStorage.setItem('user', JSON.stringify({
+          id: user.id || user._id,
+          name: user.username,
+          email: user.email,
+          role: user.role,
+          balance: user.balance
+        }));
+        
+        toast.success('تم تسجيل الدخول بنجاح');
+        return response.data.data.user;
+      }
+      throw new Error('Invalid response format');
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('فشل تسجيل الدخول. تأكد من صحة البريد الإلكتروني وكلمة المرور');
+      throw error;
+    }
+  },
+
+  register: async (username: string, email: string, password: string) => {
+    try {
+      const response = await apiClient.post('/auth/register', {
+        username,
+        email,
+        password
+      });
+      
+      if (response.data && response.data.token && response.data.data && response.data.data.user) {
+        // Store the token for authenticated requests
+        localStorage.setItem('authToken', response.data.token);
+        
+        const user = response.data.data.user;
+        // Store user data in localStorage for persistence
+        localStorage.setItem('user', JSON.stringify({
+          id: user.id || user._id,
+          name: user.username,
+          email: user.email,
+          role: user.role,
+          balance: user.balance
+        }));
+        
+        toast.success('تم إنشاء الحساب بنجاح');
+        return response.data.data.user;
+      }
+      throw new Error('Invalid response format');
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast.error('فشل إنشاء الحساب');
+      throw error;
+    }
+  },
 };

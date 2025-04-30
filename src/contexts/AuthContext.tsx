@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { apiClient } from '../services/apiClient';
+import { api } from '../services/api';
 
 interface User {
   id: string;
@@ -52,17 +52,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Use apiClient to login with backend authentication
-      const response = await apiClient.post('/auth/login', { email, password });
+      // Use the API to login with backend authentication
+      const userData = await api.login(email, password);
       
-      // Store token
-      if (response.data.token) {
-        localStorage.setItem('authToken', response.data.token);
-      }
-      
-      const userData = response.data.user;
       const user: User = {
-        id: userData.id,
+        id: userData.id || userData._id,
         name: userData.username,
         email: userData.email,
         balance: userData.balance,
@@ -71,10 +65,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setUser(user);
       localStorage.setItem('user', JSON.stringify(user));
-      toast.success('تم تسجيل الدخول بنجاح');
     } catch (error) {
       console.error('Login failed', error);
-      toast.error('فشل تسجيل الدخول، تحقق من بياناتك');
       throw error;
     } finally {
       setLoading(false);
@@ -84,21 +76,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (name: string, email: string, password: string) => {
     setLoading(true);
     try {
-      // Use apiClient to register with backend
-      const response = await apiClient.post('/auth/register', { 
-        username: name, 
-        email, 
-        password 
-      });
+      // Use the API to register with backend
+      const userData = await api.register(name, email, password);
       
-      // Store token
-      if (response.data.token) {
-        localStorage.setItem('authToken', response.data.token);
-      }
-      
-      const userData = response.data.user;
       const user: User = {
-        id: userData.id,
+        id: userData.id || userData._id,
         name: userData.username,
         email: userData.email,
         balance: userData.balance || 0,
@@ -107,10 +89,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setUser(user);
       localStorage.setItem('user', JSON.stringify(user));
-      toast.success('تم إنشاء الحساب بنجاح');
     } catch (error) {
       console.error('Registration failed', error);
-      toast.error('فشل إنشاء الحساب، حاول مرة أخرى');
       throw error;
     } finally {
       setLoading(false);

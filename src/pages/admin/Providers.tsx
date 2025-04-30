@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { api, Provider, Country } from '@/services/api';
 import { toast } from 'sonner';
@@ -6,12 +5,8 @@ import { ProviderCard } from '@/components/admin/providers/ProviderCard';
 import { NewProviderDialog } from '@/components/admin/providers/NewProviderDialog';
 import { fiveSimApi, phoneServiceApi, smsActivateApi } from '@/services/fiveSimService';
 
-interface ProviderWithCountries extends Provider {
-  countries: string[];
-}
-
 const Providers = () => {
-  const [providers, setProviders] = useState<ProviderWithCountries[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [openNewProviderDialog, setOpenNewProviderDialog] = useState(false);
@@ -37,21 +32,14 @@ const Providers = () => {
     setIsLoading(true);
     try {
       const [providersData, countriesData] = await Promise.all([
-        api.getAllProviders(),
-        api.getAllCountries()
+        api.getProviders(),
+        api.getCountries()
       ]);
-
-      // Ensure that all providers have a countries array
-      const providersWithCountries = providersData.map(p => ({
-        ...p,
-        countries: p.countries || []
-      }));
-      
-      setProviders(providersWithCountries);
+      setProviders(providersData);
       setCountries(countriesData || []);
       
       // Test connection for each provider
-      for (const provider of providersWithCountries) {
+      for (const provider of providersData) {
         testProviderConnection(provider.id);
       }
     } catch (error) {
@@ -162,14 +150,13 @@ const Providers = () => {
       if (provider.name.toLowerCase().includes('5sim')) {
         const fiveSimCountries = await phoneServiceApi.getProviderCountries('5sim');
         
-        // Convert 5Sim countries to our country format with services property
+        // Convert 5Sim countries to our country format
         const newCountries: Country[] = fiveSimCountries.map((country: any) => ({
           id: country.iso,
           name: country.name,
           flag: getFlagEmoji(country.iso.toUpperCase()),
           code: country.iso,
-          available: true,
-          services: []
+          available: true
         }));
         
         fetchedCountries = newCountries;
@@ -179,14 +166,13 @@ const Providers = () => {
         smsActivateApi.setApiKey(provider.apiKey);
         const smsActivateCountries = await smsActivateApi.getCountries();
         
-        // Convert SMS Activate countries to our country format with services property
+        // Convert SMS Activate countries to our country format
         const newCountries: Country[] = smsActivateCountries.map(country => ({
           id: country.id,
           name: country.name,
           flag: country.code ? getFlagEmoji(country.code.toUpperCase()) : '🌍',
           code: country.code || '',
-          available: true,
-          services: []
+          available: true
         }));
         
         fetchedCountries = newCountries;
@@ -203,13 +189,8 @@ const Providers = () => {
         const uniqueNewCountries = fetchedCountries.filter(c => !existingCountryCodes.includes(c.code));
         
         if (uniqueNewCountries.length > 0) {
-          // Implement the missing addCountries function with a batch create
-          for (const country of uniqueNewCountries) {
-            await api.createCountry(country);
-          }
-          
-          const updatedCountries = await api.getAllCountries();
-          setCountries(updatedCountries);
+          await api.addCountries(uniqueNewCountries);
+          setCountries([...countries, ...uniqueNewCountries]);
           toast.success(`تم إضافة ${uniqueNewCountries.length} دولة جديدة`);
         } else {
           toast.info('لم يتم العثور على دول جديدة');
@@ -261,7 +242,7 @@ const Providers = () => {
     }));
   };
 
-  const handleSaveProvider = async (provider: ProviderWithCountries) => {
+  const handleSaveProvider = async (provider: Provider) => {
     try {
       await api.updateProvider(provider);
       toast.success(`تم تحديث مزود الخدمة ${provider.name} بنجاح`);
@@ -278,28 +259,8 @@ const Providers = () => {
     }
 
     try {
-      // Create a new provider object with required fields
-      const providerToCreate = {
-        name: newProvider.name,
-        description: newProvider.description,
-        slug: newProvider.name.toLowerCase().replace(/\s+/g, '-'),
-        apiKey: newProvider.apiKey,
-        baseUrl: newProvider.apiUrl,
-        settings: {},
-        isActive: newProvider.isActive,
-        priority: 0,
-        countries: newProvider.countries
-      };
-      
-      const addedProvider = await api.createProvider(providerToCreate);
-      
-      // Ensure the added provider has a countries array
-      const providerWithCountries = {
-        ...addedProvider,
-        countries: newProvider.countries || []
-      };
-      
-      setProviders([...providers, providerWithCountries]);
+      const addedProvider = await api.addProvider(newProvider);
+      setProviders([...providers, addedProvider]);
       setNewProvider({
         name: '',
         description: '',
@@ -339,7 +300,7 @@ const Providers = () => {
     }));
   };
 
-  const handleUpdateProvider = (updatedProvider: ProviderWithCountries) => {
+  const handleUpdateProvider = (updatedProvider: Provider) => {
     setProviders(providers.map(p => 
       p.id === updatedProvider.id ? updatedProvider : p
     ));

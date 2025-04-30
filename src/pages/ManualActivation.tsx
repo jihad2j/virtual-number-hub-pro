@@ -1,256 +1,414 @@
-
 import React, { useState, useEffect } from 'react';
-import { api, ManualService } from '@/services/api';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
+import { api } from '@/services/api';
+import { MessageSquare, PhoneCall, CheckCircle, Plus, DollarSign } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useAuth } from '@/contexts/AuthContext';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+interface ManualService {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  available: boolean;
+  image?: string;
+}
+
+interface ManualRequest {
+  id: string;
+  userId: string;
+  serviceId: string;
+  serviceName: string;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  notes: string;
+  adminResponse?: string;
+  verificationCode?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+const AddServiceDialog = () => {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
+  const [image, setImage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const { isAdmin } = useAuth();
+
+  const handleAddService = async () => {
+    if (!name || !description || !price) {
+      toast.error('يرجى ملء جميع الحقول المطلوبة');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.createManualService({
+        name,
+        description,
+        price: Number(price),
+        available: true,
+        image
+      });
+
+      setName('');
+      setDescription('');
+      setPrice('');
+      setImage('');
+      setOpen(false);
+      toast.success('تمت إضافة الخدمة بنجاح');
+    } catch (error) {
+      console.error('Failed to add service:', error);
+      toast.error('فشل في إضافة الخدمة');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isAdmin) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="gradient-bg">
+          <Plus className="w-4 h-4 ml-2" />
+          إضافة خدمة جديدة
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>إضافة خدمة تفعيل يدوي جديدة</DialogTitle>
+          <DialogDescription>
+            أدخل تفاصيل الخدمة الجديدة التي تريد إضافتها
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">اسم الخدمة</Label>
+            <Input 
+              id="name" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              placeholder="اسم الخدمة" 
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="description">وصف الخدمة</Label>
+            <Textarea 
+              id="description" 
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)} 
+              placeholder="وصف الخدمة" 
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="price">السعر</Label>
+            <Input 
+              id="price" 
+              type="number" 
+              value={price} 
+              onChange={(e) => setPrice(e.target.value)} 
+              placeholder="سعر الخدمة" 
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="image">رابط الصورة (اختياري)</Label>
+            <Input 
+              id="image" 
+              value={image} 
+              onChange={(e) => setImage(e.target.value)} 
+              placeholder="رابط صورة الخدمة" 
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button 
+            onClick={handleAddService} 
+            className="gradient-bg" 
+            disabled={loading}
+          >
+            {loading ? 'جاري الإضافة...' : 'إضافة الخدمة'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const ManualActivation = () => {
   const [services, setServices] = useState<ManualService[]>([]);
-  const [userRequests, setUserRequests] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedService, setSelectedService] = useState<ManualService | null>(null);
-  const [notes, setNotes] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { user } = useAuth();
+  const [requests, setRequests] = useState<ManualRequest[]>([]);
+  const [selectedService, setSelectedService] = useState<string>("");
+  const [notes, setNotes] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [confirmationCode, setConfirmationCode] = useState<string>("");
+  const [confirmingRequestId, setConfirmingRequestId] = useState<string | null>(null);
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
-    fetchData();
+    fetchServices();
+    fetchRequests();
   }, []);
 
-  const fetchData = async () => {
-    setIsLoading(true);
+  const fetchServices = async () => {
     try {
-      const [servicesData, userRequestsData] = await Promise.all([
-        api.getManualServices(),
-        user ? api.getUserManualRequests() : Promise.resolve([])
-      ]);
-      
-      setServices(servicesData || []);
-      setUserRequests(userRequestsData || []);
+      const servicesData = await api.getManualServices();
+      const filteredServices = Array.isArray(servicesData) 
+        ? servicesData.filter(service => service.available) 
+        : Array.isArray(servicesData.data) 
+          ? servicesData.data.filter(service => service.available)
+          : [];
+      setServices(filteredServices);
     } catch (error) {
-      console.error('Failed to fetch data', error);
-      toast.error('فشل في جلب البيانات');
-    } finally {
-      setIsLoading(false);
+      console.error('Failed to fetch manual services:', error);
+      toast.error('فشل في جلب خدمات التفعيل اليدوي');
     }
   };
 
-  const handleOpenRequestDialog = (service: ManualService) => {
-    setSelectedService(service);
-    setIsDialogOpen(true);
+  const fetchRequests = async () => {
+    try {
+      const requestsData = await api.getUserManualRequests();
+      setRequests(Array.isArray(requestsData) ? requestsData : requestsData.data || []);
+    } catch (error) {
+      console.error('Failed to fetch user requests:', error);
+      toast.error('فشل في جلب طلبات التفعيل');
+    }
   };
 
-  const handleRequestService = async () => {
-    if (!selectedService || !user) return;
-    
+  const handleSubmitRequest = async (serviceId: string) => {
+    setLoading(true);
     try {
+      const selectedServiceObj = services.find(s => s.id === serviceId);
+      if (!selectedServiceObj) {
+        toast.error('الخدمة المختارة غير متوفرة');
+        setLoading(false);
+        return;
+      }
+
       await api.createManualRequest({
-        serviceId: selectedService.id,
+        serviceId: serviceId,
         notes: notes
       });
-      
-      setIsDialogOpen(false);
-      setNotes('');
-      setSelectedService(null);
+
       toast.success('تم إرسال طلب التفعيل اليدوي بنجاح');
-      
-      // Refresh user requests
-      fetchData();
+      setSelectedService("");
+      setNotes("");
+      fetchRequests(); // Refresh requests
     } catch (error) {
-      console.error('Failed to create manual request', error);
-      toast.error('فشل في إرسال طلب التفعيل اليدوي');
+      console.error('Failed to submit manual request:', error);
+      toast.error('فشل في إرسال ��لب التفعيل');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStatusBadgeClass = (status: string) => {
+  const handleConfirmCompletion = async (requestId: string) => {
+    setConfirmingRequestId(requestId);
+    const request = requests.find(r => r.id === requestId);
+    if (!request || !request.verificationCode) {
+      toast.error('لم يتم إرسال رمز التحقق بعد');
+      setConfirmingRequestId(null);
+      return;
+    }
+
+    if (confirmationCode !== request.verificationCode) {
+      toast.error('رمز التحقق غير صحيح');
+      return;
+    }
+
+    try {
+      await api.confirmManualRequest(requestId);
+      toast.success('تم تأكيد اكتمال الخدمة بنجاح');
+      fetchRequests(); // Refresh requests
+      setConfirmationCode("");
+      setConfirmingRequestId(null);
+    } catch (error) {
+      console.error('Failed to confirm request completion:', error);
+      toast.error('فشل في تأكيد اكتمال الخدمة');
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'bg-yellow-500 text-white';
+        return <Badge className="bg-yellow-500">قيد الانتظار</Badge>;
       case 'processing':
-        return 'bg-blue-500 text-white';
+        return <Badge className="bg-blue-500">قيد المعالجة</Badge>;
       case 'completed':
-        return 'bg-green-500 text-white';
-      case 'rejected':
-        return 'bg-red-500 text-white';
+        return <Badge className="bg-green-500">مكتمل</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-red-500">ملغي</Badge>;
       default:
-        return 'bg-gray-500 text-white';
+        return <Badge>غير معروف</Badge>;
     }
   };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'قيد الانتظار';
-      case 'processing':
-        return 'قيد المعالجة';
-      case 'completed':
-        return 'مكتمل';
-      case 'rejected':
-        return 'ملغي';
-      default:
-        return status;
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">خدمات التفعيل اليدوي</h1>
+      <h1 className="text-2xl font-bold">طلب التفعيل اليدوي</h1>
       
-      <Tabs defaultValue="services">
-        <TabsList className="mb-4">
-          <TabsTrigger value="services">الخدمات المتاحة</TabsTrigger>
-          <TabsTrigger value="requests">طلباتي</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="services">
-          {services.length === 0 ? (
-            <div className="text-center p-10 border rounded-lg">
-              <p className="text-gray-500">لا توجد خدمات متاحة حالياً</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {services.filter(service => service.isActive).map((service) => (
-                <Card key={service.id} className="overflow-hidden">
-                  {service.image && (
-                    <div className="h-40 overflow-hidden">
-                      <img 
-                        src={service.image} 
-                        alt={service.name} 
-                        className="w-full h-full object-cover" 
+      {services.length === 0 ? (
+        <Card className="text-center py-8">
+          <CardContent>
+            <PhoneCall className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+            <p className="text-gray-500">لا توجد خدمات تفعيل يدوي متاحة حالياً</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {services.map((service) => (
+            <Card key={service.id} className="overflow-hidden">
+              {service.image && (
+                <div className="h-40 overflow-hidden">
+                  <img 
+                    src={service.image} 
+                    alt={service.name} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <CardHeader>
+                <CardTitle>{service.name}</CardTitle>
+                <CardDescription className="flex items-center">
+                  <DollarSign className="h-4 w-4 mr-1 text-green-600" />
+                  <span>{service.price} ريال</span>
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">{service.description}</p>
+              </CardContent>
+              <CardFooter>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="w-full gradient-bg">طلب الخدمة</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>طلب خدمة: {service.name}</DialogTitle>
+                      <DialogDescription>
+                        سعر الخدمة: {service.price} ريال
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="notes">ملاحظات إضافية (اختياري)</Label>
+                        <Textarea
+                          id="notes"
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          placeholder="أي معلومات إضافية تريد إضافتها للطلب"
+                          className="min-h-[100px]"
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        onClick={() => handleSubmitRequest(service.id)}
+                        disabled={loading}
+                        className="gradient-bg w-full"
+                      >
+                        {loading ? 'جاري الإرسال...' : 'إرسال الطلب'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
+      
+      <h2 className="text-xl font-bold mt-8">طلباتي السابقة</h2>
+      
+      {requests.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center text-gray-500">
+            <MessageSquare className="mx-auto h-12 w-12 mb-4" />
+            <p>لا توجد طلبات سابقة</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {requests.map((request) => (
+            <Card key={request.id}>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg">{request.serviceName}</CardTitle>
+                  {getStatusBadge(request.status)}
+                </div>
+                <CardDescription>
+                  تاريخ الطلب: {new Date(request.createdAt).toLocaleString('ar-SA')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="py-2 space-y-2">
+                {request.notes && (
+                  <div>
+                    <p className="font-semibold">ملاحظاتك:</p>
+                    <p className="text-gray-600">{request.notes}</p>
+                  </div>
+                )}
+                
+                {request.adminResponse && (
+                  <div>
+                    <p className="font-semibold">رد الإدارة:</p>
+                    <p className="text-gray-600">{request.adminResponse}</p>
+                  </div>
+                )}
+                
+                {request.verificationCode && request.status === 'processing' && (
+                  <div className="mt-4 bg-yellow-50 p-3 rounded-md border border-yellow-200">
+                    <p className="font-semibold flex items-center">
+                      <PhoneCall className="h-5 w-5 ml-1 text-yellow-600" />
+                      رمز التحقق من الإدارة:
+                    </p>
+                    <p className="text-lg font-mono font-semibold text-center my-2">
+                      {request.verificationCode}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      قم بإدخال رمز التحقق أدناه لتأكيد اكتمال الخدمة
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+              
+              {request.status === 'processing' && request.verificationCode && (
+                <CardFooter className="flex-col gap-3">
+                  <div className="w-full">
+                    <Label htmlFor={`confirm-code-${request.id}`}>أدخل رمز التحقق لتأكيد اكتمال الخدمة</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input
+                        id={`confirm-code-${request.id}`}
+                        value={confirmingRequestId === request.id ? confirmationCode : ''}
+                        onChange={(e) => {
+                          setConfirmingRequestId(request.id);
+                          setConfirmationCode(e.target.value);
+                        }}
+                        placeholder="أدخل رمز التحقق"
                       />
+                      <Button 
+                        onClick={() => handleConfirmCompletion(request.id)}
+                        variant="default"
+                        className="gradient-bg"
+                      >
+                        <CheckCircle className="h-5 w-5 ml-1" />
+                        تأكيد
+                      </Button>
                     </div>
-                  )}
-                  
-                  <CardHeader>
-                    <CardTitle>{service.name}</CardTitle>
-                    <CardDescription>
-                      السعر: {service.price} ريال
-                    </CardDescription>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <p className="text-gray-700">{service.description}</p>
-                  </CardContent>
-                  
-                  <CardFooter>
-                    <Button 
-                      className="w-full" 
-                      onClick={() => handleOpenRequestDialog(service)}
-                      disabled={!user}
-                    >
-                      طلب الخدمة
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="requests">
-          {!user ? (
-            <div className="text-center p-10 border rounded-lg">
-              <p className="text-gray-500">يرجى تسجيل الدخول لعرض طلباتك</p>
-            </div>
-          ) : userRequests.length === 0 ? (
-            <div className="text-center p-10 border rounded-lg">
-              <p className="text-gray-500">لا توجد طلبات سابقة</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {userRequests.map((request) => (
-                <Card key={request.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-center">
-                      <CardTitle>{request.serviceName}</CardTitle>
-                      <span className={`px-3 py-1 rounded-full text-xs ${getStatusBadgeClass(request.status)}`}>
-                        {getStatusText(request.status)}
-                      </span>
-                    </div>
-                    <CardDescription>
-                      تاريخ الطلب: {new Date(request.createdAt).toLocaleString('ar')}
-                    </CardDescription>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    {request.notes && (
-                      <div className="mb-4">
-                        <h4 className="font-semibold mb-1">ملاحظاتك:</h4>
-                        <p className="text-gray-700">{request.notes}</p>
-                      </div>
-                    )}
-                    
-                    {request.adminResponse && (
-                      <div className="mb-4">
-                        <h4 className="font-semibold mb-1">رد الإدارة:</h4>
-                        <p className="text-gray-700">{request.adminResponse}</p>
-                      </div>
-                    )}
-                    
-                    {request.verificationCode && (
-                      <div className="mb-4">
-                        <h4 className="font-semibold mb-1">رمز التفعيل:</h4>
-                        <p className="bg-gray-100 p-2 rounded font-mono text-center text-lg">
-                          {request.verificationCode}
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-      
-      {/* Dialog for creating a new request */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>طلب خدمة {selectedService?.name}</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div>
-              <p className="font-semibold mb-1">الخدمة:</p>
-              <p>{selectedService?.name}</p>
-            </div>
-            
-            <div>
-              <p className="font-semibold mb-1">السعر:</p>
-              <p>{selectedService?.price} ريال</p>
-            </div>
-            
-            <div>
-              <p className="font-semibold mb-1">ملاحظات (اختياري):</p>
-              <Textarea 
-                value={notes} 
-                onChange={(e) => setNotes(e.target.value)} 
-                placeholder="أضف أي معلومات إضافية تريد إرسالها مع الطلب" 
-                rows={4}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>إلغاء</Button>
-            <Button onClick={handleRequestService}>تأكيد الطلب</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                  </div>
+                </CardFooter>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

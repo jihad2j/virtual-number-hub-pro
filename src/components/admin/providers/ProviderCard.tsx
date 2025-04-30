@@ -9,15 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Provider, Country } from '@/services/api';
 
-// Extended Provider interface to include required properties
-interface ProviderWithCountries extends Provider {
-  description?: string;
-  apiUrl?: string;
-  countries: string[];
-}
-
 interface ProviderCardProps {
-  provider: ProviderWithCountries;
+  provider: Provider;
   countries: Country[];
   connectionStatus: boolean;
   apiKeyVisible: boolean;
@@ -26,12 +19,12 @@ interface ProviderCardProps {
   fetchingBalance: boolean;
   onToggleCountry: (providerId: string, countryId: string) => void;
   onToggleActive: (providerId: string) => void;
-  onSave: (provider: ProviderWithCountries) => void;
+  onSave: (provider: Provider) => void;
   onTestConnection: (providerId: string) => void;
   onFetchCountries: (providerId: string) => void;
   onFetchBalance: (providerId: string) => void;
   onToggleApiKey: (providerId: string) => void;
-  onUpdateProvider: (provider: ProviderWithCountries) => void;
+  onUpdateProvider: (provider: Provider) => void;
 }
 
 export const ProviderCard: React.FC<ProviderCardProps> = ({
@@ -79,7 +72,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
                   </Badge>
                 )}
               </div>
-              <CardDescription>{provider.description || ''}</CardDescription>
+              <CardDescription>{provider.description}</CardDescription>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -134,7 +127,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
                 <Label htmlFor={`api-url-${provider.id}`}>عنوان API</Label>
                 <Input
                   id={`api-url-${provider.id}`}
-                  value={provider.apiUrl || ''}
+                  value={(provider as any).apiUrl || ''}
                   onChange={(e) => onUpdateProvider({ ...provider, apiUrl: e.target.value })}
                   placeholder="https://api.example.com"
                 />
@@ -146,7 +139,7 @@ export const ProviderCard: React.FC<ProviderCardProps> = ({
                   <div className="relative flex-1">
                     <Input
                       id={`api-key-${provider.id}`}
-                      value={provider.apiKey || ''}
+                      value={(provider as any).apiKey || ''}
                       onChange={(e) => onUpdateProvider({ ...provider, apiKey: e.target.value })}
                       type={apiKeyVisible ? 'text' : 'password'}
                       placeholder="أدخل مفتاح API الخاص بالمزود"

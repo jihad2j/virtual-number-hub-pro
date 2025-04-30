@@ -7,18 +7,13 @@ const transactionSchema = new mongoose.Schema({
     ref: 'User',
     required: [true, 'المستخدم مطلوب']
   },
-  recipientId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    default: null
-  },
   amount: {
     type: Number,
     required: [true, 'المبلغ مطلوب'],
   },
   type: {
     type: String,
-    enum: ['deposit', 'purchase', 'gift'],
+    enum: ['deposit', 'purchase'],
     required: [true, 'نوع المعاملة مطلوب']
   },
   status: {
@@ -31,7 +26,7 @@ const transactionSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['card', 'paypal', 'other', 'balance'],
+    enum: ['card', 'paypal', 'other'],
     default: 'other'
   },
   paymentDetails: {
