@@ -1,25 +1,27 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { api } from '../services/api';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  balance: number;
-  role: 'user' | 'admin';
-}
+import { api, User } from '../services/api';
 
 type AuthContextType = {
   isAuthenticated: boolean;
   loading: boolean;
-  user: User | null;
+  user: AuthUser | null;
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 };
+
+// Local user type that includes name field needed by UI
+interface AuthUser {
+  id: string;
+  name: string;  // This is mapped from username
+  email: string;
+  balance: number;
+  role: 'user' | 'admin';
+}
 
 const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
@@ -35,7 +37,7 @@ const AuthContext = createContext<AuthContextType>({
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -56,18 +58,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       // Use the API to login with backend authentication
-      const userData = await api.login(email, password);
+      const response = await api.login(email, password);
       
-      const user: User = {
-        id: userData.id || userData._id,
-        name: userData.username,
-        email: userData.email,
-        balance: userData.balance,
-        role: userData.role,
+      const authUser: AuthUser = {
+        id: response.user.id,
+        name: response.user.username,
+        email: response.user.email,
+        balance: response.user.balance,
+        role: response.user.role,
       };
 
-      setUser(user);
-      localStorage.setItem('user', JSON.stringify(user));
+      setUser(authUser);
+      localStorage.setItem('user', JSON.stringify(authUser));
+      localStorage.setItem('authToken', response.token);
+      
+      toast.success('تم تسجيل الدخول بنجاح');
     } catch (error) {
       console.error('Login failed', error);
       throw error;
@@ -80,18 +85,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       // Use the API to register with backend
-      const userData = await api.register(username, email, password);
+      const response = await api.register(username, email, password);
       
-      const user: User = {
-        id: userData.id || userData._id,
-        name: userData.username,
-        email: userData.email,
-        balance: userData.balance || 0,
-        role: userData.role || 'user',
+      const authUser: AuthUser = {
+        id: response.user.id,
+        name: response.user.username,
+        email: response.user.email,
+        balance: response.user.balance || 0,
+        role: response.user.role || 'user',
       };
 
-      setUser(user);
-      localStorage.setItem('user', JSON.stringify(user));
+      setUser(authUser);
+      localStorage.setItem('user', JSON.stringify(authUser));
+      localStorage.setItem('authToken', response.token);
+      
+      toast.success('تم إنشاء الحساب بنجاح');
     } catch (error) {
       console.error('Registration failed', error);
       throw error;
@@ -114,8 +122,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!isAuthenticated) return;
     
     try {
-      const user = await api.getCurrentUser();
-      setUser(user);
+      const userData = await api.getCurrentUser();
+      
+      // Convert API User to AuthUser
+      const authUser: AuthUser = {
+        id: userData.id,
+        name: userData.username,
+        email: userData.email,
+        balance: userData.balance,
+        role: userData.role,
+      };
+      
+      setUser(authUser);
+      localStorage.setItem('user', JSON.stringify(authUser));
     } catch (error) {
       console.error('Error refreshing user:', error);
     }
@@ -127,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated, 
         loading, 
         user, 
-        isAdmin: user?.role === 'admin', 
+        isAdmin, 
         login, 
         register, 
         logout,

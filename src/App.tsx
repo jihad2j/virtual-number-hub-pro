@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,6 +24,9 @@ import ManualActivation from './pages/ManualActivation';
 import Index from "./pages/Index";
 import { useEffect } from "react";
 import { api } from "./services/api";
+
+// Import the missing component
+import MyOrders from "./pages/MyOrders";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +59,7 @@ const App = () => {
                 <Route path="manual-activation" element={<ManualActivation />} />
                 
                 {/* Admin Routes */}
+                <Route path="admin" element={<AdminDashboard />} />
                 <Route path="admin/providers" element={<Providers />} />
                 <Route path="admin/countries" element={<AdminCountries />} />
                 <Route path="admin/users" element={<Users />} />
