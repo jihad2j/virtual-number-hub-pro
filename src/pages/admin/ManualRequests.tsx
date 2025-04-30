@@ -88,7 +88,7 @@ const ManualRequests = () => {
     }
   };
 
-  const handleUpdateStatus = async (requestId: string, status: 'processing' | 'completed' | 'cancelled') => {
+  const handleUpdateStatus = async (requestId: string, status: 'processing' | 'completed' | 'rejected') => {
     try {
       await api.updateManualRequestStatus(requestId, status);
       
@@ -120,7 +120,7 @@ const ManualRequests = () => {
         return <Badge className="bg-blue-500">قيد المعالجة</Badge>;
       case 'completed':
         return <Badge className="bg-green-500">مكتمل</Badge>;
-      case 'cancelled':
+      case 'rejected':
         return <Badge className="bg-red-500">ملغي</Badge>;
       default:
         return <Badge>غير معروف</Badge>;
@@ -135,7 +135,7 @@ const ManualRequests = () => {
         return 'قيد المعالجة';
       case 'completed':
         return 'مكتمل';
-      case 'cancelled':
+      case 'rejected':
         return 'ملغي';
       default:
         return 'غير معروف';
@@ -231,7 +231,7 @@ const ManualRequests = () => {
                                 <Button
                                   variant="destructive"
                                   size="sm"
-                                  onClick={() => handleUpdateStatus(request.id, 'cancelled')}
+                                  onClick={() => handleUpdateStatus(request.id, 'rejected')}
                                 >
                                   <XCircle className="h-4 w-4 ml-1" />
                                   إلغاء

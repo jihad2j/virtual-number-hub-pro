@@ -23,7 +23,7 @@ const ManualServices = () => {
   const [serviceName, setServiceName] = useState('');
   const [serviceDescription, setServiceDescription] = useState('');
   const [servicePrice, setServicePrice] = useState(0);
-  const [serviceAvailable, setServiceAvailable] = useState(true);
+  const [serviceIsActive, setServiceIsActive] = useState(true);
   const [serviceImage, setServiceImage] = useState('');
 
   useEffect(() => {
@@ -58,7 +58,7 @@ const ManualServices = () => {
       name: serviceName,
       description: serviceDescription,
       price: servicePrice,
-      available: serviceAvailable,
+      isActive: serviceIsActive,
       image: serviceImage
     };
 
@@ -79,7 +79,7 @@ const ManualServices = () => {
     setServiceName(service.name);
     setServiceDescription(service.description);
     setServicePrice(service.price);
-    setServiceAvailable(service.available);
+    setServiceIsActive(service.isActive);
     setServiceImage(service.image || '');
     setIsEditDialogOpen(true);
   };
@@ -102,7 +102,7 @@ const ManualServices = () => {
       name: serviceName,
       description: serviceDescription,
       price: servicePrice,
-      available: serviceAvailable,
+      isActive: serviceIsActive,
       image: serviceImage
     };
 
@@ -133,7 +133,7 @@ const ManualServices = () => {
     setServiceName('');
     setServiceDescription('');
     setServicePrice(0);
-    setServiceAvailable(true);
+    setServiceIsActive(true);
     setServiceImage('');
     setEditingService(null);
   };
@@ -169,7 +169,7 @@ const ManualServices = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {services.map((service) => (
-            <Card key={service.id} className={!service.available ? 'opacity-60' : ''}>
+            <Card key={service.id} className={!service.isActive ? 'opacity-60' : ''}>
               {service.image && (
                 <div className="h-40 overflow-hidden">
                   <img 
@@ -228,7 +228,7 @@ const ManualServices = () => {
                 <p className="text-gray-700 mb-2">{service.description}</p>
                 <div className="flex items-center space-x-2">
                   <Label>متاح:</Label>
-                  <span>{service.available ? 'نعم' : 'لا'}</span>
+                  <span>{service.isActive ? 'نعم' : 'لا'}</span>
                 </div>
               </CardContent>
             </Card>
@@ -290,11 +290,11 @@ const ManualServices = () => {
             
             <div className="flex items-center space-x-2">
               <Switch 
-                id="service-available" 
-                checked={serviceAvailable} 
-                onCheckedChange={setServiceAvailable}
+                id="service-isActive" 
+                checked={serviceIsActive} 
+                onCheckedChange={setServiceIsActive}
               />
-              <Label htmlFor="service-available">متاح للطلب</Label>
+              <Label htmlFor="service-isActive">متاح للطلب</Label>
             </div>
           </div>
           
@@ -356,11 +356,11 @@ const ManualServices = () => {
             
             <div className="flex items-center space-x-2">
               <Switch 
-                id="edit-service-available" 
-                checked={serviceAvailable} 
-                onCheckedChange={setServiceAvailable}
+                id="edit-service-isActive" 
+                checked={serviceIsActive} 
+                onCheckedChange={setServiceIsActive}
               />
-              <Label htmlFor="edit-service-available">متاح للطلب</Label>
+              <Label htmlFor="edit-service-isActive">متاح للطلب</Label>
             </div>
           </div>
           

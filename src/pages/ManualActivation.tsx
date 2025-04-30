@@ -75,7 +75,7 @@ const ManualActivation = () => {
         return 'bg-blue-500 text-white';
       case 'completed':
         return 'bg-green-500 text-white';
-      case 'cancelled':
+      case 'rejected':
         return 'bg-red-500 text-white';
       default:
         return 'bg-gray-500 text-white';
@@ -90,7 +90,7 @@ const ManualActivation = () => {
         return 'قيد المعالجة';
       case 'completed':
         return 'مكتمل';
-      case 'cancelled':
+      case 'rejected':
         return 'ملغي';
       default:
         return status;
@@ -122,7 +122,7 @@ const ManualActivation = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {services.filter(service => service.available).map((service) => (
+              {services.filter(service => service.isActive).map((service) => (
                 <Card key={service.id} className="overflow-hidden">
                   {service.image && (
                     <div className="h-40 overflow-hidden">
