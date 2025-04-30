@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
@@ -7,11 +8,9 @@ import { api, Country } from '@/services/api';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Edit, Trash } from 'lucide-react';
+import { Plus, Edit, Trash2 } from 'lucide-react';
 
-interface Props {}
-
-const CountriesAdmin: React.FC<Props> = () => {
+const CountriesAdmin: React.FC = () => {
   const [countries, setCountries] = useState<Country[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewCountryDialog, setShowNewCountryDialog] = useState(false);
@@ -55,19 +54,21 @@ const CountriesAdmin: React.FC<Props> = () => {
     {
       accessorKey: 'flag',
       header: 'Flag',
-      cell: ({ row }) => (
-        <img src={row.flag} alt={row.name} className="w-6 h-6 rounded-full" />
+      cell: ({ row }: { row: any }) => (
+        <div className="flex items-center">
+          <span className="text-lg">{row.flag}</span>
+        </div>
       ),
     },
     {
       accessorKey: 'available',
       header: 'Available',
-      cell: ({ row }) => (row.available ? 'Yes' : 'No'),
+      cell: ({ row }: { row: any }) => (row.available ? 'Yes' : 'No'),
     },
     {
       id: 'actions',
       header: 'Actions',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: any }) => (
         <div className="flex gap-2">
           <Button
             variant="ghost"
@@ -81,7 +82,7 @@ const CountriesAdmin: React.FC<Props> = () => {
             size="sm"
             onClick={() => deleteCountry(row.id)}
           >
-            <Trash className="h-4 w-4 text-red-500" />
+            <Trash2 className="h-4 w-4 text-red-500" />
           </Button>
         </div>
       ),

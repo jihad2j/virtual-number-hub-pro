@@ -34,15 +34,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { 
   Plus, MoreVertical, Edit, Trash2, User as UserIcon,
-  Check, Users as UsersIcon, RefreshCw, DollarSign
+  Check, Users as UsersIcon, RefreshCw, Wallet
 } from 'lucide-react';
+
+interface NewUserForm {
+  username: string;
+  email: string;
+  role: 'user' | 'admin';
+  balance: number;
+  isActive: boolean;
+}
 
 const UsersManagement = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [openNewUserDialog, setOpenNewUserDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [newUser, setNewUser] = useState<Omit<User, 'id' | 'createdAt' | 'lastLogin'>>({
+  const [newUser, setNewUser] = useState<NewUserForm>({
     username: '',
     email: '',
     role: 'user',
@@ -135,11 +143,12 @@ const UsersManagement = () => {
     );
   }
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = (dateStr?: string) => {
     try {
+      if (!dateStr) return "لا يوجد";
       return new Date(dateStr).toLocaleString('ar-SA');
     } catch (e) {
-      return dateStr;
+      return dateStr || "لا يوجد";
     }
   };
 
@@ -364,7 +373,7 @@ const UsersManagement = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center">
-                        <DollarSign className="h-4 w-4 text-green-500 ml-1" />
+                        <Wallet className="h-4 w-4 text-green-500 ml-1" />
                         {user.balance.toFixed(2)}
                       </div>
                     </TableCell>

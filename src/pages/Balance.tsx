@@ -1,350 +1,338 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from '@/contexts/AuthContext';
-import { api, Transaction } from '@/services/api';
-import { DollarSign, CreditCard, History, Gift } from 'lucide-react';
 import { toast } from 'sonner';
+import { api, Transaction } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowDown, ArrowUp, Calendar, Wallet } from 'lucide-react';
 
 const Balance = () => {
   const { user } = useAuth();
-  const [amount, setAmount] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
-  
-  // Gift balance states
-  const [giftUserId, setGiftUserId] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [showAddFundsDialog, setShowAddFundsDialog] = useState(false);
+  const [amount, setAmount] = useState('');
+  const [showGiftDialog, setShowGiftDialog] = useState(false);
   const [giftAmount, setGiftAmount] = useState('');
-  const [isGifting, setIsGifting] = useState(false);
+  const [recipientId, setRecipientId] = useState('');
 
   useEffect(() => {
-    fetchTransactions();
-  }, []);
+    if (user) {
+      fetchTransactions();
+    }
+  }, [user]);
 
   const fetchTransactions = async () => {
-    setIsLoadingTransactions(true);
+    setIsLoading(true);
     try {
       const data = await api.getTransactions();
       setTransactions(data);
     } catch (error) {
-      console.error('Failed to fetch transactions', error);
-    } finally {
-      setIsLoadingTransactions(false);
-    }
-  };
-
-  const handleAddFunds = async (method: 'card' | 'paypal') => {
-    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-      toast.error('الرجاء إدخال مبلغ صالح');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await api.addFunds(Number(amount), method);
-      toast.success(`تمت إضافة $${amount} إلى رصيدك بنجاح`);
-      setAmount('');
-      fetchTransactions();
-      // In a real app, you'd also refresh the user's balance
-    } catch (error) {
-      console.error('Failed to add funds', error);
-      toast.error('حدث خطأ أثناء إضافة الرصيد');
+      console.error('Error fetching transactions:', error);
+      toast.error('فشل في جلب المعاملات');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle gifting balance to another user
-  const handleGiftBalance = async () => {
-    if (!giftUserId) {
-      toast.error('الرجاء إدخال معرف المستخدم');
+  const handleAddFunds = async () => {
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      toast.error('الرجاء إدخال مبلغ صحيح');
       return;
     }
 
-    if (!giftAmount || isNaN(Number(giftAmount)) || Number(giftAmount) <= 0) {
-      toast.error('الرجاء إدخال مبلغ صالح للإهداء');
-      return;
-    }
-
-    if (Number(giftAmount) > (user?.balance || 0)) {
-      toast.error('رصيدك غير كافٍ لإتمام عملية الإهداء');
-      return;
-    }
-
-    setIsGifting(true);
     try {
-      await api.giftBalance(giftUserId, Number(giftAmount));
-      toast.success(`تم إهداء $${giftAmount} بنجاح إلى المستخدم ${giftUserId}`);
-      setGiftUserId('');
-      setGiftAmount('');
+      await api.addFunds(parseFloat(amount), 'manual');
+      toast.success('تم إرسال طلب الإيداع بنجاح');
+      setShowAddFundsDialog(false);
+      setAmount('');
       fetchTransactions();
-      // In a real app, you'd also refresh the user's balance
     } catch (error) {
-      console.error('Failed to gift balance', error);
-      toast.error('حدث خطأ أثناء إهداء الرصيد');
-    } finally {
-      setIsGifting(false);
+      console.error('Error adding funds:', error);
+      toast.error('فشل في إضافة الرصيد');
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-1">
-          <CardContent className="p-6">
-            <div className="mb-6 text-center">
-              <DollarSign className="h-12 w-12 mx-auto text-brand-500" />
-              <h2 className="text-2xl font-bold mt-2">رصيدك الحالي</h2>
-              <p className="text-4xl font-bold text-brand-600 mt-2">${user?.balance.toFixed(2)}</p>
-            </div>
-            
-            <div className="space-y-4">
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => document.getElementById('add-funds')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                إضافة رصيد
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => document.getElementById('gift-funds')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                <Gift className="ml-2 h-4 w-4" />
-                إهداء رصيد
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+  const handleGiftBalance = async () => {
+    if (!giftAmount || isNaN(parseFloat(giftAmount)) || parseFloat(giftAmount) <= 0) {
+      toast.error('الرجاء إدخال مبلغ صحيح');
+      return;
+    }
 
-        <Card className="md:col-span-2" id="add-funds">
-          <CardHeader>
-            <CardTitle>إضافة رصيد</CardTitle>
-            <CardDescription>أضف رصيدًا إلى حسابك لشراء أرقام افتراضية</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="card">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="card">بطاقة الائتمان</TabsTrigger>
-                <TabsTrigger value="paypal">PayPal</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="card" className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="amount">المبلغ (بالدولار)</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    min="1"
-                    placeholder="أدخل المبلغ"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="card-number">رقم البطاقة</Label>
-                  <Input
-                    id="card-number"
-                    placeholder="xxxx xxxx xxxx xxxx"
-                    className="ltr"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="expiry">تاريخ الانتهاء</Label>
-                    <Input
-                      id="expiry"
-                      placeholder="MM/YY"
-                      className="ltr"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cvv">CVV</Label>
-                    <Input
-                      id="cvv"
-                      placeholder="123"
-                      className="ltr"
-                    />
-                  </div>
-                </div>
-                
-                <Button 
-                  className="w-full gradient-bg mt-4"
-                  onClick={() => handleAddFunds('card')}
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'جاري المعالجة...' : 'إضافة الرصيد'}
-                </Button>
-              </TabsContent>
-              
-              <TabsContent value="paypal" className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="paypal-amount">المبلغ (بالدولار)</Label>
-                  <Input
-                    id="paypal-amount"
-                    type="number"
-                    min="1"
-                    placeholder="أدخل المبلغ"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                  />
-                </div>
-                
-                <div className="bg-gray-50 p-4 rounded-md text-center">
-                  <p className="mb-2">سيتم تحويلك إلى PayPal لإتمام عملية الدفع</p>
-                  <CreditCard className="h-12 w-12 mx-auto text-brand-500" />
-                </div>
-                
-                <Button 
-                  className="w-full gradient-bg mt-4"
-                  onClick={() => handleAddFunds('paypal')}
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'جاري المعالجة...' : 'الدفع عبر PayPal'}
-                </Button>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+    if (!recipientId) {
+      toast.error('الرجاء إدخال معرف المستلم');
+      return;
+    }
+
+    try {
+      await api.giftBalance(recipientId, parseFloat(giftAmount));
+      toast.success('تم إرسال الرصيد بنجاح');
+      setShowGiftDialog(false);
+      setGiftAmount('');
+      setRecipientId('');
+      fetchTransactions();
+    } catch (error) {
+      console.error('Error gifting balance:', error);
+      toast.error('فشل في إرسال الرصيد');
+    }
+  };
+
+  const getTransactionTypeDetails = (type: string) => {
+    switch (type) {
+      case 'deposit':
+        return { 
+          icon: <ArrowDown className="h-5 w-5 text-green-500" />, 
+          text: 'إيداع',
+          class: 'text-green-600'
+        };
+      case 'withdrawal':
+        return { 
+          icon: <ArrowUp className="h-5 w-5 text-red-500" />, 
+          text: 'سحب',
+          class: 'text-red-600'
+        };
+      case 'purchase':
+        return { 
+          icon: <Wallet className="h-5 w-5 text-blue-500" />, 
+          text: 'شراء',
+          class: 'text-blue-600'
+        };
+      case 'gift':
+        return { 
+          icon: <Wallet className="h-5 w-5 text-purple-500" />, 
+          text: 'هدية',
+          class: 'text-purple-600'
+        };
+      case 'refund':
+        return { 
+          icon: <ArrowDown className="h-5 w-5 text-yellow-500" />, 
+          text: 'استرداد',
+          class: 'text-yellow-600'
+        };
+      default:
+        return { 
+          icon: <Wallet className="h-5 w-5 text-gray-500" />, 
+          text: 'معاملة',
+          class: 'text-gray-600'
+        };
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('ar', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="container mx-auto p-4 text-center">
+        <p className="text-xl mt-8">يرجى تسجيل الدخول لعرض رصيد حسابك</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">رصيد حسابك</h1>
+        <div className="flex space-x-2 rtl:space-x-reverse">
+          <Button onClick={() => setShowGiftDialog(true)}>
+            إهداء رصيد
+          </Button>
+          <Button onClick={() => setShowAddFundsDialog(true)}>
+            إضافة رصيد
+          </Button>
+        </div>
       </div>
 
-      {/* Gift Balance Card */}
-      <Card id="gift-funds">
+      <Card className="mb-8">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Gift className="h-5 w-5" />
-            إهداء رصيد
-          </CardTitle>
-          <CardDescription>أهدِ رصيدًا إلى مستخدم آخر عن طريق معرفه</CardDescription>
+          <div className="flex items-center gap-2">
+            <Wallet className="h-6 w-6 text-brand-600" />
+            <CardTitle>الرصيد الحالي</CardTitle>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="recipient-id">معرف المستخدم</Label>
-            <Input
-              id="recipient-id"
-              placeholder="أدخل معرف المستخدم (مثال: 60f5e5f9a6e1b8001234abcd)"
-              value={giftUserId}
-              onChange={(e) => setGiftUserId(e.target.value)}
-            />
+        <CardContent>
+          <div className="flex justify-center items-center p-8">
+            <div className="text-4xl font-bold text-brand-600">
+              {user.balance?.toFixed(2)} ريال
+            </div>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="gift-amount">المبلغ (بالدولار)</Label>
-            <Input
-              id="gift-amount"
-              type="number"
-              min="1"
-              max={user?.balance}
-              placeholder="أدخل مبلغ الإهداء"
-              value={giftAmount}
-              onChange={(e) => setGiftAmount(e.target.value)}
-            />
-          </div>
-          
-          <Button 
-            className="w-full gradient-bg mt-4"
-            onClick={handleGiftBalance}
-            disabled={isGifting}
-          >
-            {isGifting ? 'جاري المعالجة...' : 'إهداء الرصيد'}
-          </Button>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <History className="h-5 w-5" />
-            سجل المعاملات
-          </CardTitle>
-          <CardDescription>تاريخ معاملاتك المالية</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoadingTransactions ? (
-            <div className="flex justify-center py-6">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-500"></div>
+      <Tabs defaultValue="all" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="all">جميع المعاملات</TabsTrigger>
+          <TabsTrigger value="deposits">الإيداعات</TabsTrigger>
+          <TabsTrigger value="purchases">المشتريات</TabsTrigger>
+          <TabsTrigger value="gifts">الهدايا</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="all">
+          {renderTransactions(transactions)}
+        </TabsContent>
+        
+        <TabsContent value="deposits">
+          {renderTransactions(transactions.filter(t => t.type === 'deposit' || t.type === 'refund'))}
+        </TabsContent>
+        
+        <TabsContent value="purchases">
+          {renderTransactions(transactions.filter(t => t.type === 'purchase'))}
+        </TabsContent>
+        
+        <TabsContent value="gifts">
+          {renderTransactions(transactions.filter(t => t.type === 'gift'))}
+        </TabsContent>
+      </Tabs>
+
+      {/* Add Funds Dialog */}
+      <Dialog open={showAddFundsDialog} onOpenChange={setShowAddFundsDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>إضافة رصيد</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="amount">المبلغ (ريال)</Label>
+              <Input
+                id="amount"
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="أدخل المبلغ"
+                min="1"
+              />
             </div>
-          ) : transactions.length === 0 ? (
-            <div className="text-center py-6 text-gray-500">
-              <p>لا توجد معاملات حتى الآن</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddFundsDialog(false)}>
+              إلغاء
+            </Button>
+            <Button onClick={handleAddFunds}>
+              إضافة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Gift Balance Dialog */}
+      <Dialog open={showGiftDialog} onOpenChange={setShowGiftDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>إهداء رصيد</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="recipient">معرف المستخدم المستلم</Label>
+              <Input
+                id="recipient"
+                value={recipientId}
+                onChange={(e) => setRecipientId(e.target.value)}
+                placeholder="أدخل معرف المستخدم المستلم"
+              />
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b">
-                    <th className="py-2 px-4 text-right">التاريخ</th>
-                    <th className="py-2 px-4 text-right">النوع</th>
-                    <th className="py-2 px-4 text-right">الوصف</th>
-                    <th className="py-2 px-4 text-right">المبلغ</th>
-                    <th className="py-2 px-4 text-right">الحالة</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.map(transaction => (
-                    <tr key={transaction.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4">
-                        {new Date(transaction.createdAt).toLocaleDateString('ar-SA')}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          transaction.type === 'deposit' 
-                            ? 'bg-green-100 text-green-800' 
-                            : transaction.type === 'gift'
-                            ? 'bg-purple-100 text-purple-800'
-                            : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {transaction.type === 'deposit' 
-                            ? 'إيداع' 
-                            : transaction.type === 'gift' 
-                            ? 'إهداء'
-                            : 'شراء'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">{transaction.description}</td>
-                      <td className="py-3 px-4">
-                        <span className={
-                          transaction.type === 'deposit' 
-                            ? 'text-green-600' 
-                            : transaction.type === 'gift' && transaction.description?.includes('إهداء من')
-                            ? 'text-purple-600'
-                            : 'text-blue-600'
-                        }>
-                          {(transaction.type === 'deposit' || (transaction.type === 'gift' && transaction.description?.includes('إهداء من'))) 
-                            ? '+' 
-                            : '-'}${transaction.amount.toFixed(2)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          transaction.status === 'completed' 
-                            ? 'bg-green-100 text-green-800' 
-                            : transaction.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {transaction.status === 'completed' ? 'مكتمل' : 
-                           transaction.status === 'pending' ? 'قيد المعالجة' : 'فشل'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-2">
+              <Label htmlFor="gift-amount">المبلغ (ريال)</Label>
+              <Input
+                id="gift-amount"
+                type="number"
+                value={giftAmount}
+                onChange={(e) => setGiftAmount(e.target.value)}
+                placeholder="أدخل المبلغ"
+                min="1"
+              />
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowGiftDialog(false)}>
+              إلغاء
+            </Button>
+            <Button onClick={handleGiftBalance}>
+              إرسال
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+  
+  function renderTransactions(transactionsToRender: Transaction[]) {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
+        </div>
+      );
+    }
+    
+    if (transactionsToRender.length === 0) {
+      return (
+        <Card>
+          <CardContent className="flex justify-center items-center p-12">
+            <p className="text-gray-500">لا توجد معاملات</p>
+          </CardContent>
+        </Card>
+      );
+    }
+    
+    return (
+      <div className="space-y-4">
+        {transactionsToRender.map((transaction) => {
+          const typeDetails = getTransactionTypeDetails(transaction.type);
+          
+          return (
+            <Card key={transaction.id}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4 rtl:space-x-reverse">
+                    <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                      {typeDetails.icon}
+                    </div>
+                    <div>
+                      <h3 className={`font-semibold ${typeDetails.class}`}>{typeDetails.text}</h3>
+                      <p className="text-sm text-gray-500">{transaction.description || '-'}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`font-bold ${transaction.type === 'purchase' || transaction.type === 'withdrawal' || (transaction.type === 'gift' && transaction.amount < 0) ? 'text-red-600' : 'text-green-600'}`}>
+                      {transaction.amount > 0 ? '+' : ''}{transaction.amount} ريال
+                    </p>
+                    <div className="flex items-center text-xs text-gray-500">
+                      <Calendar className="h-3 w-3 ml-1" />
+                      {formatDate(transaction.createdAt)}
+                    </div>
+                  </div>
+                </div>
+                {transaction.status !== 'completed' && (
+                  <div className={`mt-2 text-xs px-2 py-1 rounded-full w-fit ${
+                    transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {transaction.status === 'pending' ? 'قيد المعالجة' : 'فشلت'}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  }
 };
 
 export default Balance;

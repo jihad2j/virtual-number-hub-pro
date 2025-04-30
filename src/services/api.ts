@@ -18,6 +18,9 @@ export interface User {
   email: string;
   balance: number;
   role: 'user' | 'admin';
+  isActive?: boolean;
+  createdAt?: string;
+  lastLogin?: string;
 }
 
 export interface LoginResponse {
@@ -35,6 +38,23 @@ export interface Provider {
   settings: Record<string, any>;
   isActive: boolean;
   priority: number;
+  createdAt: string;
+  updatedAt: string;
+  // Add the missing properties
+  apiUrl?: string;
+  description?: string;
+  countries: string[];
+}
+
+export interface Transaction {
+  id: string;
+  userId: string;
+  type: 'deposit' | 'withdrawal' | 'purchase' | 'gift' | 'refund';
+  amount: number;
+  status: 'pending' | 'completed' | 'failed';
+  paymentMethod?: string;
+  receipt?: string;
+  description?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -122,11 +142,27 @@ export const api = {
   deleteCountry: async (id: string): Promise<void> => {
     await apiClient.delete(`/countries/${id}`);
   },
+
+  // Add missing countries function
+  addCountries: async (countries: Partial<Country>[]): Promise<Country[]> => {
+    const response = await apiClient.post('/countries/batch', countries);
+    return response.data.data;
+  },
   
   // Provider endpoints
   getAllProviders: async (): Promise<Provider[]> => {
     const response = await apiClient.get('/providers');
     return response.data.data;
+  },
+
+  // Alias for getAllProviders to fix naming mismatch
+  getProviders: async (): Promise<Provider[]> => {
+    return api.getAllProviders();
+  },
+  
+  // Alias for getAllCountries to fix naming mismatch
+  getCountries: async (): Promise<Country[]> => {
+    return api.getAllCountries();
   },
   
   createProvider: async (provider: Omit<Provider, 'id' | 'createdAt' | 'updatedAt'>): Promise<Provider> => {
@@ -136,6 +172,18 @@ export const api = {
   
   updateProvider: async (id: string, data: Partial<Provider>): Promise<Provider> => {
     const response = await apiClient.put(`/providers/${id}`, data);
+    return response.data.data;
+  },
+
+  // Fix the expected 2 arguments issue
+  updateProvider: async (provider: Provider): Promise<Provider> => {
+    const response = await apiClient.put(`/providers/${provider.id}`, provider);
+    return response.data.data;
+  },
+
+  // Add missing addProvider function
+  addProvider: async (provider: Partial<Provider>): Promise<Provider> => {
+    const response = await apiClient.post('/providers', provider);
     return response.data.data;
   },
   
@@ -170,17 +218,27 @@ export const api = {
   },
   
   // Transaction endpoints
-  getUserTransactions: async (): Promise<any[]> => {
+  getUserTransactions: async (): Promise<Transaction[]> => {
     const response = await apiClient.get('/transactions');
     return response.data.data;
   },
   
-  createDepositTransaction: async (amount: number, paymentMethod: string, receipt?: string): Promise<any> => {
+  // Alias for getUserTransactions to fix naming mismatch
+  getTransactions: async (): Promise<Transaction[]> => {
+    return api.getUserTransactions();
+  },
+  
+  createDepositTransaction: async (amount: number, paymentMethod: string, receipt?: string): Promise<Transaction> => {
     const response = await apiClient.post('/transactions/deposit', { amount, paymentMethod, receipt });
     return response.data.data;
   },
+
+  // Add missing addFunds function
+  addFunds: async (amount: number, paymentMethod: string, receipt?: string): Promise<Transaction> => {
+    return api.createDepositTransaction(amount, paymentMethod, receipt);
+  },
   
-  giftBalance: async (recipientId: string, amount: number): Promise<any> => {
+  giftBalance: async (recipientId: string, amount: number): Promise<Transaction> => {
     const response = await apiClient.post('/transactions/gift', { recipientId, amount });
     return response.data.data;
   },
@@ -241,6 +299,26 @@ export const api = {
     return response.data.data;
   },
   
+  // User management endpoints
+  getUsers: async (): Promise<User[]> => {
+    const response = await apiClient.get('/users');
+    return response.data.data;
+  },
+  
+  addUser: async (userData: Partial<User>): Promise<User> => {
+    const response = await apiClient.post('/users', userData);
+    return response.data.data;
+  },
+  
+  updateUser: async (user: User): Promise<User> => {
+    const response = await apiClient.put(`/users/${user.id}`, user);
+    return response.data.data;
+  },
+  
+  deleteUser: async (userId: string): Promise<void> => {
+    await apiClient.delete(`/users/${userId}`);
+  },
+
   // Application initialization
   initLocalData: async () => {
     try {
