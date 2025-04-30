@@ -27,11 +27,26 @@ const providerSchema = new mongoose.Schema({
   },
   apiUrl: {
     type: String
+  },
+  type: {
+    type: String,
+    enum: ['5sim', 'smsactivate', 'getsms', 'smsman', 'onlinesim', 'other'],
+    default: 'other'
+  },
+  config: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {},
+    select: false // لا يتم إرجاع الإعدادات في الاستعلامات العادية
   }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
+});
+
+// تحويل _id إلى id لسهولة الاستخدام في الواجهة
+providerSchema.virtual('id').get(function() {
+  return this._id.toHexString();
 });
 
 const Provider = mongoose.model('Provider', providerSchema);
