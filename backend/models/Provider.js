@@ -37,6 +37,50 @@ const providerSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed,
     default: {},
     select: false // لا يتم إرجاع الإعدادات في الاستعلامات العادية
+  },
+  settings: {
+    requestTimeout: {
+      type: Number,
+      default: 60000 // 60 seconds default timeout
+    },
+    autoRetry: {
+      type: Boolean,
+      default: false
+    },
+    maxRetries: {
+      type: Number, 
+      default: 3
+    },
+    preferredCountries: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Country'
+    }],
+    defaultMarkup: {
+      type: Number,
+      default: 10 // 10% markup by default
+    },
+    customEndpoints: {
+      balance: {
+        type: String,
+        default: ''
+      },
+      countries: {
+        type: String,
+        default: ''
+      },
+      services: {
+        type: String,
+        default: ''
+      },
+      purchase: {
+        type: String,
+        default: ''
+      },
+      status: {
+        type: String,
+        default: ''
+      }
+    }
   }
 }, {
   timestamps: true,

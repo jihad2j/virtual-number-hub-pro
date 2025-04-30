@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
 import { api, Transaction } from '@/services/api';
-import { DollarSign, CreditCard, History } from 'lucide-react';
+import { DollarSign, CreditCard, History, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Balance = () => {
@@ -16,6 +16,11 @@ const Balance = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
+  
+  // Gift balance states
+  const [giftUserId, setGiftUserId] = useState('');
+  const [giftAmount, setGiftAmount] = useState('');
+  const [isGifting, setIsGifting] = useState(false);
 
   useEffect(() => {
     fetchTransactions();
@@ -54,6 +59,39 @@ const Balance = () => {
     }
   };
 
+  // Handle gifting balance to another user
+  const handleGiftBalance = async () => {
+    if (!giftUserId) {
+      toast.error('الرجاء إدخال معرف المستخدم');
+      return;
+    }
+
+    if (!giftAmount || isNaN(Number(giftAmount)) || Number(giftAmount) <= 0) {
+      toast.error('الرجاء إدخال مبلغ صالح للإهداء');
+      return;
+    }
+
+    if (Number(giftAmount) > (user?.balance || 0)) {
+      toast.error('رصيدك غير كافٍ لإتمام عملية الإهداء');
+      return;
+    }
+
+    setIsGifting(true);
+    try {
+      await api.giftBalance(giftUserId, Number(giftAmount));
+      toast.success(`تم إهداء $${giftAmount} بنجاح إلى المستخدم ${giftUserId}`);
+      setGiftUserId('');
+      setGiftAmount('');
+      fetchTransactions();
+      // In a real app, you'd also refresh the user's balance
+    } catch (error) {
+      console.error('Failed to gift balance', error);
+      toast.error('حدث خطأ أثناء إهداء الرصيد');
+    } finally {
+      setIsGifting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -72,6 +110,14 @@ const Balance = () => {
                 onClick={() => document.getElementById('add-funds')?.scrollIntoView({ behavior: 'smooth' })}
               >
                 إضافة رصيد
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => document.getElementById('gift-funds')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                <Gift className="ml-2 h-4 w-4" />
+                إهداء رصيد
               </Button>
             </div>
           </CardContent>
@@ -170,6 +216,49 @@ const Balance = () => {
         </Card>
       </div>
 
+      {/* Gift Balance Card */}
+      <Card id="gift-funds">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Gift className="h-5 w-5" />
+            إهداء رصيد
+          </CardTitle>
+          <CardDescription>أهدِ رصيدًا إلى مستخدم آخر عن طريق معرفه</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="recipient-id">معرف المستخدم</Label>
+            <Input
+              id="recipient-id"
+              placeholder="أدخل معرف المستخدم (مثال: 60f5e5f9a6e1b8001234abcd)"
+              value={giftUserId}
+              onChange={(e) => setGiftUserId(e.target.value)}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="gift-amount">المبلغ (بالدولار)</Label>
+            <Input
+              id="gift-amount"
+              type="number"
+              min="1"
+              max={user?.balance}
+              placeholder="أدخل مبلغ الإهداء"
+              value={giftAmount}
+              onChange={(e) => setGiftAmount(e.target.value)}
+            />
+          </div>
+          
+          <Button 
+            className="w-full gradient-bg mt-4"
+            onClick={handleGiftBalance}
+            disabled={isGifting}
+          >
+            {isGifting ? 'جاري المعالجة...' : 'إهداء الرصيد'}
+          </Button>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -209,15 +298,29 @@ const Balance = () => {
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           transaction.type === 'deposit' 
                             ? 'bg-green-100 text-green-800' 
+                            : transaction.type === 'gift'
+                            ? 'bg-purple-100 text-purple-800'
                             : 'bg-blue-100 text-blue-800'
                         }`}>
-                          {transaction.type === 'deposit' ? 'إيداع' : 'شراء'}
+                          {transaction.type === 'deposit' 
+                            ? 'إيداع' 
+                            : transaction.type === 'gift' 
+                            ? 'إهداء'
+                            : 'شراء'}
                         </span>
                       </td>
                       <td className="py-3 px-4">{transaction.description}</td>
                       <td className="py-3 px-4">
-                        <span className={transaction.type === 'deposit' ? 'text-green-600' : 'text-blue-600'}>
-                          {transaction.type === 'deposit' ? '+' : '-'}${transaction.amount.toFixed(2)}
+                        <span className={
+                          transaction.type === 'deposit' 
+                            ? 'text-green-600' 
+                            : transaction.type === 'gift' && transaction.description?.includes('إهداء من')
+                            ? 'text-purple-600'
+                            : 'text-blue-600'
+                        }>
+                          {(transaction.type === 'deposit' || (transaction.type === 'gift' && transaction.description?.includes('إهداء من'))) 
+                            ? '+' 
+                            : '-'}${transaction.amount.toFixed(2)}
                         </span>
                       </td>
                       <td className="py-3 px-4">
