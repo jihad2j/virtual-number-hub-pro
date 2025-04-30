@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
@@ -11,25 +10,29 @@ interface User {
   role: 'user' | 'admin';
 }
 
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+type AuthContextType = {
   isAuthenticated: boolean;
+  loading: boolean;
+  user: User | null;
   isAdmin: boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  login: (email: string, password: string) => Promise<void>;
+  register: (username: string, email: string, password: string) => Promise<void>;
+  logout: () => void;
+  refreshUser: () => Promise<void>;
 };
+
+const AuthContext = createContext<AuthContextType>({
+  isAuthenticated: false,
+  loading: true,
+  user: null,
+  isAdmin: false,
+  login: async () => {},
+  register: async () => {},
+  logout: () => {},
+  refreshUser: async () => {},
+});
+
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -73,11 +76,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (username: string, email: string, password: string) => {
     setLoading(true);
     try {
       // Use the API to register with backend
-      const userData = await api.register(name, email, password);
+      const userData = await api.register(username, email, password);
       
       const user: User = {
         id: userData.id || userData._id,
@@ -107,16 +110,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'admin';
 
+  const refreshUser = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const user = await api.getCurrentUser();
+      setUser(user);
+    } catch (error) {
+      console.error('Error refreshing user:', error);
+    }
+  };
+
   return (
     <AuthContext.Provider 
       value={{ 
-        user, 
+        isAuthenticated, 
         loading, 
+        user, 
+        isAdmin: user?.role === 'admin', 
         login, 
         register, 
-        logout, 
-        isAuthenticated, 
-        isAdmin 
+        logout,
+        refreshUser
       }}
     >
       {children}

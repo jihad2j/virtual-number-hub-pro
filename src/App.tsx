@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,18 +8,18 @@ import DashboardLayout from "./components/layout/DashboardLayout";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
-import Countries from "./pages/Countries";
-import Balance from "./pages/Balance";
-import Support from "./pages/Support";
-import Providers from "./pages/admin/Providers";
-import CountriesManagement from "./pages/admin/Countries";
-import UsersManagement from "./pages/admin/Users";
-import ManualRequests from "./pages/admin/ManualRequests";
-import ManualServices from "./pages/admin/ManualServices";
-import MyOrders from "./pages/MyOrders";
-import SystemSettings from "./pages/SystemSettings";
-import ManualActivation from "./pages/ManualActivation";
+import Dashboard from './pages/Dashboard';
+import Countries from './pages/Countries';
+import Balance from './pages/Balance';
+import Support from './pages/Support';
+import AdminDashboard from './pages/admin/Dashboard';
+import Providers from './pages/admin/Providers';
+import AdminCountries from './pages/admin/Countries';
+import Users from './pages/admin/Users';
+import ManualServices from './pages/admin/ManualServices';
+import ManualRequests from './pages/admin/ManualRequests';
+import SystemSettings from './pages/SystemSettings';
+import ManualActivation from './pages/ManualActivation';
 import Index from "./pages/Index";
 import { useEffect } from "react";
 import { api } from "./services/api";
@@ -57,8 +56,8 @@ const App = () => {
                 
                 {/* Admin Routes */}
                 <Route path="admin/providers" element={<Providers />} />
-                <Route path="admin/countries" element={<CountriesManagement />} />
-                <Route path="admin/users" element={<UsersManagement />} />
+                <Route path="admin/countries" element={<AdminCountries />} />
+                <Route path="admin/users" element={<Users />} />
                 <Route path="admin/manual-requests" element={<ManualRequests />} />
                 <Route path="admin/manual-services" element={<ManualServices />} />
               </Route>
