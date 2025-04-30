@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { api } from '../services/api';
 
 interface User {
   id: string;
@@ -48,28 +49,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
-  // In a real app, these would connect to your backend API
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Mock API call - replace with actual API call
-      // const response = await fetch('/api/login', ...);
+      // Use the API to login with backend authentication
+      const userData = await api.login(email, password);
       
-      // Mock successful login for demo purposes
-      const mockUser: User = {
-        id: '1',
-        name: 'Ahmed Mohammed',
-        email,
-        balance: 100.0,
-        role: email.includes('admin') ? 'admin' : 'user',
+      const user: User = {
+        id: userData.id || userData._id,
+        name: userData.username,
+        email: userData.email,
+        balance: userData.balance,
+        role: userData.role,
       };
 
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      toast.success('تم تسجيل الدخول بنجاح');
+      setUser(user);
     } catch (error) {
       console.error('Login failed', error);
-      toast.error('فشل تسجيل الدخول');
       throw error;
     } finally {
       setLoading(false);
@@ -79,24 +75,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (name: string, email: string, password: string) => {
     setLoading(true);
     try {
-      // Mock API call - replace with actual API call
-      // const response = await fetch('/api/register', ...);
+      // Use the API to register with backend
+      const userData = await api.register(name, email, password);
       
-      // Mock successful registration
-      const mockUser: User = {
-        id: '1',
-        name,
-        email,
-        balance: 0.0,
-        role: 'user',
+      const user: User = {
+        id: userData.id || userData._id,
+        name: userData.username,
+        email: userData.email,
+        balance: userData.balance || 0,
+        role: userData.role || 'user',
       };
 
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
-      toast.success('تم إنشاء الحساب بنجاح');
+      setUser(user);
     } catch (error) {
       console.error('Registration failed', error);
-      toast.error('فشل إنشاء الحساب');
       throw error;
     } finally {
       setLoading(false);
@@ -106,6 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('authToken');
     toast.success('تم تسجيل الخروج بنجاح');
   };
 

@@ -16,6 +16,9 @@ const manualServiceSchema = new mongoose.Schema({
     required: [true, 'سعر الخدمة مطلوب'],
     min: 0
   },
+  image: {
+    type: String
+  },
   available: {
     type: Boolean,
     default: true

@@ -8,8 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from '@/services/api';
-import { MessageSquare, PhoneCall, CheckCircle } from 'lucide-react';
+import { MessageSquare, PhoneCall, CheckCircle, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ManualService {
   id: string;
@@ -17,6 +19,7 @@ interface ManualService {
   description: string;
   price: number;
   available: boolean;
+  image?: string;
 }
 
 interface ManualRequest {
@@ -32,6 +35,115 @@ interface ManualRequest {
   updatedAt?: string;
 }
 
+const AddServiceDialog = () => {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
+  const [image, setImage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const { isAdmin } = useAuth();
+
+  const handleAddService = async () => {
+    if (!name || !description || !price) {
+      toast.error('يرجى ملء جميع الحقول المطلوبة');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.createManualService({
+        name,
+        description,
+        price: Number(price),
+        available: true,
+        image
+      });
+
+      setName('');
+      setDescription('');
+      setPrice('');
+      setImage('');
+      setOpen(false);
+      toast.success('تمت إضافة الخدمة بنجاح');
+    } catch (error) {
+      console.error('Failed to add service:', error);
+      toast.error('فشل في إضافة الخدمة');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isAdmin) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="gradient-bg">
+          <Plus className="w-4 h-4 ml-2" />
+          إضافة خدمة جديدة
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>إضافة خدمة تفعيل يدوي جديدة</DialogTitle>
+          <DialogDescription>
+            أدخل تفاصيل الخدمة الجديدة التي تريد إضافتها
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">اسم الخدمة</Label>
+            <Input 
+              id="name" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              placeholder="اسم الخدمة" 
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="description">وصف الخدمة</Label>
+            <Textarea 
+              id="description" 
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)} 
+              placeholder="وصف الخدمة" 
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="price">السعر</Label>
+            <Input 
+              id="price" 
+              type="number" 
+              value={price} 
+              onChange={(e) => setPrice(e.target.value)} 
+              placeholder="سعر الخدمة" 
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="image">رابط الصورة (اختياري)</Label>
+            <Input 
+              id="image" 
+              value={image} 
+              onChange={(e) => setImage(e.target.value)} 
+              placeholder="رابط صورة الخدمة" 
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button 
+            onClick={handleAddService} 
+            className="gradient-bg" 
+            disabled={loading}
+          >
+            {loading ? 'جاري الإضافة...' : 'إضافة الخدمة'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const ManualActivation = () => {
   const [services, setServices] = useState<ManualService[]>([]);
   const [requests, setRequests] = useState<ManualRequest[]>([]);
@@ -40,6 +152,7 @@ const ManualActivation = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [confirmationCode, setConfirmationCode] = useState<string>("");
   const [confirmingRequestId, setConfirmingRequestId] = useState<string | null>(null);
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     fetchServices();
@@ -141,7 +254,10 @@ const ManualActivation = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">طلب التفعيل اليدوي</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">طلب التفعيل اليدوي</h1>
+        <AddServiceDialog />
+      </div>
       
       <Card>
         <CardHeader>

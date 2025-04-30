@@ -31,9 +31,9 @@ const Register = () => {
     try {
       await register(name, email, password);
       navigate('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error);
-      setError('حدث خطأ أثناء التسجيل. الرجاء المحاولة مرة أخرى.');
+      setError(error?.response?.data?.message || 'حدث خطأ أثناء التسجيل. الرجاء المحاولة مرة أخرى.');
     } finally {
       setIsLoading(false);
     }
