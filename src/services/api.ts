@@ -6,8 +6,7 @@ import { Transaction } from '@/types/Transaction';
 import { PhoneNumber } from '@/types/PhoneNumber';
 import { PrepaidCode } from '@/types/PrepaidCode';
 import { SupportTicket } from '@/types/SupportTicket';
-import { ManualService } from '@/types/ManualService';
-import { ManualRequest } from '@/types/ManualRequest';
+import { ManualService, ManualRequest, AdminManualRequest } from '@/types/ManualRequest';
 
 // Re-export types that other components need
 export type { User, Country, Provider, Transaction, PhoneNumber, PrepaidCode, SupportTicket, ManualService, ManualRequest };
@@ -87,6 +86,20 @@ export const api = {
   async getAllCountries(): Promise<Country[]> {
     const response = await apiClient.get('/countries');
     return response.data.data;
+  },
+
+  async getAvailableCountries(): Promise<Country[]> {
+    // This is an alias for getAllCountries to fix the type error
+    return this.getAllCountries();
+  },
+
+  async createCountry(data: Partial<Country>): Promise<Country> {
+    const response = await apiClient.post('/countries', data);
+    return response.data.data;
+  },
+
+  async deleteCountry(id: string): Promise<void> {
+    await apiClient.delete(`/countries/${id}`);
   },
 
   async getCountry(id: string): Promise<Country> {
@@ -182,8 +195,13 @@ export const api = {
     return response.data.data;
   },
 
-  async createDeposit(amount: number, paymentMethod: string): Promise<Transaction> {
+  async createDepositTransaction(amount: number, paymentMethod: string): Promise<Transaction> {
     const response = await apiClient.post('/transactions/deposit', { amount, paymentMethod });
+    return response.data.data;
+  },
+
+  async giftBalance(userId: string, amount: number, note: string): Promise<Transaction> {
+    const response = await apiClient.post('/transactions/gift', { userId, amount, note });
     return response.data.data;
   },
 

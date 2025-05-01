@@ -27,28 +27,10 @@ mongoose.connect(MONGODB_URI)
   });
 
 // تضمين المسارات
-const countriesRoutes = require('./routes/countries');
-const providersRoutes = require('./routes/providers');
-const numbersRoutes = require('./routes/numbers');
-const usersRoutes = require('./routes/users');
-const transactionsRoutes = require('./routes/transactions');
-const manualServicesRoutes = require('./routes/manualServices');
-const manualRequestsRoutes = require('./routes/manualRequests');
-const supportRoutes = require('./routes/support');
-const authRoutes = require('./routes/auth');
-const initRoutes = require('./routes/init');
+const routes = require('./routes');
 
-// تسجيل المسارات
-app.use('/api/countries', countriesRoutes);
-app.use('/api/providers', providersRoutes);
-app.use('/api/numbers', numbersRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/transactions', transactionsRoutes);
-app.use('/api/manual-services', manualServicesRoutes);
-app.use('/api/manual-requests', manualRequestsRoutes);
-app.use('/api/support', supportRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/init', initRoutes);
+// استخدام المسارات من الملف الرئيسي للمسارات
+app.use('/api', routes);
 
 // مسار اختبار لفحص الخادم
 app.get('/api/health', (req, res) => {

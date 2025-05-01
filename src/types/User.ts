@@ -7,7 +7,7 @@ export interface User {
   role: 'user' | 'admin';
   balance: number;
   isActive: boolean;
-  createdAt?: string;
+  createdAt: string; // Changed from optional to required to match usage
   lastLogin?: string;
   updatedAt?: string;
 }

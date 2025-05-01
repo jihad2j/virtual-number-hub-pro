@@ -27,8 +27,8 @@ export interface ManualService {
   name: string;
   description: string;
   price: number;
-  image?: string;
   available: boolean;
+  image?: string;
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;

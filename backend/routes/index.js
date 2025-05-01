@@ -13,6 +13,7 @@ const manualRequestsRoutes = require('./manualRequests');
 const supportRoutes = require('./support');
 const initRoutes = require('./init');
 const prepaidCodesRoutes = require('./prepaidCodes');
+const adminRoutes = require('./admin'); // Add this line for admin routes
 
 router.use('/auth', authRoutes);
 router.use('/users', usersRoutes);
@@ -25,5 +26,6 @@ router.use('/manual-requests', manualRequestsRoutes);
 router.use('/support', supportRoutes);
 router.use('/init', initRoutes);
 router.use('/prepaid-codes', prepaidCodesRoutes);
+router.use('/admin', adminRoutes); // Register the admin routes
 
 module.exports = router;
