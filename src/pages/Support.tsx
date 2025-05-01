@@ -15,6 +15,8 @@ const Support = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [isLoadingTickets, setIsLoadingTickets] = useState(true);
+  const [replyMessages, setReplyMessages] = useState<{ [ticketId: string]: string }>({});
+  const [replying, setReplying] = useState<{ [ticketId: string]: boolean }>({});
 
   useEffect(() => {
     fetchUserTickets();
@@ -53,6 +55,42 @@ const Support = () => {
       toast.error('حدث خطأ أثناء إرسال الرسالة. الرجاء المحاولة مرة أخرى.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleReplyChange = (ticketId: string, value: string) => {
+    setReplyMessages(prev => ({ ...prev, [ticketId]: value }));
+  };
+
+  const handleReplySubmit = async (ticketId: string) => {
+    const replyMessage = replyMessages[ticketId];
+    
+    if (!replyMessage?.trim()) {
+      toast.error('الرجاء إدخال رسالة للرد');
+      return;
+    }
+    
+    setReplying(prev => ({ ...prev, [ticketId]: true }));
+    
+    try {
+      const updatedTicket = await api.respondToSupportTicket(ticketId, replyMessage);
+      
+      // تحديث التذكرة في قائمة التذاكر
+      setTickets(prev => 
+        prev.map(ticket => 
+          ticket.id === ticketId ? updatedTicket : ticket
+        )
+      );
+      
+      // مسح رسالة الرد بعد الإرسال الناجح
+      setReplyMessages(prev => ({ ...prev, [ticketId]: '' }));
+      
+      toast.success('تم إرسال الرد بنجاح');
+    } catch (error) {
+      console.error('Failed to send reply', error);
+      toast.error('حدث خطأ أثناء إرسال الرد');
+    } finally {
+      setReplying(prev => ({ ...prev, [ticketId]: false }));
     }
   };
 
@@ -157,6 +195,35 @@ const Support = () => {
                           <p>{response.message}</p>
                         </div>
                       ))}
+
+                      {/* نموذج الرد على التذكرة - يظهر فقط إذا كانت التذكرة مفتوحة */}
+                      {ticket.status === 'open' && (
+                        <div className="mt-4 border-t pt-4">
+                          <div className="space-y-2">
+                            <Label htmlFor={`reply-${ticket.id}`}>الرد على الرسالة</Label>
+                            <Textarea
+                              id={`reply-${ticket.id}`}
+                              placeholder="اكتب ردك هنا..."
+                              rows={3}
+                              value={replyMessages[ticket.id] || ''}
+                              onChange={(e) => handleReplyChange(ticket.id, e.target.value)}
+                            />
+                            <Button
+                              onClick={() => handleReplySubmit(ticket.id)}
+                              disabled={replying[ticket.id] || !replyMessages[ticket.id]?.trim()}
+                              size="sm"
+                              className="gradient-bg"
+                            >
+                              {replying[ticket.id] ? 'جاري الإرسال...' : (
+                                <>
+                                  <Send className="ml-2 h-4 w-4" />
+                                  إرسال الرد
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-sm text-gray-500 mt-2">
