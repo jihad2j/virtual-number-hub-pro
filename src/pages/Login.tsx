@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -21,7 +22,10 @@ const Login = () => {
     setError('');
     
     try {
+      console.log("Attempting login with:", email);
       await login(email, password);
+      console.log("Login successful, navigating to dashboard");
+      toast.success('تم تسجيل الدخول بنجاح');
       navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);

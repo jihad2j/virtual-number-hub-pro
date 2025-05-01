@@ -9,9 +9,13 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log("Index page loaded, authentication status:", isAuthenticated);
+    
     if (isAuthenticated) {
+      console.log("User is authenticated, redirecting to dashboard");
       navigate('/dashboard');
     } else {
+      console.log("User is not authenticated, redirecting to login");
       navigate('/login');
     }
     

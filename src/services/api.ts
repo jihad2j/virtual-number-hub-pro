@@ -10,6 +10,9 @@ import { SupportTicket } from '@/types/SupportTicket';
 import { ManualService } from '@/types/ManualService';
 import { ManualRequest } from '@/types/ManualRequest';
 
+// Re-export types that other components need
+export type { User, Country, Provider, Transaction, PhoneNumber, PrepaidCode, SupportTicket, ManualService, ManualRequest };
+
 interface LoginResponse {
   user: User;
   token: string;

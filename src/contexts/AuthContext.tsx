@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
@@ -45,12 +44,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Check if user is stored in localStorage
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    const token = localStorage.getItem('authToken');
+    console.log("Initial auth check - Token exists:", !!token);
+    
+    if (storedUser && token) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        console.log("Found stored user:", parsedUser.email);
+        setUser(parsedUser);
       } catch (error) {
         console.error('Failed to parse user from localStorage', error);
         localStorage.removeItem('user');
+        localStorage.removeItem('authToken');
       }
     }
     setLoading(false);
@@ -59,8 +64,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
+      console.log("AuthContext: Attempting login with API");
       // Use the API to login with backend authentication
       const response = await api.login(email, password);
+      console.log("AuthContext: Login successful, setting user and token");
       
       const authUser: AuthUser = {
         id: response.user.id,
@@ -74,6 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('user', JSON.stringify(authUser));
       localStorage.setItem('authToken', response.token);
       
+      console.log("AuthContext: User authenticated as", authUser.role);
       toast.success('تم تسجيل الدخول بنجاح');
     } catch (error) {
       console.error('Login failed', error);
@@ -117,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     toast.success('تم تسجيل الخروج بنجاح');
   };
 
-  const isAuthenticated = !!user;
+  const isAuthenticated = !!user && !!localStorage.getItem('authToken');
   const isAdmin = user?.role === 'admin';
 
   const refreshUser = async () => {
@@ -159,4 +167,3 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
-
