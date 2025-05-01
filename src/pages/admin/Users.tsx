@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +23,7 @@ const AdminUsers = () => {
   // Form states
   const [newUsername, setNewUsername] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState(""); // Added password state
   const [newRole, setNewRole] = useState<"user" | "admin">("user");
   const [newIsActive, setNewIsActive] = useState(true);
   const [newBalance, setNewBalance] = useState(0);
@@ -57,6 +57,7 @@ const AdminUsers = () => {
       const newUser = await api.createUser({
         username: newUsername,
         email: newEmail,
+        password: newPassword, // Added password field
         role: newRole,
         isActive: newIsActive,
         balance: newBalance,
@@ -101,6 +102,7 @@ const AdminUsers = () => {
   const resetCreateForm = () => {
     setNewUsername("");
     setNewEmail("");
+    setNewPassword(""); // Reset password field
     setNewRole("user");
     setNewIsActive(true);
     setNewBalance(0);
@@ -227,6 +229,18 @@ const AdminUsers = () => {
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
                 placeholder="example@domain.com"
+              />
+            </div>
+            
+            {/* Add Password Field */}
+            <div className="space-y-2">
+              <Label htmlFor="new-password">كلمة المرور</Label>
+              <Input 
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="كلمة المرور"
               />
             </div>
             

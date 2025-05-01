@@ -37,7 +37,7 @@ const MyOrders = () => {
       setOrders(numbers.map(number => ({
         id: number.id || '',
         phoneNumber: number.number || '', // Update to use 'number' instead of 'phoneNumber'
-        service: number.serviceId || '',
+        service: number.service || '', // Changed from serviceId to service to match PhoneNumber type
         country: number.countryId || '', // Update to use 'countryId' instead of 'country'
         status: number.status || 'pending',
         smsCode: number.smsCode || '',
