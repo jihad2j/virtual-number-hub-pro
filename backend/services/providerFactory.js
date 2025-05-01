@@ -6,38 +6,6 @@ const SmsManProvider = require('./providers/smsMan');
 const OnlineSmsProvider = require('./providers/onlineSms');
 
 /**
- * Factory to create provider instances based on provider code
- */
-class ProviderFactory {
-  /**
-   * Create a provider instance based on provider data
-   * @param {Object} providerData - Provider data from the database
-   * @returns {Object} Provider instance
-   */
-  static createProvider(providerData) {
-    if (!providerData) return null;
-
-    const { code } = providerData;
-    
-    switch(code.toLowerCase()) {
-      case '5sim':
-        return new FiveSimProvider(providerData);
-      case 'smsactivate':
-        return new SmsActivateProvider(providerData);
-      case 'getsmscode':
-        return new GetSmsCodeProvider(providerData);
-      case 'smsman':
-        return new SmsManProvider(providerData);
-      case 'onlinesms':
-        return new OnlineSmsProvider(providerData);
-      default:
-        // Default generic provider
-        return new BaseProvider(providerData);
-    }
-  }
-}
-
-/**
  * Base provider class with default implementations
  */
 class BaseProvider {
@@ -113,6 +81,38 @@ class BaseProvider {
     } catch (error) {
       console.error(`Connection test failed for ${this.name}:`, error);
       return false;
+    }
+  }
+}
+
+/**
+ * Factory to create provider instances based on provider code
+ */
+class ProviderFactory {
+  /**
+   * Create a provider instance based on provider data
+   * @param {Object} providerData - Provider data from the database
+   * @returns {Object} Provider instance
+   */
+  static createProvider(providerData) {
+    if (!providerData) return null;
+
+    const { code } = providerData;
+    
+    switch(code.toLowerCase()) {
+      case '5sim':
+        return new FiveSimProvider(providerData);
+      case 'smsactivate':
+        return new SmsActivateProvider(providerData);
+      case 'getsmscode':
+        return new GetSmsCodeProvider(providerData);
+      case 'smsman':
+        return new SmsManProvider(providerData);
+      case 'onlinesms':
+        return new OnlineSmsProvider(providerData);
+      default:
+        // Default generic provider
+        return new BaseProvider(providerData);
     }
   }
 }

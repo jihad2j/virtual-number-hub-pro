@@ -1,561 +1,332 @@
 
+import { User } from '../types/User';
+import { Country } from '../types/Country';
+import { Provider } from '../types/Provider';
+import { PhoneNumber } from '../types/PhoneNumber';
+import { Transaction } from '../types/Transaction';
+import { SupportTicket } from '../types/SupportTicket';
+import { ManualService, ManualRequest } from '../types/Manual';
+import { PrepaidCode } from '../types/PrepaidCode';
 import apiClient from './apiClient';
-import { toast } from 'sonner';
 
-// Types and interfaces
+// Auth Interfaces
 export interface LoginResponse {
-  user: User;
   token: string;
+  user: User;
 }
 
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  role: 'user' | 'admin';
-  balance: number;
-}
+// API Functions
+const api = {
+  // Auth
+  async login(email: string, password: string): Promise<LoginResponse> {
+    const response = await apiClient.post('/auth/login', { email, password });
+    return response.data;
+  },
+  
+  async register(username: string, email: string, password: string): Promise<LoginResponse> {
+    const response = await apiClient.post('/auth/register', { username, email, password });
+    return response.data;
+  },
+  
+  async getMe(): Promise<User> {
+    const response = await apiClient.get('/auth/me');
+    return response.data;
+  },
+  
+  async updatePassword(currentPassword: string, newPassword: string): Promise<boolean> {
+    const response = await apiClient.put('/auth/update-password', { currentPassword, newPassword });
+    return response.data.success;
+  },
+  
+  // Countries
+  async getAllCountries(): Promise<Country[]> {
+    const response = await apiClient.get('/countries');
+    return response.data;
+  },
+  
+  async getAvailableCountries(): Promise<Country[]> {
+    const response = await apiClient.get('/countries/available');
+    return response.data;
+  },
+  
+  async getCountry(id: string): Promise<Country> {
+    const response = await apiClient.get(`/countries/${id}`);
+    return response.data;
+  },
+  
+  async createCountry(country: Omit<Country, 'id'>): Promise<Country> {
+    const response = await apiClient.post('/countries', country);
+    return response.data;
+  },
 
-export interface Country {
-  id: string;
-  name: string;
-  code: string;
-  flag: string;
-  services: any[];
-  available?: boolean;
-}
-
-export interface Provider {
-  id: string;
-  name: string;
-  code: string;
-  description?: string;
-  logo?: string;
-  apiKey?: string;
-  apiUrl?: string;
-  isActive: boolean;
-  settings?: Record<string, any>;
-  countries?: string[];
-}
-
-export interface Transaction {
-  id: string;
-  userId: string;
-  amount: number;
-  type: 'deposit' | 'purchase' | 'gift_sent' | 'gift_received' | 'redeem';
-  status: 'pending' | 'completed' | 'failed';
-  description: string;
-  paymentMethod?: string;
-  createdAt: string;
-}
-
-export interface ManualService {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  processingTime?: string;
-  isActive: boolean;
-  available?: boolean;
-}
-
-export interface ManualRequest {
-  id: string;
-  userId: string;
-  serviceId: string;
-  status: 'pending' | 'processing' | 'completed' | 'rejected';
-  details: Record<string, any>;
-  adminNotes?: string;
-  createdAt: string;
-  updatedAt: string;
-  service?: ManualService;
-}
-
-export interface AdminManualRequest extends ManualRequest {
-  userName?: string;
-  userEmail?: string;
-  serviceName?: string;
-  verificationCode?: string;
-  adminResponse?: string;
-  notes?: string;
-}
-
-export interface PrepaidCode {
-  id: string;
-  code: string;
-  amount: number;
-  isUsed: boolean;
-  usedBy?: string;
-  usedByUsername?: string;
-  usedAt?: string;
-  createdAt: string;
-}
-
-export interface SupportTicket {
-  id: string;
-  userId: string;
-  subject: string;
-  message: string;
-  status: 'open' | 'closed' | 'pending';
-  createdAt: string;
-  updatedAt: string;
-  replies?: SupportTicketReply[];
-}
-
-export interface SupportTicketReply {
-  id: string;
-  ticketId: string;
-  userId: string;
-  message: string;
-  isAdmin: boolean;
-  createdAt: string;
-}
-
-// API function to handle errors
-const handleApiError = (error: any) => {
-  if (error.response) {
-    // Server responded with error
-    const errorMessage = error.response.data?.message || 'Something went wrong';
-    toast.error(errorMessage);
-    return Promise.reject(errorMessage);
-  } else if (error.request) {
-    // Request made but no response
-    const errorMessage = 'No response from server. Check your connection';
-    toast.error(errorMessage);
-    return Promise.reject(errorMessage);
-  } else {
-    // Error setting up request
-    const errorMessage = error.message || 'An unexpected error occurred';
-    toast.error(errorMessage);
-    return Promise.reject(errorMessage);
+  async addCountries(countries: Array<Partial<Country>>): Promise<Country[]> {
+    const response = await apiClient.post('/countries/bulk', { countries });
+    return response.data;
+  },
+  
+  async updateCountry(id: string, countryData: Partial<Country>): Promise<Country> {
+    const response = await apiClient.put(`/countries/${id}`, countryData);
+    return response.data;
+  },
+  
+  async deleteCountry(id: string): Promise<boolean> {
+    const response = await apiClient.delete(`/countries/${id}`);
+    return response.data.success;
+  },
+  
+  // Providers
+  async getAllProviders(): Promise<Provider[]> {
+    const response = await apiClient.get('/providers');
+    return response.data;
+  },
+  
+  async getProvider(id: string): Promise<Provider> {
+    const response = await apiClient.get(`/providers/${id}`);
+    return response.data;
+  },
+  
+  async createProvider(provider: Omit<Provider, 'id'>): Promise<Provider> {
+    const response = await apiClient.post('/providers', provider);
+    return response.data;
+  },
+  
+  async updateProvider(provider: Provider): Promise<Provider> {
+    const response = await apiClient.put(`/providers/${provider.id}`, provider);
+    return response.data;
+  },
+  
+  async deleteProvider(id: string): Promise<boolean> {
+    const response = await apiClient.delete(`/providers/${id}`);
+    return response.data.success;
+  },
+  
+  async testProviderConnection(providerId: string): Promise<boolean> {
+    const response = await apiClient.get(`/providers/${providerId}/test-connection`);
+    return response.data.success;
+  },
+  
+  async getProviderBalance(providerId: string): Promise<{ balance: number; currency: string }> {
+    const response = await apiClient.get(`/providers/${providerId}/balance`);
+    return response.data;
+  },
+  
+  async getProviderCountries(providerId: string): Promise<Country[]> {
+    const response = await apiClient.get(`/providers/${providerId}/countries`);
+    return response.data;
+  },
+  
+  async getProviderServices(providerId: string, countryCode: string): Promise<any[]> {
+    const response = await apiClient.get(`/providers/${providerId}/services/${countryCode}`);
+    return response.data;
+  },
+  
+  // Phone Numbers
+  async getNumbersByCountry(countryId: string): Promise<PhoneNumber[]> {
+    const response = await apiClient.get(`/numbers/country/${countryId}`);
+    return response.data;
+  },
+  
+  async purchaseNumber(numberId: string): Promise<PhoneNumber> {
+    const response = await apiClient.post(`/numbers/purchase/${numberId}`);
+    return response.data;
+  },
+  
+  async getUserNumbers(): Promise<PhoneNumber[]> {
+    const response = await apiClient.get('/numbers/user');
+    return response.data;
+  },
+  
+  // Transactions
+  async getUserTransactions(): Promise<Transaction[]> {
+    const response = await apiClient.get('/transactions');
+    return response.data;
+  },
+  
+  async getAllTransactions(): Promise<Transaction[]> {
+    const response = await apiClient.get('/transactions/all');
+    return response.data;
+  },
+  
+  async createDepositTransaction(amount: number, paymentMethod: string): Promise<Transaction> {
+    const response = await apiClient.post('/transactions/deposit', { amount, paymentMethod });
+    return response.data;
+  },
+  
+  async updateTransactionStatus(id: string, status: string): Promise<Transaction> {
+    const response = await apiClient.put(`/transactions/${id}`, { status });
+    return response.data;
+  },
+  
+  async giftBalance(receiverEmail: string, amount: number): Promise<Transaction> {
+    const response = await apiClient.post('/transactions/gift', { receiverEmail, amount });
+    return response.data;
+  },
+  
+  // Manual Services
+  async getManualServices(): Promise<ManualService[]> {
+    const response = await apiClient.get('/manual-services');
+    return response.data;
+  },
+  
+  async getManualService(id: string): Promise<ManualService> {
+    const response = await apiClient.get(`/manual-services/${id}`);
+    return response.data;
+  },
+  
+  async createManualService(service: Omit<ManualService, 'id'>): Promise<ManualService> {
+    const response = await apiClient.post('/manual-services', service);
+    return response.data;
+  },
+  
+  async updateManualService(id: string, serviceData: Partial<ManualService>): Promise<ManualService> {
+    const response = await apiClient.put(`/manual-services/${id}`, serviceData);
+    return response.data;
+  },
+  
+  async deleteManualService(id: string): Promise<boolean> {
+    const response = await apiClient.delete(`/manual-services/${id}`);
+    return response.data.success;
+  },
+  
+  // Manual Requests
+  async getUserManualRequests(): Promise<ManualRequest[]> {
+    const response = await apiClient.get('/manual-requests/user');
+    return response.data;
+  },
+  
+  async getAllManualRequests(): Promise<ManualRequest[]> {
+    const response = await apiClient.get('/manual-requests');
+    return response.data;
+  },
+  
+  async createManualRequest(requestData: { serviceId: string; notes?: string }): Promise<ManualRequest> {
+    const response = await apiClient.post('/manual-requests', requestData);
+    return response.data;
+  },
+  
+  async respondToManualRequest(id: string, adminResponse: string, verificationCode?: string): Promise<ManualRequest> {
+    const response = await apiClient.put(`/manual-requests/${id}/respond`, { adminResponse, verificationCode });
+    return response.data;
+  },
+  
+  async updateManualRequestStatus(id: string, status: 'pending' | 'processing' | 'completed' | 'cancelled'): Promise<ManualRequest> {
+    const response = await apiClient.put(`/manual-requests/${id}/status`, { status });
+    return response.data;
+  },
+  
+  async confirmManualRequest(id: string): Promise<boolean> {
+    const response = await apiClient.put(`/manual-requests/${id}/confirm`);
+    return response.data.success;
+  },
+  
+  // Support
+  async getUserTickets(): Promise<SupportTicket[]> {
+    const response = await apiClient.get('/support/user');
+    return response.data;
+  },
+  
+  async getAllTickets(): Promise<SupportTicket[]> {
+    const response = await apiClient.get('/support');
+    return response.data;
+  },
+  
+  async createSupportTicket(subject: string, message: string): Promise<SupportTicket> {
+    const response = await apiClient.post('/support', { subject, message });
+    return response.data;
+  },
+  
+  async respondToTicket(id: string, message: string): Promise<SupportTicket> {
+    const response = await apiClient.post(`/support/${id}/respond`, { message });
+    return response.data;
+  },
+  
+  async updateTicketStatus(id: string, status: 'open' | 'closed'): Promise<SupportTicket> {
+    const response = await apiClient.put(`/support/${id}/status`, { status });
+    return response.data;
+  },
+  
+  async closeTicket(id: string): Promise<boolean> {
+    const response = await apiClient.put(`/support/${id}/close`);
+    return response.data.success;
+  },
+  
+  // Users
+  async getAllUsers(): Promise<User[]> {
+    const response = await apiClient.get('/users');
+    return response.data;
+  },
+  
+  async getUser(id: string): Promise<User> {
+    const response = await apiClient.get(`/users/${id}`);
+    return response.data;
+  },
+  
+  async createUser(userData: Omit<User, 'id' | 'createdAt' | 'lastLogin'> & { password: string }): Promise<User> {
+    const response = await apiClient.post('/users', userData);
+    return response.data;
+  },
+  
+  async updateUser(id: string, userData: Partial<User>): Promise<User> {
+    const response = await apiClient.put(`/users/${id}`, userData);
+    return response.data;
+  },
+  
+  async deleteUser(id: string): Promise<boolean> {
+    const response = await apiClient.delete(`/users/${id}`);
+    return response.data.success;
+  },
+  
+  async updateUserBalance(id: string, amount: number, description: string): Promise<User> {
+    const response = await apiClient.put(`/users/${id}/balance`, { amount, description });
+    return response.data;
+  },
+  
+  // Prepaid Codes
+  async redeemPrepaidCode(code: string): Promise<{ amount: number; code: string }> {
+    const response = await apiClient.post('/prepaid-codes/redeem', { code });
+    return response.data;
+  },
+  
+  async getAllPrepaidCodes(): Promise<PrepaidCode[]> {
+    const response = await apiClient.get('/prepaid-codes');
+    return response.data;
+  },
+  
+  async generatePrepaidCodes(count: number, amount: number, expiryDate?: Date): Promise<PrepaidCode[]> {
+    const response = await apiClient.post('/prepaid-codes/generate', { count, amount, expiryDate });
+    return response.data;
+  },
+  
+  async deletePrepaidCode(id: string): Promise<boolean> {
+    const response = await apiClient.delete(`/prepaid-codes/${id}`);
+    return response.data.success;
+  },
+  
+  // Initialization
+  async initLocalData(): Promise<boolean> {
+    try {
+      const response = await apiClient.post('/init');
+      console.log('Data initialized:', response.data);
+      return true;
+    } catch (error) {
+      console.error('Failed to initialize data:', error);
+      return false;
+    }
   }
 };
 
-// API functions
-export const api = {
-  // Auth
-  async login(email: string, password: string): Promise<LoginResponse> {
-    try {
-      const response = await apiClient.post('/auth/login', { email, password });
-      return response.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async register(username: string, email: string, password: string): Promise<LoginResponse> {
-    try {
-      const response = await apiClient.post('/auth/register', { username, email, password });
-      return response.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async getCurrentUser(): Promise<User> {
-    try {
-      const response = await apiClient.get('/auth/me');
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  // User transactions
-  async getUserTransactions(): Promise<Transaction[]> {
-    try {
-      const response = await apiClient.get('/transactions');
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async createDepositTransaction(amount: number, method: string): Promise<Transaction> {
-    try {
-      const response = await apiClient.post('/transactions/deposit', { amount, method });
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  // Countries
-  async getAllCountries(): Promise<Country[]> {
-    try {
-      const response = await apiClient.get('/countries');
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async getAvailableCountries(): Promise<Country[]> {
-    try {
-      const response = await apiClient.get('/countries/available');
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async getCountry(id: string): Promise<Country> {
-    try {
-      const response = await apiClient.get(`/countries/${id}`);
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  async addCountries(countries: Partial<Country>[]): Promise<Country[]> {
-    try {
-      const response = await apiClient.post('/countries', { countries });
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  // Providers
-  async getAllProviders(): Promise<Provider[]> {
-    try {
-      const response = await apiClient.get('/providers');
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async getProvider(id: string): Promise<Provider> {
-    try {
-      const response = await apiClient.get(`/providers/${id}`);
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async createProvider(provider: Omit<Provider, 'id'>): Promise<Provider> {
-    try {
-      const response = await apiClient.post('/providers', provider);
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  async addProvider(provider: Omit<Provider, 'id'>): Promise<Provider> {
-    try {
-      const response = await apiClient.post('/providers', provider);
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async updateProvider(provider: Provider): Promise<Provider> {
-    try {
-      const response = await apiClient.put(`/providers/${provider.id}`, provider);
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async deleteProvider(id: string): Promise<void> {
-    try {
-      await apiClient.delete(`/providers/${id}`);
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async testProviderConnection(id: string): Promise<boolean> {
-    try {
-      const response = await apiClient.get(`/providers/${id}/test-connection`);
-      return response.data.connected;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async getProviderBalance(id: string): Promise<{ balance: number; currency: string }> {
-    try {
-      const response = await apiClient.get(`/providers/${id}/balance`);
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async refreshProviderBalance(id: string): Promise<{ balance: number; currency: string }> {
-    try {
-      const response = await apiClient.get(`/providers/${id}/balance?refresh=true`);
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async getProviderCountries(id: string): Promise<any[]> {
-    try {
-      const response = await apiClient.get(`/providers/${id}/countries`);
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async getProviderServices(id: string, countryCode: string): Promise<any[]> {
-    try {
-      const response = await apiClient.get(`/providers/${id}/services/${countryCode}`);
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  // Manual Services
-  async getManualServices(): Promise<ManualService[]> {
-    try {
-      const response = await apiClient.get('/manual-services');
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async createManualService(service: Omit<ManualService, 'id'>): Promise<ManualService> {
-    try {
-      const response = await apiClient.post('/manual-services', service);
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async updateManualService(id: string, service: Partial<ManualService>): Promise<ManualService> {
-    try {
-      const response = await apiClient.put(`/manual-services/${id}`, service);
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async deleteManualService(id: string): Promise<void> {
-    try {
-      await apiClient.delete(`/manual-services/${id}`);
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  // Manual Requests
-  async getUserManualRequests(): Promise<ManualRequest[]> {
-    try {
-      const response = await apiClient.get('/manual-requests');
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async getAllManualRequests(): Promise<AdminManualRequest[]> {
-    try {
-      const response = await apiClient.get('/manual-requests/all');
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async createManualRequest(serviceId: string, details: Record<string, any>): Promise<ManualRequest> {
-    try {
-      const response = await apiClient.post('/manual-requests', { serviceId, details });
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async updateManualRequestStatus(
-    id: string, 
-    status: ManualRequest['status'], 
-    adminNotes?: string
-  ): Promise<ManualRequest> {
-    try {
-      const response = await apiClient.put(`/manual-requests/${id}/status`, { status, adminNotes });
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  async respondToManualRequest(
-    id: string, 
-    status: ManualRequest['status'], 
-    adminResponse: string,
-    verificationCode?: string
-  ): Promise<ManualRequest> {
-    try {
-      const response = await apiClient.put(`/manual-requests/${id}/respond`, { 
-        status, 
-        adminResponse,
-        verificationCode 
-      });
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  async confirmManualRequest(id: string, feedback?: string): Promise<ManualRequest> {
-    try {
-      const response = await apiClient.put(`/manual-requests/${id}/confirm`, { feedback });
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  // Users Admin
-  async getAllUsers(): Promise<User[]> {
-    try {
-      const response = await apiClient.get('/users');
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  async getUsers(): Promise<User[]> {
-    try {
-      const response = await apiClient.get('/users');
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  async addUser(userData: Omit<User, 'id'> & { password: string, isActive?: boolean }): Promise<User> {
-    try {
-      const response = await apiClient.post('/users', userData);
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async createUser(user: Omit<User, 'id'> & { password: string }): Promise<User> {
-    try {
-      const response = await apiClient.post('/users', user);
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async updateUser(id: string, userData: Partial<User & { isActive?: boolean }>): Promise<User> {
-    try {
-      const response = await apiClient.put(`/users/${id}`, userData);
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async deleteUser(id: string): Promise<void> {
-    try {
-      await apiClient.delete(`/users/${id}`);
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  // Prepaid Codes - new functionality
-  async getPrepaidCodes(): Promise<PrepaidCode[]> {
-    try {
-      const response = await apiClient.get('/prepaid-codes');
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async generatePrepaidCodes(amount: number, count: number): Promise<PrepaidCode[]> {
-    try {
-      const response = await apiClient.post('/prepaid-codes/generate', { amount, count });
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async redeemPrepaidCode(code: string): Promise<{ amount: number }> {
-    try {
-      const response = await apiClient.post('/prepaid-codes/redeem', { code });
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async deletePrepaidCode(id: string): Promise<void> {
-    try {
-      await apiClient.delete(`/prepaid-codes/${id}`);
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  // Support Tickets
-  async createSupportTicket(subject: string, message: string): Promise<SupportTicket> {
-    try {
-      const response = await apiClient.post('/support', { subject, message });
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-  
-  // Balance gift feature - new functionality
-  async giftBalance(recipientIdentifier: string, amount: number): Promise<Transaction> {
-    try {
-      const response = await apiClient.post('/transactions/gift', { recipient: recipientIdentifier, amount });
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  // Dashboard analytics - new functionality
-  async getSalesData(period: string): Promise<any[]> {
-    try {
-      const response = await apiClient.get(`/analytics/sales?period=${period}`);
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  async getActiveUsersCount(): Promise<{ count: number }> {
-    try {
-      const response = await apiClient.get('/analytics/active-users');
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
-
-  // Initialize local data
-  async initLocalData(): Promise<{ countries: Country[], providers: Provider[] }> {
-    try {
-      const response = await apiClient.get('/init/data');
-      return response.data.data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  },
+export {
+  api,
+  // Export types for usage in other files
+  type User,
+  type Country,
+  type Provider,
+  type PhoneNumber,
+  type Transaction,
+  type SupportTicket,
+  type ManualService,
+  type ManualRequest,
+  type PrepaidCode,
 };
+
+export default api;

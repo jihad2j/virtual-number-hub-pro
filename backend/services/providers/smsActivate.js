@@ -1,172 +1,141 @@
 
-const axios = require('axios');
 const { BaseProvider } = require('../providerFactory');
-const querystring = require('querystring');
+const axios = require('axios');
 
 class SmsActivateProvider extends BaseProvider {
   constructor(providerData) {
     super(providerData);
-    this.baseUrl = this.apiUrl || 'https://api.sms-activate.org/stubs/handler_api.php';
+    this.baseUrl = 'https://api.sms-activate.org/stubs/handler_api.php';
   }
 
   /**
-   * Make a request to SMS Activate API
-   * @param {Object} params - Request parameters
-   * @returns {Promise<any>}
-   */
-  async _makeRequest(params) {
-    try {
-      params.api_key = this.apiKey;
-      
-      const response = await axios({
-        method: 'POST',
-        url: this.baseUrl,
-        data: querystring.stringify(params),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      });
-      
-      const text = response.data;
-      
-      if (typeof text === 'string') {
-        // Handle different response formats
-        if (text.startsWith('ACCESS_NUMBER:')) {
-          const [, id, number] = text.split(':');
-          return { success: true, id, number };
-        } else if (text.startsWith('ACCESS_BALANCE:')) {
-          const balance = parseFloat(text.split(':')[1]);
-          return { success: true, balance };
-        } else if (text.startsWith('STATUS_OK')) {
-          return { success: true };
-        } else if (text === 'NO_NUMBERS') {
-          throw new Error('No numbers available');
-        } else if (text === 'NO_BALANCE') {
-          throw new Error('Insufficient balance');
-        } else {
-          try {
-            // Try to parse as JSON if it's a structured response
-            return JSON.parse(text);
-          } catch (e) {
-            return { success: false, message: text };
-          }
-        }
-      } else {
-        return response.data;
-      }
-    } catch (error) {
-      console.error('SMS Activate API request failed:', error.message);
-      throw new Error(`SMS Activate API error: ${error.message}`);
-    }
-  }
-
-  /**
-   * Get provider balance
+   * Get balance from SMS Activate
    * @returns {Promise<{balance: number, currency: string}>}
    */
   async getBalance() {
     try {
-      const response = await this._makeRequest({
-        action: 'getBalance'
+      const response = await axios.get(this.baseUrl, {
+        params: {
+          api_key: this.apiKey,
+          action: 'getBalance'
+        }
       });
       
-      if (response.success && typeof response.balance === 'number') {
-        return { balance: response.balance, currency: 'RUB' };
+      // Expected format: ACCESS_BALANCE:10.50
+      const balanceRegex = /ACCESS_BALANCE:([\d.]+)/;
+      const match = response.data.match(balanceRegex);
+      
+      if (!match) {
+        throw new Error('Invalid balance format');
       }
-      throw new Error('Failed to get balance');
+      
+      return {
+        balance: parseFloat(match[1]),
+        currency: 'RUB'
+      };
     } catch (error) {
-      console.error('Error getting SMS Activate balance:', error.message);
-      throw error;
+      console.error('SMS Activate getBalance error:', error.message);
+      throw new Error('Failed to get balance from SMS Activate');
     }
   }
 
   /**
-   * Get available countries
+   * Get available countries from SMS Activate
    * @returns {Promise<Array>}
    */
   async getCountries() {
     try {
-      const response = await this._makeRequest({
-        action: 'getCountries'
+      const response = await axios.get(this.baseUrl, {
+        params: {
+          api_key: this.apiKey,
+          action: 'getCountries'
+        }
       });
       
-      const countries = [];
-      
-      for (const [id, countryData] of Object.entries(response)) {
-        countries.push({
-          id: id,
-          name: countryData.rus || countryData.eng || `Country ${id}`,
-          code: countryData.iso || '',
-          available: true,
-          flag: this._getFlagEmoji(countryData.iso?.toUpperCase() || 'XX')
-        });
-      }
-      
-      return countries;
+      // Format countries to match our schema
+      return Object.entries(response.data).map(([id, data]) => ({
+        id: id,
+        name: data.eng,
+        code: data.iso,
+        iso: data.iso,
+        flag: this.getFlagEmoji(data.iso)
+      }));
     } catch (error) {
-      console.error('Error getting SMS Activate countries:', error.message);
-      throw error;
+      console.error('SMS Activate getCountries error:', error.message);
+      throw new Error('Failed to get countries from SMS Activate');
     }
   }
 
   /**
-   * Get services/products
-   * @param {string} countryId - Country ID
+   * Get available services for a country
+   * @param {string} countryCode - Country code
    * @returns {Promise<Array>}
    */
-  async getServices(countryId = '0') {
+  async getServices(countryCode) {
     try {
-      const response = await this._makeRequest({
-        action: 'getServices',
-        country: countryId
+      const response = await axios.get(this.baseUrl, {
+        params: {
+          api_key: this.apiKey,
+          action: 'getNumbersStatus',
+          country: countryCode
+        }
       });
       
-      const services = [];
-      
-      for (const [serviceId, serviceData] of Object.entries(response)) {
-        services.push({
-          id: serviceId,
-          name: serviceId,
-          price: parseFloat(serviceData.cost) || 0,
-          count: parseInt(serviceData.count) || 0
-        });
-      }
-      
-      return services;
+      // Format services to match our schema
+      return Object.entries(response.data).map(([serviceCode, count]) => ({
+        id: serviceCode,
+        name: this.getServiceName(serviceCode),
+        count: count,
+        available: count > 0
+      }));
     } catch (error) {
-      console.error('Error getting SMS Activate services:', error.message);
-      throw error;
+      console.error('SMS Activate getServices error:', error.message);
+      throw new Error(`Failed to get services for country ${countryCode} from SMS Activate`);
     }
   }
 
   /**
-   * Purchase a number
+   * Purchase a phone number
    * @param {Object} options - Purchase options
    * @returns {Promise<Object>}
    */
-  async purchaseNumber({ serviceId, countryId = '0' }) {
+  async purchaseNumber(options) {
     try {
-      const response = await this._makeRequest({
-        action: 'getNumber',
-        service: serviceId,
-        country: countryId
+      const { countryCode, service } = options;
+      
+      const response = await axios.get(this.baseUrl, {
+        params: {
+          api_key: this.apiKey,
+          action: 'getNumber',
+          service: service,
+          country: countryCode
+        }
       });
       
-      if (!response.success) {
-        throw new Error(response.message || 'Failed to purchase number');
+      // Expected format: ACCESS_NUMBER:12345:79251234567
+      const numberRegex = /ACCESS_NUMBER:(\d+):(\d+)/;
+      const match = response.data.match(numberRegex);
+      
+      if (!match) {
+        throw new Error(`Invalid response format: ${response.data}`);
       }
       
+      const id = match[1];
+      const number = match[2];
+      
       return {
-        id: response.id,
-        phone: response.number,
-        country: countryId,
-        operator: 'unknown',
-        price: 0, // Price is not returned in the response
-        status: 'PENDING'
+        id: id.toString(),
+        number: number,
+        country: countryCode,
+        service: service,
+        status: 'pending',
+        expiresAt: new Date(Date.now() + 20 * 60 * 1000).toISOString(), // 20 minutes expiration
+        smsCode: null,
+        providerData: { id, number }
       };
     } catch (error) {
-      console.error('Error purchasing SMS Activate number:', error.message);
-      throw error;
+      console.error('SMS Activate purchaseNumber error:', error.message);
+      throw new Error('Failed to purchase number from SMS Activate');
     }
   }
 
@@ -177,33 +146,34 @@ class SmsActivateProvider extends BaseProvider {
    */
   async checkNumber(id) {
     try {
-      const response = await this._makeRequest({
-        action: 'getStatus',
-        id
+      const response = await axios.get(this.baseUrl, {
+        params: {
+          api_key: this.apiKey,
+          action: 'getStatus',
+          id: id
+        }
       });
       
-      let status = 'PENDING';
-      let sms = [];
+      // Process different status responses
+      const statusRegex = /STATUS_([A-Z_]+)(?::(.+))?/;
+      const match = response.data.match(statusRegex);
       
-      if (response.startsWith('STATUS_OK:')) {
-        status = 'RECEIVED';
-        const smsText = response.split(':')[1];
-        sms = [{
-          text: smsText,
-          code: this._extractCode(smsText),
-          sender: 'unknown',
-          createdAt: new Date().toISOString()
-        }];
+      if (!match) {
+        throw new Error(`Invalid status format: ${response.data}`);
       }
       
+      const status = match[1];
+      const smsCode = match[2] || null;
+      
       return {
-        id,
-        status,
-        sms
+        id: id,
+        status: this.mapStatus(status),
+        smsCode: smsCode,
+        providerData: { status, smsCode }
       };
     } catch (error) {
-      console.error('Error getting SMS Activate number status:', error.message);
-      throw error;
+      console.error('SMS Activate checkNumber error:', error.message);
+      throw new Error(`Failed to check number status for ID ${id} from SMS Activate`);
     }
   }
 
@@ -214,49 +184,73 @@ class SmsActivateProvider extends BaseProvider {
    */
   async cancelNumber(id) {
     try {
-      const response = await this._makeRequest({
-        action: 'setStatus',
-        id,
-        status: '8' // Status 8 means cancel
+      const response = await axios.get(this.baseUrl, {
+        params: {
+          api_key: this.apiKey,
+          action: 'setStatus',
+          status: 8, // 8 = cancel activation
+          id: id
+        }
       });
       
-      return response.success === true;
+      return response.data === 'ACCESS_CANCEL';
     } catch (error) {
-      console.error('Error cancelling SMS Activate number:', error.message);
-      throw error;
+      console.error('SMS Activate cancelNumber error:', error.message);
+      throw new Error(`Failed to cancel number for ID ${id} from SMS Activate`);
     }
-  }
-  
-  /**
-   * Helper method to extract code from SMS
-   * @param {string} text - SMS text
-   * @returns {string} Verification code
-   */
-  _extractCode(text) {
-    // Try to find a sequence of 4-6 digits that could be a code
-    const match = text.match(/\b\d{4,6}\b/);
-    return match ? match[0] : '';
   }
 
   /**
-   * Helper function to get flag emoji from country code
-   * @param {string} countryCode - 2-letter country code
-   * @returns {string} Flag emoji
+   * Map SMS Activate status to our status format
+   * @param {string} status
+   * @returns {string}
    */
-  _getFlagEmoji(countryCode) {
-    if (!countryCode || countryCode === 'XX') {
-      return '🌍'; // Default globe emoji
-    }
+  mapStatus(status) {
+    const statusMap = {
+      'WAIT_CODE': 'pending',
+      'WAIT_RETRY': 'pending',
+      'WAIT_RESEND': 'pending',
+      'OK': 'completed',
+      'CANCEL': 'cancelled'
+    };
     
-    try {
-      const codePoints = countryCode
-        .toUpperCase()
-        .split('')
-        .map(char => 127397 + char.charCodeAt(0));
-      return String.fromCodePoint(...codePoints);
-    } catch (error) {
-      return '🌍'; // Default globe emoji on error
-    }
+    return statusMap[status] || 'pending';
+  }
+
+  /**
+   * Map service code to human-readable name
+   * @param {string} serviceCode
+   * @returns {string}
+   */
+  getServiceName(serviceCode) {
+    const serviceMap = {
+      'vk': 'VKontakte',
+      'ok': 'Odnoklassniki',
+      'wa': 'WhatsApp',
+      'vi': 'Viber',
+      'tg': 'Telegram',
+      'fb': 'Facebook',
+      'tw': 'Twitter',
+      'go': 'Google',
+      'ins': 'Instagram',
+      // Add more mappings as needed
+    };
+    
+    return serviceMap[serviceCode] || serviceCode;
+  }
+
+  /**
+   * Helper function to get flag emoji
+   * @param {string} countryCode
+   * @returns {string}
+   */
+  getFlagEmoji(countryCode) {
+    if (!countryCode) return '🌍';
+    const codePoints = countryCode
+      .toUpperCase()
+      .split('')
+      .map(char => 127397 + char.charCodeAt(0));
+    return String.fromCodePoint(...codePoints);
   }
 }
 
