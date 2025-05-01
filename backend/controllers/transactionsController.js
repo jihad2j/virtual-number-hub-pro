@@ -48,6 +48,73 @@ exports.createDepositTransaction = catchAsync(async (req, res, next) => {
   });
 });
 
+// إهداء رصيد لمستخدم آخر
+exports.giftBalance = catchAsync(async (req, res, next) => {
+  const { recipient, amount } = req.body;
+  const senderId = req.user.id;
+  
+  if (!recipient) {
+    return next(new AppError('يرجى توفير معرف المستخدم المستلم', 400));
+  }
+  
+  if (!amount || amount <= 0) {
+    return next(new AppError('يرجى توفير مبلغ صالح للإهداء', 400));
+  }
+  
+  // البحث عن المستخدم المرسل
+  const sender = await User.findById(senderId);
+  
+  // التأكد من وجود رصيد كافٍ
+  if (sender.balance < amount) {
+    return next(new AppError('رصيدك غير كافٍ لإتمام هذه العملية', 400));
+  }
+  
+  // البحث عن المستخدم المستلم (بواسطة اسم المستخدم أو البريد الإلكتروني)
+  const recipientUser = await User.findOne({
+    $or: [{ username: recipient }, { email: recipient }]
+  });
+  
+  if (!recipientUser) {
+    return next(new AppError('لم يتم العثور على المستخدم المستلم', 404));
+  }
+  
+  // التأكد من أن المستخدم لا يرسل لنفسه
+  if (recipientUser.id === senderId) {
+    return next(new AppError('لا يمكنك إهداء رصيد لنفسك', 400));
+  }
+  
+  // خصم الرصيد من المرسل
+  sender.balance -= amount;
+  await sender.save();
+  
+  // إضافة الرصيد للمستلم
+  recipientUser.balance += amount;
+  await recipientUser.save();
+  
+  // إنشاء معاملة للمرسل
+  const senderTransaction = await Transaction.create({
+    userId: senderId,
+    amount,
+    type: 'gift_sent',
+    status: 'completed',
+    description: `إهداء رصيد إلى ${recipientUser.username}`
+  });
+  
+  // إنشاء معاملة للمستلم
+  await Transaction.create({
+    userId: recipientUser.id,
+    amount,
+    type: 'gift_received',
+    status: 'completed',
+    description: `استلام رصيد هدية من ${sender.username}`
+  });
+  
+  res.status(201).json({
+    status: 'success',
+    data: senderTransaction
+  });
+});
+
 // الحصول على جميع المعاملات (للمشرفين فقط)
 exports.getAllTransactions = catchAsync(async (req, res, next) => {
   const transactions = await Transaction.find()
@@ -97,5 +164,115 @@ exports.updateTransactionStatus = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: 'success',
     data: transaction
+  });
+});
+
+// الحصول على إحصاءات المبيعات (للمشرفين فقط)
+exports.getSalesData = catchAsync(async (req, res, next) => {
+  const { period = 'monthly' } = req.query;
+  
+  let dateFormat, groupByKey;
+  
+  if (period === 'daily') {
+    dateFormat = '%Y-%m-%d';
+    groupByKey = { year: { $year: '$createdAt' }, month: { $month: '$createdAt' }, day: { $dayOfMonth: '$createdAt' } };
+  } else if (period === 'weekly') {
+    dateFormat = '%Y-W%U';
+    groupByKey = { year: { $year: '$createdAt' }, week: { $week: '$createdAt' } };
+  } else {
+    dateFormat = '%Y-%m';
+    groupByKey = { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } };
+  }
+  
+  const salesData = await Transaction.aggregate([
+    {
+      $match: {
+        status: 'completed',
+        type: { $in: ['deposit', 'purchase'] },
+        createdAt: { $gte: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000) } // آخر 6 أشهر
+      }
+    },
+    {
+      $group: {
+        _id: groupByKey,
+        sales: {
+          $sum: {
+            $cond: [{ $eq: ['$type', 'purchase'] }, '$amount', 0]
+          }
+        },
+        deposits: {
+          $sum: {
+            $cond: [{ $eq: ['$type', 'deposit'] }, '$amount', 0]
+          }
+        },
+        profits: {
+          // افتراضي: الربح هو 20% من قيمة المبيعات
+          $sum: {
+            $cond: [
+              { $eq: ['$type', 'purchase'] },
+              { $multiply: ['$amount', 0.2] },
+              0
+            ]
+          }
+        },
+        date: { $first: '$createdAt' }
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        date: 1,
+        sales: 1,
+        deposits: 1,
+        profits: 1
+      }
+    },
+    {
+      $sort: { date: 1 }
+    }
+  ]);
+  
+  // تنسيق التاريخ وتنسيق البيانات للاستخدام في الرسوم البيانية
+  const formattedData = salesData.map(item => {
+    let name;
+    if (period === 'daily') {
+      name = new Date(item.date).toLocaleDateString('ar-SA');
+    } else if (period === 'weekly') {
+      const date = new Date(item.date);
+      const weekNumber = Math.ceil((date.getDate() + 6 - date.getDay()) / 7);
+      name = `الأسبوع ${weekNumber}، ${date.getFullYear()}`;
+    } else {
+      const date = new Date(item.date);
+      name = new Intl.DateTimeFormat('ar-SA', { year: 'numeric', month: 'long' }).format(date);
+    }
+    
+    return {
+      name,
+      sales: item.sales,
+      deposits: item.deposits,
+      profits: item.profits
+    };
+  });
+  
+  res.status(200).json({
+    status: 'success',
+    data: formattedData
+  });
+});
+
+// الحصول على عدد المستخدمين النشطين (للمشرفين فقط)
+exports.getActiveUsersCount = catchAsync(async (req, res, next) => {
+  const lastMonth = new Date();
+  lastMonth.setMonth(lastMonth.getMonth() - 1);
+  
+  const activeUsers = await User.countDocuments({
+    lastLogin: { $gte: lastMonth }
+  });
+  
+  res.status(200).json({
+    status: 'success',
+    data: {
+      count: activeUsers
+    }
   });
 });

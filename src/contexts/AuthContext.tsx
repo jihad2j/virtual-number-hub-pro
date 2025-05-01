@@ -3,36 +3,43 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 
-interface User {
+type AuthContextType = {
+  isAuthenticated: boolean;
+  loading: boolean;
+  user: AuthUser | null;
+  isAdmin: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (username: string, email: string, password: string) => Promise<void>;
+  logout: () => void;
+  refreshUser: () => Promise<void>;
+};
+
+// Local user type that includes name field needed by UI
+interface AuthUser {
   id: string;
-  name: string;
+  name: string;  // This is mapped from username
   email: string;
   balance: number;
   role: 'user' | 'admin';
 }
 
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
-  isAuthenticated: boolean;
-  isAdmin: boolean;
-}
+const AuthContext = createContext<AuthContextType>({
+  isAuthenticated: false,
+  loading: true,
+  user: null,
+  isAdmin: false,
+  login: async () => {},
+  register: async () => {},
+  logout: () => {},
+  refreshUser: async () => {},
+});
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Export the hook separately from the provider
+export const useAuth = () => useContext(AuthContext);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
+// Create the provider as a proper React functional component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -53,18 +60,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       // Use the API to login with backend authentication
-      const userData = await api.login(email, password);
+      const response = await api.login(email, password);
       
-      const user: User = {
-        id: userData.id || userData._id,
-        name: userData.username,
-        email: userData.email,
-        balance: userData.balance,
-        role: userData.role,
+      const authUser: AuthUser = {
+        id: response.user.id,
+        name: response.user.username,
+        email: response.user.email,
+        balance: response.user.balance,
+        role: response.user.role,
       };
 
-      setUser(user);
-      localStorage.setItem('user', JSON.stringify(user));
+      setUser(authUser);
+      localStorage.setItem('user', JSON.stringify(authUser));
+      localStorage.setItem('authToken', response.token);
+      
+      toast.success('تم تسجيل الدخول بنجاح');
     } catch (error) {
       console.error('Login failed', error);
       throw error;
@@ -73,22 +83,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (username: string, email: string, password: string) => {
     setLoading(true);
     try {
       // Use the API to register with backend
-      const userData = await api.register(name, email, password);
+      const response = await api.register(username, email, password);
       
-      const user: User = {
-        id: userData.id || userData._id,
-        name: userData.username,
-        email: userData.email,
-        balance: userData.balance || 0,
-        role: userData.role || 'user',
+      const authUser: AuthUser = {
+        id: response.user.id,
+        name: response.user.username,
+        email: response.user.email,
+        balance: response.user.balance || 0,
+        role: response.user.role || 'user',
       };
 
-      setUser(user);
-      localStorage.setItem('user', JSON.stringify(user));
+      setUser(authUser);
+      localStorage.setItem('user', JSON.stringify(authUser));
+      localStorage.setItem('authToken', response.token);
+      
+      toast.success('تم إنشاء الحساب بنجاح');
     } catch (error) {
       console.error('Registration failed', error);
       throw error;
@@ -107,19 +120,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'admin';
 
+  const refreshUser = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const userData = await api.getCurrentUser();
+      
+      // Convert API User to AuthUser
+      const authUser: AuthUser = {
+        id: userData.id,
+        name: userData.username,
+        email: userData.email,
+        balance: userData.balance,
+        role: userData.role,
+      };
+      
+      setUser(authUser);
+      localStorage.setItem('user', JSON.stringify(authUser));
+    } catch (error) {
+      console.error('Error refreshing user:', error);
+    }
+  };
+
   return (
     <AuthContext.Provider 
       value={{ 
-        user, 
+        isAuthenticated, 
         loading, 
+        user, 
+        isAdmin, 
         login, 
         register, 
-        logout, 
-        isAuthenticated, 
-        isAdmin 
+        logout,
+        refreshUser
       }}
     >
       {children}
     </AuthContext.Provider>
   );
 };
+

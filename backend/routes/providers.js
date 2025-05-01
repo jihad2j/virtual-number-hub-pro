@@ -8,16 +8,14 @@ const router = express.Router();
 router.get('/', providersController.getAllProviders);
 router.get('/:id', providersController.getProvider);
 
-// المسارات المحمية (تتطلب تسجيل الدخول)
+// المسارات المحمية للمستخدمين المسجلين
 router.use(authController.protect);
 
-// مسارات التفاعل مع API الخاص بمزود الخدمة
+// مسارات خاصة بمزودي الخدمة - متاحة للمستخدمين أيضًا
+router.get('/:id/test-connection', providersController.testProviderConnection);
 router.get('/:id/balance', providersController.getProviderBalance);
 router.get('/:id/countries', providersController.getProviderCountries);
-router.get('/:id/services/:countryId', providersController.getProviderServices);
-router.post('/:id/purchase', providersController.purchaseNumber);
-router.get('/:id/check/:numberId', providersController.checkNumber);
-router.get('/:id/test-connection', providersController.testConnection);
+router.get('/:id/services/:countryCode', providersController.getProviderServices);
 
 // المسارات المحمية للمشرفين فقط
 router.use(authController.restrictTo('admin'));

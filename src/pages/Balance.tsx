@@ -6,16 +6,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
-import { api, Transaction } from '@/services/api';
-import { DollarSign, CreditCard, History } from 'lucide-react';
+import { api } from '@/services/api';
+import { DollarSign, CreditCard, History, Gift, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
 const Balance = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
+  const [prepaidCode, setPrepaidCode] = useState('');
+  const [isRedeemingCode, setIsRedeemingCode] = useState(false);
+  const [giftAmount, setGiftAmount] = useState('');
+  const [giftRecipient, setGiftRecipient] = useState('');
+  const [isGifting, setIsGifting] = useState(false);
+  const [openGiftDialog, setOpenGiftDialog] = useState(false);
+  const [openRedeemDialog, setOpenRedeemDialog] = useState(false);
 
   useEffect(() => {
     fetchTransactions();
@@ -24,8 +41,8 @@ const Balance = () => {
   const fetchTransactions = async () => {
     setIsLoadingTransactions(true);
     try {
-      const data = await api.getTransactions();
-      setTransactions(data);
+      const data = await api.getUserTransactions();
+      setTransactions(data || []);
     } catch (error) {
       console.error('Failed to fetch transactions', error);
     } finally {
@@ -41,16 +58,71 @@ const Balance = () => {
 
     setIsLoading(true);
     try {
-      await api.addFunds(Number(amount), method);
+      await api.createDepositTransaction(Number(amount), method);
       toast.success(`تمت إضافة $${amount} إلى رصيدك بنجاح`);
       setAmount('');
       fetchTransactions();
-      // In a real app, you'd also refresh the user's balance
+      refreshUser(); // Update user balance in context
     } catch (error) {
       console.error('Failed to add funds', error);
       toast.error('حدث خطأ أثناء إضافة الرصيد');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRedeemCode = async () => {
+    if (!prepaidCode.trim()) {
+      toast.error('الرجاء إدخال كود الشحن');
+      return;
+    }
+
+    setIsRedeemingCode(true);
+    try {
+      const result = await api.redeemPrepaidCode(prepaidCode.trim());
+      toast.success(`تم شحن رصيدك بمبلغ $${result.amount} بنجاح`);
+      setPrepaidCode('');
+      setOpenRedeemDialog(false);
+      fetchTransactions();
+      refreshUser(); // Update user balance in context
+    } catch (error) {
+      console.error('Failed to redeem code', error);
+      toast.error('كود الشحن غير صالح أو تم استخدامه بالفعل');
+    } finally {
+      setIsRedeemingCode(false);
+    }
+  };
+
+  const handleGiftBalance = async () => {
+    if (!giftAmount || isNaN(Number(giftAmount)) || Number(giftAmount) <= 0) {
+      toast.error('الرجاء إدخال مبلغ صالح');
+      return;
+    }
+
+    if (!giftRecipient.trim()) {
+      toast.error('الرجاء إدخال معرف المستخدم المستلم');
+      return;
+    }
+
+    if (Number(giftAmount) > (user?.balance || 0)) {
+      toast.error('رصيدك غير كافٍ لإتمام هذه العملية');
+      return;
+    }
+
+    setIsGifting(true);
+    try {
+      await api.giftBalance(giftRecipient.trim(), Number(giftAmount));
+      toast.success(`تم إرسال $${giftAmount} إلى المستخدم ${giftRecipient} بنجاح`);
+      setGiftAmount('');
+      setGiftRecipient('');
+      setOpenGiftDialog(false);
+      fetchTransactions();
+      refreshUser(); // Update user balance in context
+    } catch (error) {
+      console.error('Failed to gift balance', error);
+      toast.error('فشل في إرسال الرصيد. تأكد من معرف المستخدم');
+    } finally {
+      setIsGifting(false);
     }
   };
 
@@ -62,7 +134,7 @@ const Balance = () => {
             <div className="mb-6 text-center">
               <DollarSign className="h-12 w-12 mx-auto text-brand-500" />
               <h2 className="text-2xl font-bold mt-2">رصيدك الحالي</h2>
-              <p className="text-4xl font-bold text-brand-600 mt-2">${user?.balance.toFixed(2)}</p>
+              <p className="text-4xl font-bold text-brand-600 mt-2">${user?.balance?.toFixed(2)}</p>
             </div>
             
             <div className="space-y-4">
@@ -72,6 +144,105 @@ const Balance = () => {
                 onClick={() => document.getElementById('add-funds')?.scrollIntoView({ behavior: 'smooth' })}
               >
                 إضافة رصيد
+              </Button>
+              
+              <Dialog open={openGiftDialog} onOpenChange={setOpenGiftDialog}>
+                <DialogTrigger asChild>
+                  <Button className="w-full" variant="outline">
+                    <Gift className="ml-2 h-4 w-4" />
+                    إهداء رصيد
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>إهداء رصيد لمستخدم آخر</DialogTitle>
+                    <DialogDescription>
+                      أدخل معرف المستخدم والمبلغ الذي ترغب في إهدائه
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div>
+                      <Label htmlFor="username">معرف المستخدم المستلم</Label>
+                      <Input
+                        id="username"
+                        placeholder="أدخل اسم المستخدم أو البريد الإلكتروني"
+                        value={giftRecipient}
+                        onChange={(e) => setGiftRecipient(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="gift-amount">المبلغ (بالدولار)</Label>
+                      <Input
+                        id="gift-amount"
+                        type="number"
+                        min="1"
+                        step="0.01"
+                        placeholder="أدخل المبلغ"
+                        value={giftAmount}
+                        onChange={(e) => setGiftAmount(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        أقصى مبلغ متاح: ${user?.balance?.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button 
+                      onClick={handleGiftBalance} 
+                      disabled={isGifting}
+                    >
+                      {isGifting ? 'جاري المعالجة...' : 'إرسال الهدية'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              
+              <Dialog open={openRedeemDialog} onOpenChange={setOpenRedeemDialog}>
+                <DialogTrigger asChild>
+                  <Button className="w-full" variant="outline">
+                    <CreditCard className="ml-2 h-4 w-4" />
+                    استخدام كود شحن
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>استخدام كود شحن</DialogTitle>
+                    <DialogDescription>
+                      أدخل كود الشحن لإضافة الرصيد إلى حسابك
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div>
+                      <Label htmlFor="prepaid-code">كود الشحن</Label>
+                      <Input
+                        id="prepaid-code"
+                        placeholder="أدخل كود الشحن"
+                        value={prepaidCode}
+                        onChange={(e) => setPrepaidCode(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button 
+                      onClick={handleRedeemCode} 
+                      disabled={isRedeemingCode}
+                    >
+                      {isRedeemingCode ? 'جاري المعالجة...' : 'تأكيد'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  refreshUser();
+                  toast.success("تم تحديث رصيدك بنجاح");
+                }}
+              >
+                <RefreshCcw className="ml-2 h-4 w-4" />
+                تحديث الرصيد
               </Button>
             </div>
           </CardContent>
@@ -209,15 +380,30 @@ const Balance = () => {
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           transaction.type === 'deposit' 
                             ? 'bg-green-100 text-green-800' 
+                            : transaction.type === 'gift_sent'
+                            ? 'bg-purple-100 text-purple-800'
+                            : transaction.type === 'gift_received'
+                            ? 'bg-blue-100 text-blue-800'
                             : 'bg-blue-100 text-blue-800'
                         }`}>
-                          {transaction.type === 'deposit' ? 'إيداع' : 'شراء'}
+                          {transaction.type === 'deposit' ? 'إيداع' : 
+                           transaction.type === 'purchase' ? 'شراء' :
+                           transaction.type === 'gift_sent' ? 'هدية مرسلة' :
+                           transaction.type === 'gift_received' ? 'هدية مستلمة' :
+                           transaction.type === 'redeem' ? 'استخدام كود' : 
+                           transaction.type}
                         </span>
                       </td>
                       <td className="py-3 px-4">{transaction.description}</td>
                       <td className="py-3 px-4">
-                        <span className={transaction.type === 'deposit' ? 'text-green-600' : 'text-blue-600'}>
-                          {transaction.type === 'deposit' ? '+' : '-'}${transaction.amount.toFixed(2)}
+                        <span className={
+                          transaction.type === 'deposit' || transaction.type === 'gift_received' || transaction.type === 'redeem' 
+                            ? 'text-green-600' 
+                            : 'text-blue-600'
+                        }>
+                          {transaction.type === 'deposit' || transaction.type === 'gift_received' || transaction.type === 'redeem' 
+                            ? '+' 
+                            : '-'}${transaction.amount?.toFixed(2)}
                         </span>
                       </td>
                       <td className="py-3 px-4">

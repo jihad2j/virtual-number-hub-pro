@@ -2,7 +2,7 @@
 const Provider = require('../models/Provider');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
-const ProviderFactory = require('../services/providers/ProviderFactory');
+const { ProviderFactory } = require('../services/providerFactory');
 
 // الحصول على جميع مزودي الخدمة
 exports.getAllProviders = catchAsync(async (req, res, next) => {
@@ -31,6 +31,11 @@ exports.getProvider = catchAsync(async (req, res, next) => {
 
 // إنشاء مزود خدمة جديد
 exports.createProvider = catchAsync(async (req, res, next) => {
+  // تأكد من وجود رمز فريد للمزود
+  if (!req.body.code) {
+    req.body.code = req.body.name.toLowerCase().replace(/\s+/g, '');
+  }
+  
   const newProvider = await Provider.create(req.body);
   
   res.status(201).json({
@@ -74,60 +79,71 @@ exports.deleteProvider = catchAsync(async (req, res, next) => {
   });
 });
 
-// الحصول على رصيد مزود الخدمة
-exports.getProviderBalance = catchAsync(async (req, res, next) => {
-  const providerId = req.params.id;
-  
-  // البحث عن المزود في قاعدة البيانات مع تضمين البيانات السرية مثل مفتاح API
-  const provider = await Provider.findById(providerId).select('+apiKey +config');
+// اختبار الاتصال بمزود خدمة
+exports.testProviderConnection = catchAsync(async (req, res, next) => {
+  // البحث عن المزود مع استرجاع apiKey (محمي عادة)
+  const provider = await Provider.findById(req.params.id).select('+apiKey');
   
   if (!provider) {
     return next(new AppError('لم يتم العثور على مزود خدمة بهذا المعرف', 404));
   }
   
-  if (!provider.isActive) {
-    return next(new AppError('مزود الخدمة هذا غير نشط', 400));
-  }
+  // إنشاء كائن المزود المناسب باستخدام مصنع المزودين
+  const providerService = ProviderFactory.createProvider(provider);
   
   try {
-    // إنشاء كائن مزود الخدمة المناسب
-    const providerService = ProviderFactory.createProvider(provider);
+    const connectionResult = await providerService.testConnection();
     
-    // الحصول على الرصيد
+    res.status(200).json({
+      status: 'success',
+      connected: connectionResult
+    });
+  } catch (error) {
+    res.status(200).json({
+      status: 'success',
+      connected: false,
+      message: error.message
+    });
+  }
+});
+
+// جلب رصيد مزود الخدمة
+exports.getProviderBalance = catchAsync(async (req, res, next) => {
+  // البحث عن المزود مع استرجاع apiKey (محمي عادة)
+  const provider = await Provider.findById(req.params.id).select('+apiKey');
+  
+  if (!provider) {
+    return next(new AppError('لم يتم العثور على مزود خدمة بهذا المعرف', 404));
+  }
+  
+  // إنشاء كائن المزود المناسب باستخدام مصنع المزودين
+  const providerService = ProviderFactory.createProvider(provider);
+  
+  try {
     const balance = await providerService.getBalance();
     
     res.status(200).json({
       status: 'success',
-      data: { 
-        balance: balance.balance,
-        currency: balance.currency
-      }
+      data: balance
     });
   } catch (error) {
-    return next(new AppError(`فشل في الحصول على رصيد المزود: ${error.message}`, 500));
+    return next(new AppError(`فشل في جلب رصيد المزود: ${error.message}`, 400));
   }
 });
 
-// الحصول على دول مزود الخدمة
+// جلب الدول المتاحة من مزود الخدمة
 exports.getProviderCountries = catchAsync(async (req, res, next) => {
-  const providerId = req.params.id;
-  
-  // البحث عن المزود في قاعدة البيانات مع تضمين البيانات السرية مثل مفتاح API
-  const provider = await Provider.findById(providerId).select('+apiKey +config');
+  // البحث عن المزود مع استرجاع apiKey (محمي عادة)
+  const provider = await Provider.findById(req.params.id).select('+apiKey');
   
   if (!provider) {
     return next(new AppError('لم يتم العثور على مزود خدمة بهذا المعرف', 404));
   }
   
-  if (!provider.isActive) {
-    return next(new AppError('مزود الخدمة هذا غير نشط', 400));
-  }
+  // إنشاء كائن المزود المناسب باستخدام مصنع المزودين
+  const providerService = ProviderFactory.createProvider(provider);
   
   try {
-    // إنشاء كائن مزود الخدمة المناسب
-    const providerService = ProviderFactory.createProvider(provider);
-    
-    // الحصول على الدول
     const countries = await providerService.getCountries();
     
     res.status(200).json({
@@ -136,127 +152,33 @@ exports.getProviderCountries = catchAsync(async (req, res, next) => {
       data: countries
     });
   } catch (error) {
-    return next(new AppError(`فشل في الحصول على دول المزود: ${error.message}`, 500));
+    return next(new AppError(`فشل في جلب الدول المتاحة: ${error.message}`, 400));
   }
 });
 
-// الحصول على خدمات مزود الخدمة لدولة معينة
+// جلب الخدمات المتاحة لدولة معينة من مزود الخدمة
 exports.getProviderServices = catchAsync(async (req, res, next) => {
-  const { id, countryId } = req.params;
-  
-  // البحث عن المزود في قاعدة البيانات مع تضمين البيانات السرية مثل مفتاح API
-  const provider = await Provider.findById(id).select('+apiKey +config');
+  // البحث عن المزود مع استرجاع apiKey (محمي عادة)
+  const provider = await Provider.findById(req.params.id).select('+apiKey');
   
   if (!provider) {
     return next(new AppError('لم يتم العثور على مزود خدمة بهذا المعرف', 404));
   }
   
-  if (!provider.isActive) {
-    return next(new AppError('مزود الخدمة هذا غير نشط', 400));
-  }
+  const { countryCode } = req.params;
+  
+  // إنشاء كائن المزود المناسب باستخدام مصنع المزودين
+  const providerService = ProviderFactory.createProvider(provider);
   
   try {
-    // إنشاء كائن مزود الخدمة المناسب
-    const providerService = ProviderFactory.createProvider(provider);
-    
-    // الحصول على الخدمات
-    const services = await providerService.getServices(countryId);
+    const services = await providerService.getServices(countryCode);
     
     res.status(200).json({
       status: 'success',
+      results: services.length,
       data: services
     });
   } catch (error) {
-    return next(new AppError(`فشل في الحصول على خدمات المزود: ${error.message}`, 500));
-  }
-});
-
-// شراء رقم من مزود الخدمة
-exports.purchaseNumber = catchAsync(async (req, res, next) => {
-  const { id } = req.params;
-  const { serviceId, countryId, operator } = req.body;
-  
-  if (!serviceId || !countryId) {
-    return next(new AppError('يجب توفير معرف الخدمة والدولة', 400));
-  }
-  
-  // البحث عن المزود في قاعدة البيانات مع تضمين البيانات السرية مثل مفتاح API
-  const provider = await Provider.findById(id).select('+apiKey +config');
-  
-  if (!provider) {
-    return next(new AppError('لم يتم العثور على مزود خدمة بهذا المعرف', 404));
-  }
-  
-  if (!provider.isActive) {
-    return next(new AppError('مزود الخدمة هذا غير نشط', 400));
-  }
-  
-  try {
-    // إنشاء كائن مزود الخدمة المناسب
-    const providerService = ProviderFactory.createProvider(provider);
-    
-    // شراء الرقم
-    const number = await providerService.purchaseNumber(serviceId, countryId, operator || "any");
-    
-    res.status(200).json({
-      status: 'success',
-      data: number
-    });
-  } catch (error) {
-    return next(new AppError(`فشل في شراء الرقم: ${error.message}`, 500));
-  }
-});
-
-// التحقق من حالة الرقم
-exports.checkNumber = catchAsync(async (req, res, next) => {
-  const { id, numberId } = req.params;
-  
-  // البحث عن المزود في قاعدة البيانات مع تضمين البيانات السرية مثل مفتاح API
-  const provider = await Provider.findById(id).select('+apiKey +config');
-  
-  if (!provider) {
-    return next(new AppError('لم يتم العثور على مزود خدمة بهذا المعرف', 404));
-  }
-  
-  try {
-    // إنشاء كائن مزود الخدمة المناسب
-    const providerService = ProviderFactory.createProvider(provider);
-    
-    // التحقق من حالة الرقم
-    const numberStatus = await providerService.checkNumber(numberId);
-    
-    res.status(200).json({
-      status: 'success',
-      data: numberStatus
-    });
-  } catch (error) {
-    return next(new AppError(`فشل في التحقق من حالة الرقم: ${error.message}`, 500));
-  }
-});
-
-// اختبار الاتصال بمزود الخدمة
-exports.testConnection = catchAsync(async (req, res, next) => {
-  const providerId = req.params.id;
-  
-  // البحث عن المزود في قاعدة البيانات مع تضمين البيانات السرية مثل مفتاح API
-  const provider = await Provider.findById(providerId).select('+apiKey +config');
-  
-  if (!provider) {
-    return next(new AppError('لم يتم العثور على مزود خدمة بهذا المعرف', 404));
-  }
-  
-  try {
-    // إنشاء كائن مزود الخدمة المناسب
-    const providerService = ProviderFactory.createProvider(provider);
-    
-    // اختبار الاتصال عن طريق محاولة الحصول على الرصيد
-    await providerService.getBalance();
-    
-    res.status(200).json({
-      status: 'success',
-      message: 'تم الاتصال بمزود الخدمة بنجاح'
-    });
-  } catch (error) {
-    return next(new AppError(`فشل الاتصال بمزود الخدمة: ${error.message}`, 500));
+    return next(new AppError(`فشل في جلب الخدمات المتاحة: ${error.message}`, 400));
   }
 });
