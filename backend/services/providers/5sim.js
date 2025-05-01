@@ -5,112 +5,128 @@ const { BaseProvider } = require('../providerFactory');
 class FiveSimProvider extends BaseProvider {
   constructor(providerData) {
     super(providerData);
-    this.baseUrl = 'https://5sim.net/v1/';
+    this.baseUrl = this.apiUrl || 'https://5sim.net/v1';
   }
 
   /**
-   * Get balance from 5SIM
+   * Create a configured axios instance for 5sim API
+   * @returns {Object} Axios instance
+   */
+  _createAxiosInstance() {
+    return axios.create({
+      baseURL: this.baseUrl,
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+  }
+
+  /**
+   * Get provider balance
    * @returns {Promise<{balance: number, currency: string}>}
    */
   async getBalance() {
     try {
-      const response = await axios.get(`${this.baseUrl}user/profile`, {
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Accept': 'application/json',
-        }
-      });
-      
+      const api = this._createAxiosInstance();
+      const response = await api.get('/user/profile');
       return {
         balance: response.data.balance,
-        currency: 'RUB' // 5sim uses Russian Rubles
+        currency: 'RUB'
       };
     } catch (error) {
-      console.error('5SIM getBalance error:', error.message);
-      throw new Error('Failed to get balance from 5SIM');
+      console.error('Error fetching balance from 5sim:', error.message);
+      throw new Error(`Failed to fetch balance: ${error.message}`);
     }
   }
 
   /**
-   * Get available countries from 5SIM
+   * Get available countries
    * @returns {Promise<Array>}
    */
   async getCountries() {
     try {
-      const response = await axios.get(`${this.baseUrl}guest/countries`, {
-        headers: {
-          'Accept': 'application/json',
-        }
-      });
+      const api = this._createAxiosInstance();
+      const response = await api.get('/guest/countries');
+      const countries = [];
       
-      // Format countries to match our schema
-      return Object.entries(response.data).map(([code, data]) => ({
-        name: data.country_text,
-        code: code.toUpperCase(),
-        iso: code.toUpperCase(),
-        flag: this.getFlagEmoji(code.toUpperCase())
-      }));
+      for (const [countryCode, countryData] of Object.entries(response.data)) {
+        if (countryData.text_en && countryData.iso) {
+          const isoCode = Object.keys(countryData.iso)[0];
+          const prefix = Object.keys(countryData.prefix)[0] || '';
+          
+          countries.push({
+            id: countries.length + 1,
+            name: countryData.text_en,
+            iso: isoCode,
+            code: isoCode,
+            prefix: prefix,
+            available: true,
+            flag: this._getFlagEmoji(isoCode.toUpperCase())
+          });
+        }
+      }
+      
+      return countries;
     } catch (error) {
-      console.error('5SIM getCountries error:', error.message);
-      throw new Error('Failed to get countries from 5SIM');
+      console.error('Error fetching countries from 5sim:', error.message);
+      throw new Error(`Failed to fetch countries: ${error.message}`);
     }
   }
 
   /**
-   * Get available services for a country
+   * Get available products for a country
    * @param {string} countryCode - Country code
+   * @param {string} operator - Operator code (default: 'any')
    * @returns {Promise<Array>}
    */
-  async getServices(countryCode) {
+  async getServices(countryCode, operator = 'any') {
     try {
-      const response = await axios.get(`${this.baseUrl}guest/products/${countryCode.toLowerCase()}`, {
-        headers: {
-          'Accept': 'application/json',
-        }
-      });
+      const api = this._createAxiosInstance();
+      const response = await api.get(`/guest/products/${countryCode}/${operator}`);
       
-      // Format services to match our schema
-      return Object.keys(response.data).map(service => ({
-        id: service,
-        name: service,
-        price: response.data[service].cost,
-        available: true
-      }));
+      const services = [];
+      for (const [serviceName, serviceData] of Object.entries(response.data)) {
+        services.push({
+          id: serviceName,
+          name: serviceName,
+          price: serviceData.price,
+          count: serviceData.count
+        });
+      }
+      
+      return services;
     } catch (error) {
-      console.error('5SIM getServices error:', error.message);
-      throw new Error(`Failed to get services for country ${countryCode} from 5SIM`);
+      console.error(`Error fetching services from 5sim for country ${countryCode}:`, error.message);
+      throw new Error(`Failed to fetch services: ${error.message}`);
     }
   }
 
   /**
-   * Purchase a phone number
+   * Purchase a number
    * @param {Object} options - Purchase options
    * @returns {Promise<Object>}
    */
-  async purchaseNumber(options) {
+  async purchaseNumber({ country, operator = 'any', product }) {
     try {
-      const { countryCode, service } = options;
-      
-      const response = await axios.get(`${this.baseUrl}user/buy/activation/${countryCode.toLowerCase()}/${service.toLowerCase()}/any`, {
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Accept': 'application/json',
-        }
-      });
+      const api = this._createAxiosInstance();
+      const response = await api.get(`/user/buy/activation/${country}/${operator}/${product}`);
       
       return {
-        id: response.data.id.toString(),
-        number: response.data.phone,
-        country: countryCode,
-        service: service,
-        status: 'pending',
-        expiresAt: new Date(Date.now() + 20 * 60 * 1000).toISOString(), // 20 minutes expiration
-        smsCode: null,
-        providerData: response.data
+        id: response.data.id,
+        phone: response.data.phone,
+        operator: response.data.operator,
+        product: response.data.product,
+        price: response.data.price,
+        status: response.data.status,
+        country: response.data.country,
+        createdAt: response.data.created_at,
+        expiresAt: response.data.expires
       };
     } catch (error) {
-      console.error('5SIM purchaseNumber error:', error.message);
-      throw new Error('Failed to purchase number from 5SIM');
+      console.error(`Error purchasing number from 5sim:`, error.message);
+      throw new Error(`Failed to purchase number: ${error.message}`);
     }
   }
 
@@ -121,26 +137,23 @@ class FiveSimProvider extends BaseProvider {
    */
   async checkNumber(id) {
     try {
-      const response = await axios.get(`${this.baseUrl}user/check/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Accept': 'application/json',
-        }
-      });
-      
-      // Extract SMS code if available
-      const smsCode = response.data.sms.length > 0 ? response.data.sms[0].code : null;
+      const api = this._createAxiosInstance();
+      const response = await api.get(`/user/check/${id}`);
       
       return {
-        id: response.data.id.toString(),
-        number: response.data.phone,
+        id: response.data.id,
+        phone: response.data.phone,
         status: response.data.status,
-        smsCode,
-        providerData: response.data
+        sms: response.data.sms.map(s => ({
+          sender: s.sender,
+          text: s.text,
+          code: s.code,
+          createdAt: s.created_at
+        }))
       };
     } catch (error) {
-      console.error('5SIM checkNumber error:', error.message);
-      throw new Error(`Failed to check number status for ID ${id} from 5SIM`);
+      console.error(`Error checking number status from 5sim:`, error.message);
+      throw new Error(`Failed to check number status: ${error.message}`);
     }
   }
 
@@ -151,45 +164,26 @@ class FiveSimProvider extends BaseProvider {
    */
   async cancelNumber(id) {
     try {
-      await axios.get(`${this.baseUrl}user/cancel/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Accept': 'application/json',
-        }
-      });
-      
+      const api = this._createAxiosInstance();
+      await api.get(`/user/cancel/${id}`);
       return true;
     } catch (error) {
-      console.error('5SIM cancelNumber error:', error.message);
-      throw new Error(`Failed to cancel number for ID ${id} from 5SIM`);
+      console.error(`Error cancelling number from 5sim:`, error.message);
+      throw new Error(`Failed to cancel number: ${error.message}`);
     }
   }
 
   /**
-   * Helper function to get flag emoji
-   * @param {string} countryCode
-   * @returns {string}
+   * Helper function to get flag emoji from country code
+   * @param {string} countryCode - 2-letter country code
+   * @returns {string} Flag emoji
    */
-  getFlagEmoji(countryCode) {
-    if (!countryCode) return '🌍';
+  _getFlagEmoji(countryCode) {
     const codePoints = countryCode
       .toUpperCase()
       .split('')
       .map(char => 127397 + char.charCodeAt(0));
     return String.fromCodePoint(...codePoints);
-  }
-
-  /**
-   * Test connection to the provider
-   * @returns {Promise<boolean>}
-   */
-  async testConnection() {
-    try {
-      await this.getBalance();
-      return true;
-    } catch (error) {
-      return false;
-    }
   }
 }
 

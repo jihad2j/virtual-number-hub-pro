@@ -1,26 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { DataTable } from '@/components/ui/data-table';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { toast } from 'sonner';
-import { api } from '@/services/api';
-import { Country } from '@/types/Country';
 
-const Countries = () => {
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { api, Country } from '@/services/api';
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Globe, Plus, RefreshCw, Edit, Save, Trash2, Search } from 'lucide-react';
+import { toast } from 'sonner';
+
+const CountriesManagement = () => {
   const [countries, setCountries] = useState<Country[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingCountry, setEditingCountry] = useState<Country | null>(null);
+  const [openNewCountryDialog, setOpenNewCountryDialog] = useState(false);
   const [newCountry, setNewCountry] = useState<Omit<Country, 'id'>>({
     name: '',
     flag: '',
     code: '',
-    available: true,
-    services: [] // Add the required services array
+    available: true
   });
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchCountries();
@@ -29,176 +32,277 @@ const Countries = () => {
   const fetchCountries = async () => {
     setIsLoading(true);
     try {
-      const data = await api.getAllCountries();
-      setCountries(data);
+      const countriesData = await api.getCountries();
+      console.log("Fetched countries data:", countriesData); // للتأكد من البيانات المستلمة
+      setCountries(Array.isArray(countriesData) ? countriesData : []);
     } catch (error) {
       console.error('Failed to fetch countries', error);
-      toast.error('فشل في جلب قائمة الدول');
+      toast.error('فشل في جلب بيانات الدول');
+      setCountries([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCreateCountry = async () => {
+  const handleToggleCountryAvailability = (countryId: string) => {
+    setCountries(countries.map(country => {
+      if (country.id === countryId) {
+        return { ...country, available: !country.available };
+      }
+      return country;
+    }));
+  };
+
+  const handleSaveCountry = async (country: Country) => {
+    try {
+      // هنا يمكن إضافة استدعاء API لتحديث الدولة في قاعدة البيانات
+      // await api.updateCountry(country);
+      
+      setCountries(prevCountries => 
+        prevCountries.map(c => c.id === country.id ? country : c)
+      );
+      
+      toast.success(`تم تحديث الدولة ${country.name} بنجاح`);
+    } catch (error) {
+      console.error('Failed to save country', error);
+      toast.error('حدث خطأ أثناء حفظ الدولة');
+    }
+  };
+
+  const handleAddCountry = async () => {
     if (!newCountry.name || !newCountry.code) {
       toast.error('الرجاء إدخال اسم ورمز الدولة');
       return;
     }
 
     try {
-      const createdCountry = await api.createCountry(newCountry);
-      setCountries([...countries, createdCountry]);
-      setNewCountry({
-        name: '',
-        flag: '',
-        code: '',
-        available: true,
-        services: []
-      });
-      setDialogOpen(false);
-      toast.success(`تمت إضافة دولة ${createdCountry.name} بنجاح`);
+      const addedCountries = await api.addCountries([newCountry]);
+      if (addedCountries && addedCountries.length > 0) {
+        setCountries([...countries, addedCountries[0]]);
+        setNewCountry({
+          name: '',
+          flag: '',
+          code: '',
+          available: true
+        });
+        setOpenNewCountryDialog(false);
+        toast.success(`تم إضافة الدولة ${addedCountries[0].name} بنجاح`);
+      }
     } catch (error) {
-      console.error('Failed to create country', error);
-      toast.error('فشل في إنشاء دولة جديدة');
+      console.error('Failed to add country', error);
+      toast.error('حدث خطأ أثناء إضافة الدولة');
     }
   };
 
-  const handleUpdateCountry = async (id: string, data: Partial<Country>) => {
+  const handleGenerateFlagEmoji = () => {
+    if (!newCountry.code) {
+      toast.warning('أدخل رمز الدولة أولاً (مثل eg أو sa)');
+      return;
+    }
+
     try {
-      await api.updateCountry(id, data);
-      setCountries(countries.map(country => 
-        country.id === id ? { ...country, ...data } : country
-      ));
-      toast.success('تم تحديث معلومات الدولة بنجاح');
+      const countryCode = newCountry.code.toUpperCase();
+      const codePoints = countryCode.split('').map(char => 127397 + char.charCodeAt(0));
+      const flagEmoji = String.fromCodePoint(...codePoints);
+      setNewCountry({...newCountry, flag: flagEmoji});
     } catch (error) {
-      console.error('Failed to update country', error);
-      toast.error('فشل في تحديث معلومات الدولة');
+      console.error('Error generating flag emoji', error);
+      toast.error('تعذر إنشاء علم الدولة، تأكد من إدخال رمز صحيح');
     }
   };
 
-  const handleDeleteCountry = async (id: string) => {
-    if (!window.confirm('هل أنت متأكد من رغبتك في حذف هذه الدولة؟')) return;
-    
-    try {
-      await api.deleteCountry(id);
-      setCountries(countries.filter(country => country.id !== id));
-      toast.success('تم حذف الدولة بنجاح');
-    } catch (error) {
-      console.error('Failed to delete country', error);
-      toast.error('فشل في حذف الدولة');
-    }
-  };
+  // تأكد من أن countries مصفوفة قبل استخدام filter
+  const filteredCountries = Array.isArray(countries) 
+    ? countries.filter(country => 
+        country.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        country.code.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
 
-  const columns = [
-    {
-      accessorKey: 'flag',
-      header: '',
-      cell: ({ row }) => (
-        <div className="text-xl">{row.original.flag}</div>
-      )
-    },
-    {
-      accessorKey: 'name',
-      header: 'اسم الدولة',
-    },
-    {
-      accessorKey: 'code',
-      header: 'الرمز',
-    },
-    {
-      accessorKey: 'available',
-      header: 'متاحة',
-      cell: ({ row }) => (
-        <Switch 
-          checked={row.original.available} 
-          onCheckedChange={(checked) => 
-            handleUpdateCountry(row.original.id, { available: checked })
-          }
-        />
-      )
-    },
-    {
-      id: 'actions',
-      header: 'الإجراءات',
-      cell: ({ row }) => (
-        <Button 
-          variant="destructive" 
-          size="sm"
-          onClick={() => handleDeleteCountry(row.original.id)}
-        >
-          حذف
-        </Button>
-      )
-    }
-  ];
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">إدارة الدول</h1>
-        <Button onClick={() => setDialogOpen(true)}>إضافة دولة جديدة</Button>
+        
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Input
+              type="text"
+              placeholder="بحث..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pr-8 w-64"
+            />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+          </div>
+          
+          <Dialog open={openNewCountryDialog} onOpenChange={setOpenNewCountryDialog}>
+            <DialogTrigger asChild>
+              <Button className="gradient-bg">
+                <Plus className="ml-2 h-4 w-4" />
+                إضافة دولة جديدة
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>إضافة دولة جديدة</DialogTitle>
+                <DialogDescription>
+                  أدخل معلومات الدولة الجديدة
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="country-name">اسم الدولة</Label>
+                  <Input
+                    id="country-name"
+                    value={newCountry.name}
+                    onChange={(e) => setNewCountry({...newCountry, name: e.target.value})}
+                    placeholder="أدخل اسم الدولة"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="country-code">رمز الدولة</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="country-code"
+                      value={newCountry.code}
+                      onChange={(e) => setNewCountry({...newCountry, code: e.target.value.toLowerCase()})}
+                      placeholder="مثال: sa أو eg"
+                      maxLength={2}
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={handleGenerateFlagEmoji}
+                      className="whitespace-nowrap"
+                    >
+                      توليد العلم
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="country-flag">علم الدولة</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="country-flag"
+                      value={newCountry.flag}
+                      onChange={(e) => setNewCountry({...newCountry, flag: e.target.value})}
+                      placeholder="سيتم توليده تلقائياً"
+                      className="flex-1"
+                    />
+                    <div className="text-3xl min-w-10 flex justify-center">
+                      {newCountry.flag || "🏳️"}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="block mb-2">متاحة للمستخدمين</Label>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={newCountry.available}
+                      onCheckedChange={(checked) => setNewCountry({...newCountry, available: checked})}
+                    />
+                    <span className="mr-2">{newCountry.available ? 'متاحة' : 'غير متاحة'}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setOpenNewCountryDialog(false)}>
+                  إلغاء
+                </Button>
+                <Button className="gradient-bg" onClick={handleAddCountry}>
+                  إضافة الدولة
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
       
-      <Card className="overflow-hidden">
-        <DataTable 
-          columns={columns} 
-          data={countries} 
-          loading={isLoading} 
-          onRefresh={fetchCountries}
-        />
-      </Card>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>إضافة دولة جديدة</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">اسم الدولة</Label>
-              <Input 
-                id="name"
-                value={newCountry.name}
-                onChange={(e) => setNewCountry({...newCountry, name: e.target.value})}
-              />
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-brand-600" />
+              <CardTitle>قائمة الدول ({filteredCountries.length})</CardTitle>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="code">رمز الدولة (مثال: SA, US)</Label>
-              <Input 
-                id="code"
-                value={newCountry.code}
-                onChange={(e) => setNewCountry({...newCountry, code: e.target.value.toUpperCase()})}
-                maxLength={2}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="flag">علم الدولة (emoji أو رابط صورة)</Label>
-              <Input 
-                id="flag"
-                value={newCountry.flag}
-                onChange={(e) => setNewCountry({...newCountry, flag: e.target.value})}
-                placeholder="🇺🇸"
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch 
-                id="available"
-                checked={newCountry.available}
-                onCheckedChange={(checked) => setNewCountry({...newCountry, available: checked})}
-              />
-              <Label htmlFor="available">متاحة</Label>
-            </div>
+            <Button variant="outline" size="sm" onClick={fetchCountries}>
+              <RefreshCw className="h-4 w-4 ml-2" />
+              تحديث
+            </Button>
           </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>إلغاء</Button>
-            <Button onClick={handleCreateCountry}>إضافة</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <CardDescription>
+            إدارة الدول المتاحة في النظام
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>العلم</TableHead>
+                <TableHead>اسم الدولة</TableHead>
+                <TableHead>الرمز</TableHead>
+                <TableHead>الحالة</TableHead>
+                <TableHead>الإجراءات</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredCountries.length > 0 ? (
+                filteredCountries.map((country) => (
+                  <TableRow key={country.id}>
+                    <TableCell className="text-2xl">{country.flag}</TableCell>
+                    <TableCell className="font-medium">{country.name}</TableCell>
+                    <TableCell>{country.code.toUpperCase()}</TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={country.available}
+                        onCheckedChange={() => handleToggleCountryAvailability(country.id)}
+                      />
+                      <Badge 
+                        variant={country.available ? 'default' : 'secondary'}
+                        className="mr-2"
+                      >
+                        {country.available ? 'متاحة' : 'غير متاحة'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleSaveCountry(country)}
+                      >
+                        <Save className="h-4 w-4 ml-2" />
+                        حفظ
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                    لا يوجد دول مطابقة للبحث
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-export default Countries;
+export default CountriesManagement;

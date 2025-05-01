@@ -1,41 +1,88 @@
 
-const { BaseProvider } = require('../providerFactory');
 const axios = require('axios');
+const { BaseProvider } = require('../providerFactory');
 
 class GetSmsCodeProvider extends BaseProvider {
   constructor(providerData) {
     super(providerData);
-    // Initialize any specific configurations
+    this.baseUrl = this.apiUrl || 'https://api.getsmscode.com';
   }
 
+  /**
+   * Create a configured axios instance
+   * @returns {Object} Axios instance
+   */
+  _createAxiosInstance() {
+    return axios.create({
+      baseURL: this.baseUrl,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+  }
+
+  /**
+   * Get provider balance
+   * @returns {Promise<{balance: number, currency: string}>}
+   */
   async getBalance() {
-    // Implementation for getSmscode API
-    return { balance: 0, currency: 'USD' };
+    try {
+      const api = this._createAxiosInstance();
+      const response = await api.post('/api/getbalance', {
+        username: this.settings.username,
+        token: this.apiKey
+      });
+      
+      if (response.data && response.data.Balance) {
+        return {
+          balance: parseFloat(response.data.Balance),
+          currency: 'USD'
+        };
+      }
+      
+      throw new Error('Failed to parse balance from response');
+    } catch (error) {
+      console.error('Error fetching balance from GetSmsCode:', error.message);
+      throw new Error(`Failed to fetch balance: ${error.message}`);
+    }
   }
 
+  /**
+   * Get available countries
+   * @returns {Promise<Array>}
+   */
   async getCountries() {
-    // Implementation for getSmscode API
-    return [];
+    // Sample implementation - should be replaced with actual API call
+    return [
+      {
+        id: 'CN',
+        name: 'China',
+        code: 'CN',
+        flag: this._getFlagEmoji('CN'),
+        available: true
+      },
+      {
+        id: 'US',
+        name: 'United States',
+        code: 'US',
+        flag: this._getFlagEmoji('US'),
+        available: true
+      }
+    ];
   }
 
-  async getServices(countryCode) {
-    // Implementation for getSmscode API
-    return [];
-  }
-
-  async purchaseNumber(options) {
-    // Implementation for getSmscode API
-    throw new Error('Not implemented');
-  }
-
-  async checkNumber(id) {
-    // Implementation for getSmscode API
-    throw new Error('Not implemented');
-  }
-
-  async cancelNumber(id) {
-    // Implementation for getSmscode API
-    throw new Error('Not implemented');
+  /**
+   * Helper function to get flag emoji from country code
+   * @param {string} countryCode - 2-letter country code
+   * @returns {string} Flag emoji
+   */
+  _getFlagEmoji(countryCode) {
+    const codePoints = countryCode
+      .toUpperCase()
+      .split('')
+      .map(char => 127397 + char.charCodeAt(0));
+    return String.fromCodePoint(...codePoints);
   }
 }
 

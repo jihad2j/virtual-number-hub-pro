@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { api, Provider, Country } from '@/services/api';
 import { toast } from 'sonner';
@@ -18,7 +17,6 @@ const Providers = () => {
   const [fetchingBalance, setFetchingBalance] = useState<string | null>(null);
   const [newProvider, setNewProvider] = useState({
     name: '',
-    code: '', // Added code field which is required
     description: '',
     countries: [] as string[],
     isActive: true,
@@ -34,8 +32,8 @@ const Providers = () => {
     setIsLoading(true);
     try {
       const [providersData, countriesData] = await Promise.all([
-        api.getAllProviders(),
-        api.getAllCountries()
+        api.getProviders(),
+        api.getCountries()
       ]);
       setProviders(providersData);
       setCountries(countriesData || []);
@@ -59,8 +57,32 @@ const Providers = () => {
       const provider = providers.find(p => p.id === providerId);
       if (!provider) return;
       
-      // Use the backend API for testing connection
-      const success = await api.testProviderConnection(providerId);
+      let success = false;
+      if (provider.name.toLowerCase().includes('5sim')) {
+        // Test 5Sim connection
+        try {
+          const countries = await fiveSimApi.getCountries();
+          success = countries.length > 0;
+        } catch (error) {
+          console.error('Failed to test 5Sim connection:', error);
+          success = false;
+        }
+      } else if (provider.name.toLowerCase().includes('smsactivate')) {
+        // Test SMS Activate connection
+        try {
+          if (provider.apiKey) {
+            smsActivateApi.setApiKey(provider.apiKey);
+            await smsActivateApi.getBalance();
+            success = true;
+          }
+        } catch (error) {
+          console.error('Failed to test SMS Activate connection:', error);
+          success = false;
+        }
+      } else {
+        // Test other providers - implement as needed
+        success = true; // Placeholder
+      }
       
       // Update connection status
       setConnectionStatuses(prev => ({
@@ -90,15 +112,23 @@ const Providers = () => {
   const fetchProviderBalance = async (providerId: string) => {
     setFetchingBalance(providerId);
     try {
-      const balance = await api.getProviderBalance(providerId);
+      const provider = providers.find(p => p.id === providerId);
+      if (!provider) return;
+      
+      let balance = { balance: 0, currency: "Unknown" };
+      
+      if (provider.name.toLowerCase().includes('5sim')) {
+        balance = await phoneServiceApi.getProviderBalance('5sim');
+      } else if (provider.name.toLowerCase().includes('smsactivate') && provider.apiKey) {
+        balance = await phoneServiceApi.getProviderBalance('smsactivate', provider.apiKey);
+      }
       
       setProviderBalances(prev => ({
         ...prev,
         [providerId]: balance
       }));
       
-      const provider = providers.find(p => p.id === providerId);
-      toast.success(`تم جلب رصيد مزود الخدمة ${provider?.name} بنجاح`);
+      toast.success(`تم جلب رصيد مزود الخدمة ${provider.name} بنجاح`);
     } catch (error) {
       console.error(`Failed to fetch balance for provider ${providerId}:`, error);
       toast.error('فشل في جلب رصيد المزود');
@@ -114,31 +144,59 @@ const Providers = () => {
       
       toast.info(`جاري جلب الدول المتاحة من ${provider.name}...`);
       
-      const fetchedCountries = await api.getProviderCountries(providerId);
+      let fetchedCountries: any[] = [];
       
-      if (fetchedCountries.length > 0) {
-        // Process countries to match our format
-        const formattedCountries = fetchedCountries.map(country => ({
-          id: country.id || country.iso || country.code,
+      // For 5Sim, we'll use our existing API
+      if (provider.name.toLowerCase().includes('5sim')) {
+        const fiveSimCountries = await phoneServiceApi.getProviderCountries('5sim');
+        
+        // Convert 5Sim countries to our country format
+        const newCountries: Country[] = fiveSimCountries.map((country: any) => ({
+          id: country.iso,
           name: country.name,
-          code: country.iso || country.code,
-          flag: country.flag || getFlagEmoji(country.code?.toUpperCase() || country.iso?.toUpperCase()),
-          services: [] // Adding required services field
+          flag: getFlagEmoji(country.iso.toUpperCase()),
+          code: country.iso,
+          available: true
         }));
         
-        // Add any new countries to our database
-        try {
-          await api.addCountries(formattedCountries);
-          // Refresh country list
-          const updatedCountries = await api.getAllCountries();
-          setCountries(updatedCountries);
-          toast.success(`تم جلب وتحديث الدول المتاحة`);
-        } catch (e) {
-          console.error('Failed to add countries to database', e);
-          toast.error('فشل في إضافة الدول إلى قاعدة البيانات');
+        fetchedCountries = newCountries;
+      } 
+      // For SMS Activate
+      else if (provider.name.toLowerCase().includes('smsactivate') && provider.apiKey) {
+        smsActivateApi.setApiKey(provider.apiKey);
+        const smsActivateCountries = await smsActivateApi.getCountries();
+        
+        // Convert SMS Activate countries to our country format
+        const newCountries: Country[] = smsActivateCountries.map(country => ({
+          id: country.id,
+          name: country.name,
+          flag: country.code ? getFlagEmoji(country.code.toUpperCase()) : '🌍',
+          code: country.code || '',
+          available: true
+        }));
+        
+        fetchedCountries = newCountries;
+      }
+      // For other providers, you'll need to implement their APIs
+      else {
+        toast.info('هذه الميزة غير متاحة لهذا المزود حاليًا');
+        return;
+      }
+      
+      if (fetchedCountries.length > 0) {
+        // Add any new countries to our countries list
+        const existingCountryCodes = countries.map(c => c.code);
+        const uniqueNewCountries = fetchedCountries.filter(c => !existingCountryCodes.includes(c.code));
+        
+        if (uniqueNewCountries.length > 0) {
+          await api.addCountries(uniqueNewCountries);
+          setCountries([...countries, ...uniqueNewCountries]);
+          toast.success(`تم إضافة ${uniqueNewCountries.length} دولة جديدة`);
+        } else {
+          toast.info('لم يتم العثور على دول جديدة');
         }
       } else {
-        toast.warning('لم يتم العثور على أي دول من هذا المزود');
+        toast.warning('لم يتم العثور على أي دول');
       }
     } catch (error) {
       console.error(`Failed to fetch countries from provider ${providerId}:`, error);
@@ -148,7 +206,6 @@ const Providers = () => {
   
   // Helper function to get flag emoji from country code
   const getFlagEmoji = (countryCode: string) => {
-    if (!countryCode) return '🌍';
     const codePoints = countryCode
       .toUpperCase()
       .split('')
@@ -166,9 +223,9 @@ const Providers = () => {
   const handleToggleCountry = (providerId: string, countryId: string) => {
     setProviders(providers.map(provider => {
       if (provider.id === providerId) {
-        const updatedCountries = provider.countries?.includes(countryId)
+        const updatedCountries = provider.countries.includes(countryId)
           ? provider.countries.filter(id => id !== countryId)
-          : [...(provider.countries || []), countryId];
+          : [...provider.countries, countryId];
         
         return { ...provider, countries: updatedCountries };
       }
@@ -201,17 +258,11 @@ const Providers = () => {
       return;
     }
 
-    if (!newProvider.code) {
-      // Generate a code from name if not provided
-      newProvider.code = newProvider.name.toLowerCase().replace(/\s+/g, '');
-    }
-
     try {
-      const addedProvider = await api.createProvider(newProvider);
+      const addedProvider = await api.addProvider(newProvider);
       setProviders([...providers, addedProvider]);
       setNewProvider({
         name: '',
-        code: '',
         description: '',
         countries: [],
         isActive: true,
@@ -221,7 +272,6 @@ const Providers = () => {
       setOpenNewProviderDialog(false);
       toast.success(`تم إضافة مزود الخدمة ${addedProvider.name} بنجاح`);
       
-      // Test the connection of the new provider
       testProviderConnection(addedProvider.id);
     } catch (error) {
       console.error('Failed to add provider', error);
