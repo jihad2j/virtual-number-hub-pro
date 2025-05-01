@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,9 +17,11 @@ interface Country {
 }
 
 interface Product {
-  category?: string;
+  id: string;
+  name: string;
   price: number;
   count: number;
+  available: boolean;
 }
 
 interface UserProfile {
@@ -166,7 +169,12 @@ const Dashboard = () => {
     
     try {
       const productsData = await providerService.getServices(providerId, countryCode);
-      setProducts(productsData);
+      // Convert array to Record<string, Product> format
+      const productsRecord: Record<string, Product> = {};
+      productsData.forEach((product: Product) => {
+        productsRecord[product.id] = product;
+      });
+      setProducts(productsRecord);
     } catch (error) {
       console.error(`Failed to fetch products for ${countryCode}`, error);
       setProductsError('فشل في جلب قائمة المنتجات، يرجى المحاولة مرة أخرى.');

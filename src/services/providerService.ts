@@ -1,5 +1,6 @@
 
 import { apiClient } from '@/services/apiClient';
+import { PhoneNumber } from '@/types/PhoneNumber';
 
 /**
  * خدمة لإدارة التفاعل مع مزودي الخدمة من خلال واجهة API
@@ -56,9 +57,9 @@ export const providerService = {
    * @param {string} providerId - معرف مزود الخدمة
    * @param {string} countryCode - رمز الدولة
    * @param {string} service - رمز الخدمة
-   * @returns {Promise<any>} - معلومات الرقم المشتراة
+   * @returns {Promise<PhoneNumber>} - معلومات الرقم المشتراة
    */
-  async purchaseNumber(providerId: string, countryCode: string, service: string): Promise<any> {
+  async purchaseNumber(providerId: string, countryCode: string, service: string): Promise<PhoneNumber> {
     const response = await apiClient.post('/numbers/purchase', { providerId, countryCode, service });
     return response.data.data;
   },
@@ -66,9 +67,9 @@ export const providerService = {
   /**
    * التحقق من حالة الرقم
    * @param {string} id - معرف الرقم
-   * @returns {Promise<any>} - حالة الرقم
+   * @returns {Promise<PhoneNumber>} - حالة الرقم
    */
-  async checkNumber(id: string): Promise<any> {
+  async checkNumber(id: string): Promise<PhoneNumber> {
     const response = await apiClient.get(`/numbers/${id}/check`);
     return response.data.data;
   },
