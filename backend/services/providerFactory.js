@@ -117,4 +117,5 @@ class ProviderFactory {
   }
 }
 
+// Export both the factory and the base provider class
 module.exports = { ProviderFactory, BaseProvider };

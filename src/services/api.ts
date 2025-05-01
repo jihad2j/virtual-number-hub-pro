@@ -33,6 +33,11 @@ const api = {
     return response.data;
   },
   
+  async getCurrentUser(): Promise<User> {
+    const response = await apiClient.get('/auth/me');
+    return response.data;
+  },
+  
   async updatePassword(currentPassword: string, newPassword: string): Promise<boolean> {
     const response = await apiClient.put('/auth/update-password', { currentPassword, newPassword });
     return response.data.success;
@@ -40,6 +45,11 @@ const api = {
   
   // Countries
   async getAllCountries(): Promise<Country[]> {
+    const response = await apiClient.get('/countries');
+    return response.data;
+  },
+  
+  async getCountries(): Promise<Country[]> {
     const response = await apiClient.get('/countries');
     return response.data;
   },
@@ -102,22 +112,26 @@ const api = {
   
   async testProviderConnection(providerId: string): Promise<boolean> {
     const response = await apiClient.get(`/providers/${providerId}/test-connection`);
-    return response.data.success;
+    return response.data.connected;
   },
   
   async getProviderBalance(providerId: string): Promise<{ balance: number; currency: string }> {
     const response = await apiClient.get(`/providers/${providerId}/balance`);
-    return response.data;
+    return response.data.data;
+  },
+  
+  async refreshProviderBalance(providerId: string): Promise<{ balance: number; currency: string }> {
+    return await api.getProviderBalance(providerId);
   },
   
   async getProviderCountries(providerId: string): Promise<Country[]> {
     const response = await apiClient.get(`/providers/${providerId}/countries`);
-    return response.data;
+    return response.data.data;
   },
   
   async getProviderServices(providerId: string, countryCode: string): Promise<any[]> {
     const response = await apiClient.get(`/providers/${providerId}/services/${countryCode}`);
-    return response.data;
+    return response.data.data;
   },
   
   // Phone Numbers
@@ -165,12 +179,12 @@ const api = {
   // Manual Services
   async getManualServices(): Promise<ManualService[]> {
     const response = await apiClient.get('/manual-services');
-    return response.data;
+    return response.data.data || [];
   },
   
   async getManualService(id: string): Promise<ManualService> {
     const response = await apiClient.get(`/manual-services/${id}`);
-    return response.data;
+    return response.data.data;
   },
   
   async createManualService(service: Omit<ManualService, 'id'>): Promise<ManualService> {
@@ -191,7 +205,7 @@ const api = {
   // Manual Requests
   async getUserManualRequests(): Promise<ManualRequest[]> {
     const response = await apiClient.get('/manual-requests/user');
-    return response.data;
+    return response.data.data || [];
   },
   
   async getAllManualRequests(): Promise<ManualRequest[]> {
@@ -209,7 +223,7 @@ const api = {
     return response.data;
   },
   
-  async updateManualRequestStatus(id: string, status: 'pending' | 'processing' | 'completed' | 'cancelled'): Promise<ManualRequest> {
+  async updateManualRequestStatus(id: string, status: string): Promise<ManualRequest> {
     const response = await apiClient.put(`/manual-requests/${id}/status`, { status });
     return response.data;
   },
@@ -256,6 +270,16 @@ const api = {
     return response.data;
   },
   
+  async getUsers(): Promise<User[]> {
+    const response = await apiClient.get('/users');
+    return response.data;
+  },
+  
+  async getActiveUsersCount(): Promise<number> {
+    const response = await apiClient.get('/users/active-count');
+    return response.data.count;
+  },
+  
   async getUser(id: string): Promise<User> {
     const response = await apiClient.get(`/users/${id}`);
     return response.data;
@@ -264,6 +288,10 @@ const api = {
   async createUser(userData: Omit<User, 'id' | 'createdAt' | 'lastLogin'> & { password: string }): Promise<User> {
     const response = await apiClient.post('/users', userData);
     return response.data;
+  },
+  
+  async addUser(userData: Omit<User, 'id' | 'createdAt' | 'lastLogin'> & { password: string }): Promise<User> {
+    return await api.createUser(userData);
   },
   
   async updateUser(id: string, userData: Partial<User>): Promise<User> {
@@ -290,6 +318,10 @@ const api = {
   async getAllPrepaidCodes(): Promise<PrepaidCode[]> {
     const response = await apiClient.get('/prepaid-codes');
     return response.data;
+  },
+  
+  async getPrepaidCodes(): Promise<PrepaidCode[]> {
+    return await api.getAllPrepaidCodes();
   },
   
   async generatePrepaidCodes(count: number, amount: number, expiryDate?: Date): Promise<PrepaidCode[]> {

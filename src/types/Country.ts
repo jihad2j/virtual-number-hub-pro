@@ -11,6 +11,7 @@ export interface Country {
   name: string;
   code: string;
   flag: string;
+  iso?: string;  // Added iso property as optional
   services: Service[];
   available?: boolean;
 }

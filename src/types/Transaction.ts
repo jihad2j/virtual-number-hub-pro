@@ -2,13 +2,13 @@
 export interface Transaction {
   id: string;
   userId: string;
-  userName?: string;
-  type: 'deposit' | 'purchase' | 'gift' | 'admin';
+  username?: string;
   amount: number;
-  serviceName?: string;
-  serviceId?: string;
-  status: 'pending' | 'completed' | 'cancelled';
+  description?: string;
+  type: 'deposit' | 'withdrawal' | 'purchase' | 'refund' | 'gift' | 'manual' | 'admin';
+  status: 'pending' | 'completed' | 'cancelled' | 'failed';
+  paymentMethod?: string;
+  paymentId?: string;
   createdAt: string;
   updatedAt?: string;
-  details?: Record<string, any>;
 }
