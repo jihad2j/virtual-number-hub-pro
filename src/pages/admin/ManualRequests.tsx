@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Card } from '@/components/ui/card';
@@ -9,8 +10,9 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
 import { ManualRequest } from '@/types/ManualRequest';
-import { ManualService } from '@/types/ManualService';
+import { ManualService } from '@/types/ManualRequest';
 import { Textarea } from "@/components/ui/textarea"
+import { Badge } from '@/components/ui/badge';
 
 const ManualRequests = () => {
   const [requests, setRequests] = useState<ManualRequest[]>([]);
@@ -18,9 +20,9 @@ const ManualRequests = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<ManualService | null>(null);
-  const [customService, setCustomService] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [message, setMessage] = useState('');
+  const [adminResponse, setAdminResponse] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -53,29 +55,25 @@ const ManualRequests = () => {
     }
   };
 
-  const handleCreateRequest = async () => {
+  const handleRespond = async () => {
+    if (!selectedRequestId) return;
+    
     try {
-      const requestData = {
-        service: selectedService?.id || '',
-        customService: customService,
-        phoneNumber: phoneNumber,
-        message: message,
-      };
+      await api.respondToManualRequest(selectedRequestId, {
+        adminResponse,
+        verificationCode,
+        status: 'processing'
+      });
       
-      const response = await api.createManualRequest(requestData);
-      
-      if (response) {
-        toast.success('تم إرسال طلبك بنجاح');
-        setSelectedService(null);
-        setCustomService('');
-        setPhoneNumber('');
-        setMessage('');
-        // Refresh requests
-        fetchRequests();
-      }
+      toast.success('تم الرد على الطلب بنجاح');
+      setDialogOpen(false);
+      setAdminResponse('');
+      setVerificationCode('');
+      setSelectedRequestId(null);
+      fetchRequests();
     } catch (error) {
-      console.error('Error creating manual request:', error);
-      toast.error('فشل في إرسال الطلب');
+      console.error('Error responding to request:', error);
+      toast.error('فشل في الرد على الطلب');
     }
   };
 
@@ -83,12 +81,30 @@ const ManualRequests = () => {
     try {
       await api.deleteManualRequest(id);
       toast.success('تم حذف الطلب بنجاح');
-      // Refresh requests
       fetchRequests();
     } catch (error) {
       console.error('Error deleting manual request:', error);
       toast.error('فشل في حذف الطلب');
     }
+  };
+
+  const openRespondDialog = (requestId: string) => {
+    setSelectedRequestId(requestId);
+    setDialogOpen(true);
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusMap: Record<string, { label: string, variant: "default" | "secondary" | "destructive" | "outline" | "success" | "link" | "ghost" }> = {
+      'pending': { label: 'قيد الانتظار', variant: 'secondary' },
+      'processing': { label: 'قيد المعالجة', variant: 'default' },
+      'completed': { label: 'مكتمل', variant: 'success' },
+      'cancelled': { label: 'ملغي', variant: 'destructive' }
+    };
+    const statusInfo = statusMap[status] || { label: status, variant: 'secondary' };
+    
+    return (
+      <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+    );
   };
 
   const columns = [
@@ -98,32 +114,47 @@ const ManualRequests = () => {
       cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
     },
     {
-      accessorKey: 'service',
+      accessorKey: 'userName',
+      header: 'المستخدم',
+      cell: ({ row }) => row.original.userName || 'غير معروف',
+    },
+    {
+      accessorKey: 'serviceName',
       header: 'الخدمة',
-      cell: ({ row }) => {
-        const service = manualServices.find(s => s.id === row.original.service);
-        return service ? service.name : row.original.customService || 'غير محددة';
-      },
+      cell: ({ row }) => row.original.serviceName || 'غير محددة',
     },
     {
-      accessorKey: 'phoneNumber',
-      header: 'رقم الهاتف',
+      accessorKey: 'status',
+      header: 'الحالة',
+      cell: ({ row }) => getStatusBadge(row.original.status),
     },
     {
-      accessorKey: 'message',
-      header: 'الرسالة',
+      accessorKey: 'notes',
+      header: 'الملاحظات',
+      cell: ({ row }) => row.original.notes || 'لا توجد ملاحظات',
     },
     {
       id: 'actions',
       header: 'الإجراءات',
       cell: ({ row }) => (
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={() => handleDeleteRequest(row.original.id)}
-        >
-          حذف
-        </Button>
+        <div className="flex gap-2">
+          {row.original.status === 'pending' && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => openRespondDialog(row.original.id)}
+            >
+              الرد
+            </Button>
+          )}
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => handleDeleteRequest(row.original.id)}
+          >
+            حذف
+          </Button>
+        </div>
       )
     }
   ];
@@ -132,7 +163,7 @@ const ManualRequests = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">الطلبات اليدوية</h1>
-        <Button onClick={() => setDialogOpen(true)}>إضافة طلب يدوي</Button>
+        <Button onClick={fetchRequests}>تحديث</Button>
       </div>
 
       <Card className="overflow-hidden">
@@ -147,62 +178,34 @@ const ManualRequests = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>إضافة طلب يدوي</DialogTitle>
+            <DialogTitle>الرد على طلب يدوي</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="service">الخدمة</Label>
-              <select
-                id="service"
-                className="w-full rounded-md border border-gray-200 px-3 py-2 shadow-sm focus:border-brand-500 focus:ring-brand-500"
-                onChange={(e) => {
-                  const selected = manualServices.find(s => s.id === e.target.value);
-                  setSelectedService(selected || null);
-                  setCustomService('');
-                }}
-                value={selectedService?.id || ''}
-              >
-                <option value="">اختر خدمة</option>
-                {manualServices.map(service => (
-                  <option key={service.id} value={service.id}>{service.name}</option>
-                ))}
-              </select>
-            </div>
-
-            {!selectedService && (
-              <div className="space-y-2">
-                <Label htmlFor="customService">خدمة مخصصة</Label>
-                <Input
-                  id="customService"
-                  value={customService}
-                  onChange={(e) => setCustomService(e.target.value)}
-                />
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="phoneNumber">رقم الهاتف</Label>
-              <Input
-                id="phoneNumber"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
+              <Label htmlFor="adminResponse">الرد</Label>
+              <Textarea
+                id="adminResponse"
+                value={adminResponse}
+                onChange={(e) => setAdminResponse(e.target.value)}
+                placeholder="أدخل الرد للمستخدم هنا..."
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="message">الرسالة</Label>
-              <Textarea
-                id="message"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
+              <Label htmlFor="verificationCode">رمز التحقق</Label>
+              <Input
+                id="verificationCode"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value)}
+                placeholder="أدخل رمز التحقق هنا..."
               />
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>إلغاء</Button>
-            <Button onClick={handleCreateRequest}>إرسال</Button>
+            <Button onClick={handleRespond}>إرسال الرد</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -5,6 +5,11 @@ const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const PhoneNumber = require('../models/PhoneNumber');
 const catchAsync = require('../utils/catchAsync');
+const authController = require('../controllers/authController');
+
+// Protect all routes
+router.use(authController.protect);
+router.use(authController.restrictTo('admin'));
 
 // Define the /dashboard endpoint to serve admin dashboard stats
 router.get('/dashboard', catchAsync(async (req, res) => {

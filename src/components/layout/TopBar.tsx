@@ -1,17 +1,19 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Bell, User, LogOut } from 'lucide-react';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { LogOut, User, Settings } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Notifications } from './Notifications';
 
 export const TopBar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -23,43 +25,39 @@ export const TopBar: React.FC = () => {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 h-16 flex items-center px-4 sticky top-0 z-10">
-      <div className="flex-1"></div>
-      
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 bg-brand-50 rounded-full px-4 py-2">
-          <span className="text-brand-600 font-medium">${user?.balance.toFixed(2)}</span>
-          <span className="text-brand-700">رصيدك</span>
-        </div>
+    <header className="bg-white border-b border-gray-200 py-3 px-4 flex justify-between items-center">
+      <div className="flex items-center space-x-4">
         
-        <Button 
-          variant="ghost" 
-          size="icon"
-          className="relative"
-        >
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-        </Button>
+      </div>
+      <div className="flex items-center space-x-4">
+        <Notifications />
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-              <div className="h-10 w-10 rounded-full bg-brand-200 flex items-center justify-center">
-                <User className="h-6 w-6 text-brand-600" />
+            <Button variant="ghost" className="flex items-center space-x-2 relative px-2">
+              <div className="bg-brand-100 text-brand-800 rounded-full w-8 h-8 flex items-center justify-center">
+                <User className="h-4 w-4" />
               </div>
+              <span className="mr-2">{user?.username || 'مستخدم'}</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>{user?.name}</DropdownMenuLabel>
-            <DropdownMenuLabel className="text-gray-500 text-xs font-normal">{user?.email}</DropdownMenuLabel>
+          <DropdownMenuContent className="w-56" align="end">
+            <DropdownMenuLabel>حسابي</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate('/dashboard/profile')}>
-              <User className="ml-2 h-4 w-4" />
-              الملف الشخصي
-            </DropdownMenuItem>
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => navigate('/dashboard/profile')}>
+                <User className="mr-2 h-4 w-4" />
+                <span>الملف الشخصي</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/dashboard/settings')}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>الإعدادات</span>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
-              <LogOut className="ml-2 h-4 w-4" />
-              تسجيل الخروج
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>تسجيل الخروج</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

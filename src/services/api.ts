@@ -57,6 +57,14 @@ export const api = {
     return response.data;
   },
 
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    const response = await apiClient.post('/auth/change-password', { 
+      currentPassword, 
+      newPassword 
+    });
+    return response.data;
+  },
+
   // Users
   async getAllUsers(): Promise<User[]> {
     const response = await apiClient.get('/users');
@@ -228,7 +236,7 @@ export const api = {
   },
 
   async getUserSupportTickets(): Promise<SupportTicket[]> {
-    const response = await apiClient.get('/support/my');
+    const response = await apiClient.get('/support/user');
     return response.data.data;
   },
 
@@ -243,7 +251,7 @@ export const api = {
   },
 
   async closeSupportTicket(ticketId: string): Promise<SupportTicket> {
-    const response = await apiClient.post(`/support/${ticketId}/close`);
+    const response = await apiClient.put(`/support/${ticketId}/close`);
     return response.data.data;
   },
 

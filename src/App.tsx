@@ -1,79 +1,111 @@
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { DashboardLayout } from './components/layout/DashboardLayout';
+import { Toaster } from './components/ui/sonner';
+import { useAuth } from './contexts/AuthContext';
+import { useEffect } from 'react';
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import DashboardLayout from "./components/layout/DashboardLayout";
-import NotFound from "./pages/NotFound";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+// Pages
+import Login from './pages/Login';
+import Register from './pages/Register';
+import NotFound from './pages/NotFound';
+import Index from './pages/Index';
 import Dashboard from './pages/Dashboard';
 import Countries from './pages/Countries';
 import Balance from './pages/Balance';
+import Profile from './pages/Profile';
+import MyOrders from './pages/MyOrders';
 import Support from './pages/Support';
-import AdminDashboard from './pages/admin/Dashboard';
-import Providers from './pages/admin/Providers';
-import AdminCountries from './pages/admin/Countries';
-import Users from './pages/admin/Users';
-import ManualServices from './pages/admin/ManualServices';
-import ManualRequests from './pages/admin/ManualRequests';
-import SystemSettings from './pages/SystemSettings';
 import ManualActivation from './pages/ManualActivation';
-import Index from "./pages/Index";
-import { useEffect } from "react";
-import { api } from "./services/api";
+import SystemSettings from './pages/SystemSettings';
 
-// Import the missing component
-import MyOrders from "./pages/MyOrders";
+// Admin Pages
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminProviders from './pages/admin/Providers';
+import AdminCountries from './pages/admin/Countries';
+import AdminUsers from './pages/admin/Users';
+import AdminManualServices from './pages/admin/ManualServices';
+import AdminManualRequests from './pages/admin/ManualRequests';
+import AdminSupport from './pages/admin/Support';
 
-const queryClient = new QueryClient();
+function App() {
+  const { isAuthenticated, user, loadingInitial, isAdmin } = useAuth();
 
-const App = () => {
   useEffect(() => {
-    // تهيئة البيانات المحلية
-    api.initLocalData().catch(console.error);
-  }, []);
+    // Nothing specific needed here, just keeping component updated with auth state
+  }, [isAuthenticated, isAdmin]);
+
+  // Admin check for protected routes
+  const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+    return isAdmin ? <>{children}</> : <Navigate to="/dashboard" replace />;
+  };
+
+  if (loadingInitial) {
+    return <div className="flex items-center justify-center h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
+    </div>;
+  }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              
-              <Route path="/" element={<Index />} />
-              
-              <Route path="/dashboard" element={<DashboardLayout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="countries" element={<Countries />} />
-                <Route path="balance" element={<Balance />} />
-                <Route path="support" element={<Support />} />
-                <Route path="orders" element={<MyOrders />} />
-                <Route path="settings" element={<SystemSettings />} />
-                <Route path="manual-activation" element={<ManualActivation />} />
-                
-                {/* Admin Routes */}
-                <Route path="admin" element={<AdminDashboard />} />
-                <Route path="admin/providers" element={<Providers />} />
-                <Route path="admin/countries" element={<AdminCountries />} />
-                <Route path="admin/users" element={<Users />} />
-                <Route path="admin/manual-requests" element={<ManualRequests />} />
-                <Route path="admin/manual-services" element={<ManualServices />} />
-              </Route>
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
+        {/* Dashboard Routes */}
+        <Route path="/dashboard" element={<DashboardLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="countries" element={<Countries />} />
+          <Route path="balance" element={<Balance />} />
+          <Route path="orders" element={<MyOrders />} />
+          <Route path="manual-activation" element={<ManualActivation />} />
+          <Route path="settings" element={<SystemSettings />} />
+          <Route path="support" element={<Support />} />
+
+          {/* Admin Routes */}
+          <Route path="admin" element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          } />
+          <Route path="admin/providers" element={
+            <AdminRoute>
+              <AdminProviders />
+            </AdminRoute>
+          } />
+          <Route path="admin/countries" element={
+            <AdminRoute>
+              <AdminCountries />
+            </AdminRoute>
+          } />
+          <Route path="admin/users" element={
+            <AdminRoute>
+              <AdminUsers />
+            </AdminRoute>
+          } />
+          <Route path="admin/manual-services" element={
+            <AdminRoute>
+              <AdminManualServices />
+            </AdminRoute>
+          } />
+          <Route path="admin/manual-requests" element={
+            <AdminRoute>
+              <AdminManualRequests />
+            </AdminRoute>
+          } />
+          <Route path="admin/support" element={
+            <AdminRoute>
+              <AdminSupport />
+            </AdminRoute>
+          } />
+        </Route>
+
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <Toaster />
+    </BrowserRouter>
   );
-};
+}
 
 export default App;

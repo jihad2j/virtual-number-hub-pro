@@ -1,8 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -12,11 +10,10 @@ import { ColumnDef } from '@tanstack/react-table';
 import { ManualRequest } from '@/types/ManualRequest';
 import { ManualService } from '@/types/ManualService';
 import { Badge } from '@/components/ui/badge';
-import { Check, Phone, MessageSquare } from 'lucide-react';
+import { Check, MessageSquare } from 'lucide-react';
 
 const ManualActivation = () => {
   const [manualServices, setManualServices] = useState<ManualService[]>([]);
-  const [phoneNumber, setPhoneNumber] = useState('');
   const [message, setMessage] = useState('');
   const [requests, setRequests] = useState<ManualRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,21 +48,15 @@ const ManualActivation = () => {
 
   const handleCreateRequest = async (serviceId: string) => {
     try {
-      if (!phoneNumber) {
-        toast.error('يرجى إدخال رقم الهاتف');
-        return;
-      }
-      
       const requestData = {
         serviceId: serviceId,
-        notes: `رقم الهاتف: ${phoneNumber}\nرسالة: ${message}`
+        notes: message
       };
       
       const response = await api.createManualRequest(requestData);
       
       if (response) {
         toast.success('تم إرسال طلبك بنجاح');
-        setPhoneNumber('');
         setMessage('');
         // Refresh requests
         fetchRequests();
@@ -101,7 +92,7 @@ const ManualActivation = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string, variant: "default" | "secondary" | "destructive" | "outline" | "success" }> = {
+    const statusMap: Record<string, { label: string, variant: "default" | "secondary" | "destructive" | "outline" | "success" | "link" | "ghost" }> = {
       'pending': { label: 'قيد الانتظار', variant: 'secondary' },
       'processing': { label: 'قيد المعالجة', variant: 'default' },
       'completed': { label: 'مكتمل', variant: 'success' },
@@ -176,21 +167,9 @@ const ManualActivation = () => {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>معلومات الطلب</CardTitle>
-            <CardDescription>أدخل معلومات الاتصال للتفعيل اليدوي</CardDescription>
+            <CardDescription>أدخل أي معلومات إضافية للتفعيل اليدوي (اختياري)</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="phone-number" className="flex items-center">
-                <Phone className="w-4 h-4 mr-2" /> رقم الهاتف
-              </Label>
-              <Input
-                id="phone-number"
-                type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="أدخل رقم الهاتف"
-              />
-            </div>
             <div className="grid gap-2">
               <Label htmlFor="message" className="flex items-center">
                 <MessageSquare className="w-4 h-4 mr-2" /> رسالة إضافية (اختياري)
@@ -248,6 +227,22 @@ const ManualActivation = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+// Add Label component missing in the original code
+const Label: React.FC<{
+  htmlFor?: string;
+  className?: string;
+  children: React.ReactNode;
+}> = ({ htmlFor, className, children }) => {
+  return (
+    <label
+      htmlFor={htmlFor}
+      className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${className}`}
+    >
+      {children}
+    </label>
   );
 };
 
