@@ -147,6 +147,16 @@ export const api = {
     return response.data.data;
   },
 
+  async toggleProviderStatus(providerId: string): Promise<Provider> {
+    const response = await apiClient.patch(`/providers/${providerId}/toggle-status`);
+    return response.data.data;
+  },
+  
+  async setDefaultProvider(providerId: string): Promise<Provider> {
+    const response = await apiClient.patch(`/providers/${providerId}/set-default`);
+    return response.data.data;
+  },
+
   // Provider functions now delegate to the providerService
   async testProviderConnection(providerId: string): Promise<boolean> {
     return providerService.testConnection(providerId);

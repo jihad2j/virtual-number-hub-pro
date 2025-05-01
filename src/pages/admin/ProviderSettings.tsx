@@ -16,7 +16,20 @@ import { Provider, ProviderCode, ProviderBalance } from '@/types/Provider';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 
-const providerDefaults = {
+const providerDefaults: Record<ProviderCode, {
+  name: string;
+  description: string;
+  apiUrl: string;
+  endpoints: {
+    balance?: string;
+    countries?: string;
+    products?: string;
+    purchase?: string;
+    status?: string;
+    cancel?: string;
+  };
+  settings: Record<string, any>;
+}> = {
   '5sim': {
     name: '5SIM',
     description: 'خدمة أرقام افتراضية للاستقبال من جميع أنحاء العالم',
@@ -233,25 +246,31 @@ const ProviderSettings: React.FC = () => {
 
   const handleFieldChange = (
     provider: Provider, 
-    field: keyof Provider | string, 
+    field: string,
     value: any,
-    nestedField?: string, 
+    nestedField?: keyof Provider, 
     nestedSubField?: string
   ) => {
-    const updatedProvider = { ...provider };
+    const updatedProvider = { ...provider } as any;
 
     if (nestedField && nestedSubField) {
       // For deeply nested fields like endpoints.balance
-      updatedProvider[nestedField as keyof Provider][nestedSubField] = value;
+      if (!updatedProvider[nestedField]) {
+        updatedProvider[nestedField] = {};
+      }
+      if (!updatedProvider[nestedField][nestedSubField]) {
+        updatedProvider[nestedField][nestedSubField] = {};
+      }
+      updatedProvider[nestedField][nestedSubField] = value;
     } else if (nestedField) {
       // For nested fields like settings.someField
-      if (!updatedProvider[nestedField as keyof Provider]) {
-        updatedProvider[nestedField as keyof Provider] = {};
+      if (!updatedProvider[nestedField]) {
+        updatedProvider[nestedField] = {};
       }
-      updatedProvider[nestedField as keyof Provider][field] = value;
+      updatedProvider[nestedField][field] = value;
     } else {
       // For top-level fields
-      updatedProvider[field as keyof Provider] = value;
+      updatedProvider[field] = value;
     }
 
     setProviders(prev => prev.map(p => p.id === provider.id ? updatedProvider : p));
