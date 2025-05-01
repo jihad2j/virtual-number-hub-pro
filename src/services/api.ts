@@ -286,7 +286,7 @@ export const api = {
     return response.data.data;
   },
 
-  async getAllManualRequests(): Promise<ManualRequest[]> {
+  async getAllManualRequests(): Promise<AdminManualRequest[]> {
     const response = await apiClient.get('/manual-requests');
     return response.data.data;
   },
@@ -301,7 +301,7 @@ export const api = {
   },
 
   async respondToManualRequest(id: string, data: { adminResponse?: string, verificationCode?: string, status?: string }): Promise<ManualRequest> {
-    const response = await apiClient.patch(`/manual-requests/${id}/respond`, data);
+    const response = await apiClient.put(`/manual-requests/${id}/respond`, data);
     return response.data.data;
   },
 

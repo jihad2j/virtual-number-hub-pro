@@ -6,7 +6,7 @@ const router = express.Router();
 
 // المسارات المحمية للمستخدمين المسجلين
 router.use(authController.protect);
-router.get('/user', manualRequestsController.getUserManualRequests);
+router.get('/my', manualRequestsController.getUserManualRequests);
 router.post('/', manualRequestsController.createManualRequest);
 router.put('/:id/confirm', manualRequestsController.confirmManualRequest);
 

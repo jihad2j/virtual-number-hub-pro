@@ -1,25 +1,17 @@
-
 import React, { useState, useEffect } from 'react';
-import { DataTable } from '@/components/ui/data-table';
-import { PhoneNumber } from '@/types/PhoneNumber';
-import { api } from '@/services/api';
+import { Card } from "@/components/ui/card";
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
-import { Copy, CheckCircle, XCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { ColumnDef } from '@tanstack/react-table';
+import { api } from '@/services/api';
+import { PhoneNumber } from '@/types/PhoneNumber';
 
-// Define the Order type separately, not extending PhoneNumber
 interface Order {
   id: string;
   phoneNumber: string;
   service: string;
   country: string;
   status: string;
-  smsCode?: string;
+  smsCode: string;
   createdAt: string;
-  expiresAt?: string;
 }
 
 const MyOrders = () => {
@@ -34,189 +26,116 @@ const MyOrders = () => {
     setIsLoading(true);
     try {
       const numbers = await api.getUserPhoneNumbers();
-      setOrders(numbers.map(number => ({
-        id: number.id || '',
-        phoneNumber: number.number || '', // Update to use 'number' instead of 'phoneNumber'
-        service: number.service || '', // Changed from serviceId to service to match PhoneNumber type
-        country: number.countryId || '', // Update to use 'countryId' instead of 'country'
-        status: number.status || 'pending',
+      
+      // Transform PhoneNumber objects to Order objects
+      const transformedOrders: Order[] = numbers.map(number => ({
+        id: number.id,
+        phoneNumber: number.number,
+        service: number.service,
+        country: number.countryName || number.countryCode,
+        status: number.status,
         smsCode: number.smsCode || '',
-        createdAt: number.createdAt || new Date().toISOString(),
-      })));
+        createdAt: typeof number.createdAt === 'object' ? 
+          new Date(number.createdAt).toISOString() : 
+          (number.createdAt || new Date().toISOString())
+      }));
+      
+      setOrders(transformedOrders);
     } catch (error) {
-      console.error('Failed to fetch orders:', error);
-      toast.error('فشل في جلب طلباتك');
+      console.error('Failed to fetch orders', error);
+      toast.error('فشل في جلب الطلبات');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('تم نسخ النص إلى الحافظة');
-  };
-
-  const checkStatus = async (id: string) => {
-    try {
-      const updatedNumber = await api.checkPhoneNumber(id);
-      setOrders(orders.map(order => 
-        order.id === id ? {
-          ...order,
-          status: updatedNumber.status,
-          smsCode: updatedNumber.smsCode
-        } : order
-      ));
-      toast.success('تم تحديث حالة الطلب');
-    } catch (error) {
-      console.error('Failed to check order status:', error);
-      toast.error('فشل في تحديث حالة الطلب');
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">نشط</span>;
+      case 'pending':
+        return <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">قيد الانتظار</span>;
+      case 'expired':
+        return <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">منتهي</span>;
+      case 'cancelled':
+        return <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs">ملغي</span>;
+      default:
+        return <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">{status}</span>;
     }
   };
 
-  const cancelOrder = async (id: string) => {
+  const formatDate = (dateString: string) => {
     try {
-      const result = await api.cancelPhoneNumber(id);
-      if (result) {
-        setOrders(orders.map(order => 
-          order.id === id ? { ...order, status: 'cancelled' } : order
-        ));
-        toast.success('تم إلغاء الطلب بنجاح');
-      } else {
-        toast.error('لا يمكن إلغاء هذا الطلب');
-      }
-    } catch (error) {
-      console.error('Failed to cancel order:', error);
-      toast.error('فشل في إلغاء الطلب');
+      return new Date(dateString).toLocaleDateString('ar-SA', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {
+      return 'تاريخ غير صالح';
     }
   };
 
-  const columns: ColumnDef<Order>[] = [
-    {
-      accessorKey: 'service',
-      header: 'الخدمة',
-    },
-    {
-      accessorKey: 'country',
-      header: 'الدولة',
-    },
-    {
-      accessorKey: 'phoneNumber',
-      header: 'رقم الهاتف',
-      cell: ({ row }) => (
-        <div className="flex items-center space-x-2">
-          <span dir="ltr">{row.original.phoneNumber}</span>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => copyToClipboard(row.original.phoneNumber)}
-          >
-            <Copy className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'status',
-      header: 'الحالة',
-      cell: ({ row }) => {
-        const status = row.original.status;
-        return (
-          <Badge variant={
-            status === 'active' ? 'default' :
-            status === 'pending' ? 'outline' :
-            status === 'complete' ? 'success' :
-            status === 'cancelled' ? 'destructive' :
-            'secondary'
-          }>
-            {status === 'active' ? 'نشط' :
-             status === 'pending' ? 'قيد الانتظار' :
-             status === 'complete' ? 'مكتمل' :
-             status === 'cancelled' ? 'ملغي' : status}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: 'smsCode',
-      header: 'رمز التحقق',
-      cell: ({ row }) => {
-        const smsCode = row.original.smsCode;
-        return smsCode ? (
-          <div className="flex items-center space-x-2">
-            <span className="bg-muted py-1 px-2 rounded">{smsCode}</span>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => copyToClipboard(smsCode)}
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-          </div>
-        ) : (
-          <span className="text-muted-foreground text-sm">لا يوجد</span>
-        );
-      },
-    },
-    {
-      accessorKey: 'createdAt',
-      header: 'التاريخ',
-      cell: ({ row }) => {
-        const date = new Date(row.original.createdAt);
-        return (
-          <span>
-            {date.toLocaleDateString('ar-SA')} {date.toLocaleTimeString('ar-SA')}
-          </span>
-        );
-      },
-    },
-    {
-      id: 'actions',
-      header: 'الإجراءات',
-      cell: ({ row }) => {
-        const isActive = row.original.status === 'active';
-        const isPending = row.original.status === 'pending';
-        
-        return (
-          <div className="flex space-x-2">
-            {(isActive || isPending) && (
-              <>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => checkStatus(row.original.id)}
-                >
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  تحديث
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  size="sm"
-                  onClick={() => cancelOrder(row.original.id)}
-                >
-                  <XCircle className="h-4 w-4 mr-1" />
-                  إلغاء
-                </Button>
-              </>
-            )}
-          </div>
-        );
-      },
-    },
-  ];
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">طلباتي</h1>
-      
-      <Card className="overflow-hidden">
-        <DataTable 
-          columns={columns} 
-          data={orders} 
-          loading={isLoading} 
-          onRefresh={fetchOrders}
-          searchKey="phoneNumber"
-        />
-      </Card>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">طلباتي</h1>
+        <button 
+          onClick={fetchOrders}
+          className="px-4 py-2 bg-brand-500 text-white rounded-md hover:bg-brand-600 transition-colors"
+        >
+          تحديث
+        </button>
+      </div>
+
+      {orders.length === 0 ? (
+        <Card className="p-8 text-center">
+          <p className="text-gray-500">لا توجد طلبات حتى الآن</p>
+        </Card>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-50 border-b">
+                <th className="px-4 py-3 text-right">رقم الهاتف</th>
+                <th className="px-4 py-3 text-right">الخدمة</th>
+                <th className="px-4 py-3 text-right">الدولة</th>
+                <th className="px-4 py-3 text-right">الحالة</th>
+                <th className="px-4 py-3 text-right">رمز التحقق</th>
+                <th className="px-4 py-3 text-right">تاريخ الطلب</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order) => (
+                <tr key={order.id} className="border-b hover:bg-gray-50">
+                  <td className="px-4 py-3">{order.phoneNumber}</td>
+                  <td className="px-4 py-3">{order.service}</td>
+                  <td className="px-4 py-3">{order.country}</td>
+                  <td className="px-4 py-3">{getStatusBadge(order.status)}</td>
+                  <td className="px-4 py-3">
+                    {order.smsCode ? (
+                      <span className="bg-gray-100 px-2 py-1 rounded font-mono">{order.smsCode}</span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">{formatDate(order.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,24 @@ const Support = () => {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [isLoadingTickets, setIsLoadingTickets] = useState(true);
+
+  useEffect(() => {
+    fetchUserTickets();
+  }, []);
+
+  const fetchUserTickets = async () => {
+    setIsLoadingTickets(true);
+    try {
+      const fetchedTickets = await api.getUserSupportTickets();
+      setTickets(fetchedTickets);
+    } catch (error) {
+      console.error('Failed to fetch support tickets', error);
+      toast.error('فشل في جلب التذاكر السابقة');
+    } finally {
+      setIsLoadingTickets(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,7 +106,11 @@ const Support = () => {
         </CardContent>
       </Card>
       
-      {tickets.length > 0 && (
+      {isLoadingTickets ? (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-500"></div>
+        </div>
+      ) : tickets.length > 0 ? (
         <Card>
           <CardHeader>
             <CardTitle>رسائلي السابقة</CardTitle>
@@ -108,11 +130,11 @@ const Support = () => {
                   </div>
                   <p className="text-gray-600 mb-4">{ticket.message}</p>
                   
-                  {ticket.responses.length > 0 ? (
+                  {ticket.responses && ticket.responses.length > 0 ? (
                     <div className="border-t pt-4 mt-4 space-y-4">
-                      {ticket.responses.map(response => (
+                      {ticket.responses.map((response, idx) => (
                         <div 
-                          key={response.id} 
+                          key={response.id || idx} 
                           className={`p-3 rounded-lg ${
                             response.fromAdmin 
                               ? 'bg-brand-50 mr-8' 
@@ -144,6 +166,12 @@ const Support = () => {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="text-center py-8">
+            <p className="text-gray-500">لا توجد رسائل سابقة</p>
           </CardContent>
         </Card>
       )}

@@ -9,7 +9,6 @@ import { toast } from 'sonner';
 import { api } from '@/services/api';
 import { ManualService, ManualRequest } from '@/types/ManualRequest';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/contexts/AuthContext';
 
 const ManualActivation = () => {
   const [services, setServices] = useState<ManualService[]>([]);
@@ -28,16 +27,25 @@ const ManualActivation = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [servicesData, requestsData] = await Promise.all([
-        api.getManualServices(),
-        api.getUserManualRequests()
-      ]);
+      // Fetch services and user requests in parallel
+      const servicesData = await api.getManualServices();
+      console.log("Fetched manual services:", servicesData);
       
-      setServices(servicesData.filter(service => service.available));
-      setRequests(requestsData);
+      try {
+        const requestsData = await api.getUserManualRequests();
+        console.log("Fetched user requests:", requestsData);
+        setRequests(requestsData || []);
+      } catch (reqError) {
+        console.error('Failed to fetch user requests:', reqError);
+        setRequests([]);
+      }
+      
+      // Filter available services
+      setServices(servicesData?.filter(service => service.available) || []);
     } catch (error) {
-      console.error('Failed to fetch data:', error);
-      toast.error('فشل في تحميل البيانات');
+      console.error('Failed to fetch services data:', error);
+      toast.error('فشل في تحميل الخدمات');
+      setServices([]);
     } finally {
       setLoading(false);
     }
