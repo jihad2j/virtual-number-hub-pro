@@ -1,13 +1,9 @@
 
-const FiveSimProvider = require('./providers/5sim');
-const SmsActivateProvider = require('./providers/smsActivate');
-const GetSmsCodeProvider = require('./providers/getSmscode');
-const SmsManProvider = require('./providers/smsMan');
-const OnlineSmsProvider = require('./providers/onlineSms');
-
 /**
- * Base provider class with default implementations
+ * Provider Factory - Create provider instances based on their code
  */
+
+// Base provider class with default implementations
 class BaseProvider {
   constructor(providerData) {
     this.id = providerData._id || providerData.id;
@@ -99,17 +95,18 @@ class ProviderFactory {
 
     const { code } = providerData;
     
+    // Import dynamically to avoid circular dependencies
     switch(code.toLowerCase()) {
       case '5sim':
-        return new FiveSimProvider(providerData);
+        return new (require('./providers/5sim'))(providerData);
       case 'smsactivate':
-        return new SmsActivateProvider(providerData);
+        return new (require('./providers/smsActivate'))(providerData);
       case 'getsmscode':
-        return new GetSmsCodeProvider(providerData);
+        return new (require('./providers/getSmscode'))(providerData);
       case 'smsman':
-        return new SmsManProvider(providerData);
+        return new (require('./providers/smsMan'))(providerData);
       case 'onlinesms':
-        return new OnlineSmsProvider(providerData);
+        return new (require('./providers/onlineSms'))(providerData);
       default:
         // Default generic provider
         return new BaseProvider(providerData);

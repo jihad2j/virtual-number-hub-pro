@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -9,20 +10,12 @@ import { toast } from 'sonner';
 import { api } from '@/services/api';
 import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
-
-interface ManualRequest {
-  id: string;
-  service: string;
-  customService?: string;
-  phoneNumber: string;
-  message: string;
-  status: 'pending' | 'completed' | 'cancelled';
-  createdAt: string;
-}
+import { ManualRequest } from '@/types/ManualRequest';
+import { ManualService } from '@/types/ManualService';
 
 const ManualActivation = () => {
-  const [manualServices, setManualServices] = useState<{ id: string; name: string; price: number }[]>([]);
-  const [selectedService, setSelectedService] = useState<{ id: string; name: string; price: number } | null>(null);
+  const [manualServices, setManualServices] = useState<ManualService[]>([]);
+  const [selectedServiceId, setSelectedServiceId] = useState<string>('');
   const [customService, setCustomService] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [message, setMessage] = useState('');
@@ -36,7 +29,7 @@ const ManualActivation = () => {
 
   const fetchServices = async () => {
     try {
-      const data = await api.getAllManualServices();
+      const data = await api.getManualServices();
       setManualServices(data);
     } catch (error) {
       console.error('Error fetching manual services:', error);
@@ -47,7 +40,7 @@ const ManualActivation = () => {
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
-      const data = await api.getAllManualRequests();
+      const data = await api.getUserManualRequests();
       setRequests(data);
     } catch (error) {
       console.error('Error fetching manual requests:', error);
@@ -59,18 +52,26 @@ const ManualActivation = () => {
 
   const handleCreateRequest = async () => {
     try {
+      if (!selectedServiceId && !customService) {
+        toast.error('يرجى اختيار خدمة أو إدخال خدمة مخصصة');
+        return;
+      }
+      
+      if (!phoneNumber) {
+        toast.error('يرجى إدخال رقم الهاتف');
+        return;
+      }
+      
       const requestData = {
-        service: selectedService?.id || '',
-        customService: customService,
-        phoneNumber: phoneNumber,
-        message: message,
+        serviceId: selectedServiceId,
+        notes: `رقم الهاتف: ${phoneNumber}\nخدمة مخصصة: ${customService}\nرسالة: ${message}`
       };
       
       const response = await api.createManualRequest(requestData);
       
       if (response) {
         toast.success('تم إرسال طلبك بنجاح');
-        setSelectedService(null);
+        setSelectedServiceId('');
         setCustomService('');
         setPhoneNumber('');
         setMessage('');
@@ -97,24 +98,25 @@ const ManualActivation = () => {
 
   const columns: ColumnDef<ManualRequest>[] = [
     {
-      accessorKey: 'service',
+      accessorKey: 'serviceName',
       header: 'الخدمة',
-    },
-    {
-      accessorKey: 'customService',
-      header: 'خدمة مخصصة',
-    },
-    {
-      accessorKey: 'phoneNumber',
-      header: 'رقم الهاتف',
-    },
-    {
-      accessorKey: 'message',
-      header: 'الرسالة',
     },
     {
       accessorKey: 'status',
       header: 'الحالة',
+      cell: ({ row }) => {
+        const statusMap: Record<string, string> = {
+          'pending': 'قيد الانتظار',
+          'processing': 'قيد المعالجة',
+          'completed': 'مكتمل',
+          'cancelled': 'ملغي'
+        };
+        return statusMap[row.original.status] || row.original.status;
+      }
+    },
+    {
+      accessorKey: 'notes',
+      header: 'التفاصيل',
     },
     {
       accessorKey: 'createdAt',
@@ -142,12 +144,9 @@ const ManualActivation = () => {
         <CardContent className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="service">الخدمة</Label>
-            <Select onValueChange={(value) => {
-              const service = manualServices.find(s => s.id === value);
-              setSelectedService(service || null);
-            }}>
+            <Select onValueChange={(value) => setSelectedServiceId(value)}>
               <SelectTrigger id="service">
-                <SelectValue placeholder="اختر خدمة" value={selectedService?.name} />
+                <SelectValue placeholder="اختر خدمة" />
               </SelectTrigger>
               <SelectContent>
                 {manualServices.map((service) => (

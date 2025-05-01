@@ -178,19 +178,6 @@ class FiveSimProvider extends BaseProvider {
       .map(char => 127397 + char.charCodeAt(0));
     return String.fromCodePoint(...codePoints);
   }
-
-  /**
-   * Test connection to the provider
-   * @returns {Promise<boolean>}
-   */
-  async testConnection() {
-    try {
-      await this.getBalance();
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
 }
 
 module.exports = FiveSimProvider;
