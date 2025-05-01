@@ -208,8 +208,8 @@ export const api = {
     return response.data.data;
   },
 
-  async giftBalance(userId: string, amount: number, note: string): Promise<Transaction> {
-    const response = await apiClient.post('/transactions/gift', { userId, amount, note });
+  async giftBalance(recipient: string, amount: number, note: string): Promise<Transaction> {
+    const response = await apiClient.post('/transactions/gift', { recipient, amount, note });
     return response.data.data;
   },
 

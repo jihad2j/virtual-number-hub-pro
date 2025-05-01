@@ -17,9 +17,13 @@ const Balance = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDepositDialogOpen, setIsDepositDialogOpen] = useState(false);
   const [isCodeDialogOpen, setIsCodeDialogOpen] = useState(false);
+  const [isGiftDialogOpen, setIsGiftDialogOpen] = useState(false);
   const [depositAmount, setDepositAmount] = useState(10);
   const [paymentMethod, setPaymentMethod] = useState('paypal');
   const [redeemCode, setRedeemCode] = useState('');
+  const [giftRecipient, setGiftRecipient] = useState('');
+  const [giftAmount, setGiftAmount] = useState(5);
+  const [giftNote, setGiftNote] = useState('');
 
   useEffect(() => {
     fetchTransactions();
@@ -73,11 +77,39 @@ const Balance = () => {
     }
   };
 
+  const handleGiftBalance = async () => {
+    if (!giftRecipient.trim()) {
+      toast.error('يرجى إدخال اسم المستخدم أو البريد الإلكتروني للمستلم');
+      return;
+    }
+
+    if (giftAmount < 1) {
+      toast.error('الحد الأدنى للإهداء هو 1 دولار');
+      return;
+    }
+
+    try {
+      await api.giftBalance(giftRecipient, giftAmount, giftNote);
+      toast.success(`تم إهداء ${giftAmount}$ إلى ${giftRecipient} بنجاح`);
+      setIsGiftDialogOpen(false);
+      setGiftRecipient('');
+      setGiftAmount(5);
+      setGiftNote('');
+      fetchTransactions();
+    } catch (error) {
+      console.error('Failed to gift balance:', error);
+      toast.error('فشل في إهداء الرصيد. تأكد من وجود المستلم ومن كفاية رصيدك');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">الرصيد والمعاملات</h1>
         <div className="flex space-x-2">
+          <Button onClick={() => setIsGiftDialogOpen(true)} variant="outline" className="ml-2">
+            إهداء رصيد
+          </Button>
           <Button onClick={() => setIsCodeDialogOpen(true)} className="ml-2">
             استخدام كود شحن
           </Button>
@@ -118,7 +150,8 @@ const Balance = () => {
                     {transaction.type === 'refund' && 'استرجاع'}
                     {transaction.type === 'manual' && 'خدمة يدوية'}
                     {transaction.type === 'withdrawal' && 'سحب'}
-                    {transaction.type === 'gift' && 'هدية'}
+                    {transaction.type === 'gift_sent' && 'إهداء رصيد'}
+                    {transaction.type === 'gift_received' && 'استلام هدية'}
                     {transaction.type === 'admin' && 'تعديل إداري'}
                   </p>
                   <p className="text-sm text-muted-foreground">
@@ -203,6 +236,52 @@ const Balance = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCodeDialogOpen(false)}>إلغاء</Button>
             <Button onClick={handleRedeemCode}>تفعيل الكود</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Gift Balance Dialog */}
+      <Dialog open={isGiftDialogOpen} onOpenChange={setIsGiftDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>إهداء رصيد</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="recipient">المستلم</Label>
+              <Input 
+                id="recipient"
+                value={giftRecipient}
+                onChange={(e) => setGiftRecipient(e.target.value)}
+                placeholder="اسم المستخدم أو البريد الإلكتروني"
+              />
+              <p className="text-xs text-muted-foreground">أدخل اسم المستخدم أو البريد الإلكتروني للمستلم</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="gift-amount">المبلغ (بالدولار)</Label>
+              <Input 
+                id="gift-amount"
+                type="number"
+                min="1"
+                value={giftAmount}
+                onChange={(e) => setGiftAmount(Number(e.target.value))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="gift-note">ملاحظة (اختياري)</Label>
+              <Input 
+                id="gift-note"
+                value={giftNote}
+                onChange={(e) => setGiftNote(e.target.value)}
+                placeholder="اكتب رسالة مع الهدية"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsGiftDialogOpen(false)}>إلغاء</Button>
+            <Button onClick={handleGiftBalance}>تأكيد الإهداء</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -5,7 +5,7 @@ export interface Transaction {
   username?: string;
   amount: number;
   description?: string;
-  type: 'deposit' | 'withdrawal' | 'purchase' | 'refund' | 'gift' | 'manual' | 'admin';
+  type: 'deposit' | 'withdrawal' | 'purchase' | 'refund' | 'gift' | 'gift_sent' | 'gift_received' | 'manual' | 'admin';
   status: 'pending' | 'completed' | 'cancelled' | 'failed';
   paymentMethod?: string;
   paymentId?: string;

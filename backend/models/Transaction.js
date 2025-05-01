@@ -13,7 +13,7 @@ const transactionSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['deposit', 'purchase'],
+    enum: ['deposit', 'purchase', 'gift_sent', 'gift_received', 'admin'],
     required: [true, 'نوع المعاملة مطلوب']
   },
   status: {
@@ -26,7 +26,7 @@ const transactionSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['card', 'paypal', 'other'],
+    enum: ['card', 'paypal', 'bank', 'other'],
     default: 'other'
   },
   paymentDetails: {

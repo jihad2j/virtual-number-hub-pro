@@ -50,11 +50,11 @@ exports.createDepositTransaction = catchAsync(async (req, res, next) => {
 
 // إهداء رصيد لمستخدم آخر
 exports.giftBalance = catchAsync(async (req, res, next) => {
-  const { recipient, amount } = req.body;
+  const { recipient, amount, note } = req.body;
   const senderId = req.user.id;
   
   if (!recipient) {
-    return next(new AppError('يرجى توفير معرف المستخدم المستلم', 400));
+    return next(new AppError('يرجى توفير اسم المستخدم أو البريد الإلكتروني للمستلم', 400));
   }
   
   if (!amount || amount <= 0) {
@@ -91,13 +91,18 @@ exports.giftBalance = catchAsync(async (req, res, next) => {
   recipientUser.balance += amount;
   await recipientUser.save();
   
+  let description = `إهداء رصيد إلى ${recipientUser.username}`;
+  if (note) {
+    description += `: ${note}`;
+  }
+
   // إنشاء معاملة للمرسل
   const senderTransaction = await Transaction.create({
     userId: senderId,
-    amount,
+    amount: -amount,
     type: 'gift_sent',
     status: 'completed',
-    description: `إهداء رصيد إلى ${recipientUser.username}`
+    description
   });
   
   // إنشاء معاملة للمستلم
@@ -106,7 +111,7 @@ exports.giftBalance = catchAsync(async (req, res, next) => {
     amount,
     type: 'gift_received',
     status: 'completed',
-    description: `استلام رصيد هدية من ${sender.username}`
+    description: `استلام رصيد هدية من ${sender.username}${note ? ': ' + note : ''}`
   });
   
   res.status(201).json({
