@@ -65,6 +65,44 @@ exports.updateProvider = catchAsync(async (req, res, next) => {
   });
 });
 
+// تحديث حالة تفعيل مزود خدمة
+exports.toggleProviderStatus = catchAsync(async (req, res, next) => {
+  const provider = await Provider.findById(req.params.id);
+  
+  if (!provider) {
+    return next(new AppError('لم يتم العثور على مزود خدمة بهذا المعرف', 404));
+  }
+  
+  provider.isActive = !provider.isActive;
+  await provider.save();
+  
+  res.status(200).json({
+    status: 'success',
+    data: provider
+  });
+});
+
+// تعيين المزود الافتراضي
+exports.setDefaultProvider = catchAsync(async (req, res, next) => {
+  const provider = await Provider.findById(req.params.id);
+  
+  if (!provider) {
+    return next(new AppError('لم يتم العثور على مزود خدمة بهذا المعرف', 404));
+  }
+  
+  // تعيين جميع المزودين كغير افتراضيين
+  await Provider.updateMany({}, { isDefault: false });
+  
+  // تعيين المزود المحدد كافتراضي
+  provider.isDefault = true;
+  await provider.save();
+  
+  res.status(200).json({
+    status: 'success',
+    data: provider
+  });
+});
+
 // حذف مزود خدمة
 exports.deleteProvider = catchAsync(async (req, res, next) => {
   const provider = await Provider.findByIdAndDelete(req.params.id);
@@ -181,6 +219,51 @@ exports.getProviderServices = catchAsync(async (req, res, next) => {
   } catch (error) {
     return next(new AppError(`فشل في جلب الخدمات المتاحة: ${error.message}`, 400));
   }
+});
+
+// وظائف إضافية لإدارة المزودين
+exports.getAvailableProviders = catchAsync(async (req, res, next) => {
+  const providers = await Provider.find({ isActive: true }).select('name code logo');
+  
+  res.status(200).json({
+    status: 'success',
+    results: providers.length,
+    data: providers
+  });
+});
+
+// جلب رصيد جميع المزودين النشطين
+exports.getAllProvidersBalance = catchAsync(async (req, res, next) => {
+  const providers = await Provider.find({ isActive: true }).select('+apiKey');
+  
+  const results = [];
+  
+  for (const provider of providers) {
+    try {
+      const providerService = ProviderFactory.createProvider(provider);
+      const balance = await providerService.getBalance();
+      
+      results.push({
+        id: provider._id,
+        name: provider.name,
+        code: provider.code,
+        balance: balance
+      });
+    } catch (error) {
+      results.push({
+        id: provider._id,
+        name: provider.name,
+        code: provider.code,
+        error: error.message
+      });
+    }
+  }
+  
+  res.status(200).json({
+    status: 'success',
+    results: results.length,
+    data: results
+  });
 });
 
 // وظائف إضافية لشراء وإدارة الأرقام

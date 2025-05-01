@@ -6,6 +6,7 @@ export interface Provider {
   description?: string;
   countries: string[];
   isActive: boolean;
+  isDefault?: boolean;
   apiKey: string;
   apiUrl?: string;
   endpoints?: {
@@ -17,4 +18,19 @@ export interface Provider {
     cancel?: string;
   };
   settings?: Record<string, any>;
+  rateLimit?: {
+    requestsPerMinute: number;
+  };
+  stats?: {
+    successRate: number;
+    totalRequests: number;
+    lastCheck: string;
+  };
+}
+
+export type ProviderCode = '5sim' | 'smsactivate' | 'getsmscode' | 'smsman' | 'onlinesims';
+
+export interface ProviderBalance {
+  balance: number;
+  currency: string;
 }
