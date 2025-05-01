@@ -4,6 +4,7 @@ export interface Service {
   name: string;
   price: number;
   available: boolean;
+  count?: number;
 }
 
 export interface Country {
@@ -11,7 +12,7 @@ export interface Country {
   name: string;
   code: string;
   flag: string;
-  iso?: string;  // Added iso property as optional
+  iso?: string;
   services: Service[];
   available?: boolean;
 }

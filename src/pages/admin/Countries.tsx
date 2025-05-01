@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Card } from '@/components/ui/card';
@@ -144,7 +143,7 @@ const Countries = () => {
         <DataTable 
           columns={columns} 
           data={countries} 
-          isLoading={isLoading} 
+          loading={isLoading} 
           onRefresh={fetchCountries}
         />
       </Card>

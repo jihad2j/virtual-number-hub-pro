@@ -1,6 +1,6 @@
 
-const { BaseProvider } = require('../providerFactory');
 const axios = require('axios');
+const { BaseProvider } = require('../providerFactory');
 
 class FiveSimProvider extends BaseProvider {
   constructor(providerData) {

@@ -1,226 +1,208 @@
-
 import React, { useState, useEffect } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
+import { ManualRequest } from '@/types/ManualRequest';
+import { ManualService } from '@/types/ManualService';
+import { Textarea } from "@/components/ui/textarea"
 
 const ManualRequests = () => {
-  const [requests, setRequests] = useState([]);
+  const [requests, setRequests] = useState<ManualRequest[]>([]);
+  const [manualServices, setManualServices] = useState<ManualService[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedRequest, setSelectedRequest] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [adminResponse, setAdminResponse] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
+  const [selectedService, setSelectedService] = useState<ManualService | null>(null);
+  const [customService, setCustomService] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
-    fetchRequests();
+    fetchData();
   }, []);
 
-  const fetchRequests = async () => {
+  const fetchData = async () => {
     setIsLoading(true);
     try {
-      const response = await api.getAllManualRequests();
-      setRequests(response);
+      const [requestsData, servicesData] = await Promise.all([
+        api.getAllManualRequests(),
+        api.getAllManualServices()
+      ]);
+      setRequests(requestsData);
+      setManualServices(servicesData);
     } catch (error) {
-      console.error('Failed to fetch manual requests', error);
-      toast.error('فشل في جلب طلبات التفعيل اليدوي');
+      console.error('Failed to fetch data', error);
+      toast.error('فشل في جلب البيانات');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleOpenDialog = (request) => {
-    setSelectedRequest(request);
-    setAdminResponse('');
-    setVerificationCode('');
-    setDialogOpen(true);
+  const fetchRequests = async () => {
+    try {
+      const requestsData = await api.getAllManualRequests();
+      setRequests(requestsData);
+    } catch (error) {
+      console.error('Failed to fetch requests', error);
+      toast.error('فشل في جلب الطلبات');
+    }
   };
 
-  const handleSubmitResponse = async () => {
-    if (!adminResponse.trim()) {
-      toast.error('الرجاء إدخال رد للطلب');
-      return;
-    }
-
+  const handleCreateRequest = async () => {
     try {
-      await api.respondToManualRequest(selectedRequest.id, adminResponse, verificationCode);
-      // Also update the status to completed
-      await api.updateManualRequestStatus(selectedRequest.id, 'completed');
+      const requestData = {
+        service: selectedService?.id || '',
+        customService: customService,
+        phoneNumber: phoneNumber,
+        message: message,
+      };
       
-      toast.success('تم الرد على الطلب بنجاح');
-      setDialogOpen(false);
-      fetchRequests();
+      const response = await api.createManualRequest(requestData);
+      
+      if (response) {
+        toast.success('تم إرسال طلبك بنجاح');
+        setSelectedService(null);
+        setCustomService('');
+        setPhoneNumber('');
+        setMessage('');
+        // Refresh requests
+        fetchRequests();
+      }
     } catch (error) {
-      console.error('Failed to respond to request', error);
-      toast.error('فشل في إرسال الرد');
+      console.error('Error creating manual request:', error);
+      toast.error('فشل في إرسال الطلب');
     }
   };
 
-  const handleUpdateStatus = async (id, status) => {
+  const handleDeleteRequest = async (id: string) => {
     try {
-      await api.updateManualRequestStatus(id, status);
-      toast.success(`تم تحديث حالة الطلب إلى ${status}`);
+      await api.deleteManualRequest(id);
+      toast.success('تم حذف الطلب بنجاح');
+      // Refresh requests
       fetchRequests();
     } catch (error) {
-      console.error('Failed to update request status', error);
-      toast.error('فشل في تحديث حالة الطلب');
+      console.error('Error deleting manual request:', error);
+      toast.error('فشل في حذف الطلب');
     }
   };
 
   const columns = [
     {
-      accessorKey: 'id',
-      header: 'رقم الطلب',
-      cell: ({ row }) => <span className="font-mono text-xs">{row.original.id.substring(0, 8)}</span>
-    },
-    {
-      accessorKey: 'serviceName',
-      header: 'الخدمة',
-      cell: ({ row }) => <span>{row.original.service?.name || 'غير معروف'}</span>
-    },
-    {
-      accessorKey: 'username',
-      header: 'المستخدم',
-      cell: ({ row }) => <span>{row.original.user?.username || 'غير معروف'}</span>
-    },
-    {
-      accessorKey: 'status',
-      header: 'الحالة',
-      cell: ({ row }) => {
-        const status = row.original.status;
-        let color = 'bg-gray-500';
-        
-        if (status === 'pending') color = 'bg-yellow-500';
-        if (status === 'processing') color = 'bg-blue-500';
-        if (status === 'completed') color = 'bg-green-500';
-        if (status === 'cancelled') color = 'bg-red-500';
-        
-        return (
-          <Badge className={color}>{status}</Badge>
-        );
-      }
-    },
-    {
       accessorKey: 'createdAt',
       header: 'تاريخ الطلب',
-      cell: ({ row }) => <span>{new Date(row.original.createdAt).toLocaleString('ar-SA')}</span>
+      cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
+    },
+    {
+      accessorKey: 'service',
+      header: 'الخدمة',
+      cell: ({ row }) => {
+        const service = manualServices.find(s => s.id === row.original.service);
+        return service ? service.name : row.original.customService || 'غير محددة';
+      },
+    },
+    {
+      accessorKey: 'phoneNumber',
+      header: 'رقم الهاتف',
+    },
+    {
+      accessorKey: 'message',
+      header: 'الرسالة',
     },
     {
       id: 'actions',
       header: 'الإجراءات',
-      cell: ({ row }) => {
-        const request = row.original;
-        const isPending = request.status === 'pending';
-        const isProcessing = request.status === 'processing';
-        
-        return (
-          <div className="space-x-2 flex">
-            {(isPending || isProcessing) && (
-              <>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => handleOpenDialog(request)}
-                >
-                  الرد
-                </Button>
-                
-                {isPending && (
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="bg-blue-50 text-blue-600 hover:bg-blue-100"
-                    onClick={() => handleUpdateStatus(request.id, 'processing')}
-                  >
-                    قيد المعالجة
-                  </Button>
-                )}
-                
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="bg-red-50 text-red-600 hover:bg-red-100"
-                  onClick={() => handleUpdateStatus(request.id, 'cancelled')}
-                >
-                  إلغاء
-                </Button>
-              </>
-            )}
-          </div>
-        );
-      }
+      cell: ({ row }) => (
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => handleDeleteRequest(row.original.id)}
+        >
+          حذف
+        </Button>
+      )
     }
   ];
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">طلبات التفعيل اليدوي</h1>
-      
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">الطلبات اليدوية</h1>
+        <Button onClick={() => setDialogOpen(true)}>إضافة طلب يدوي</Button>
+      </div>
+
       <Card className="overflow-hidden">
         <DataTable 
           columns={columns} 
           data={requests} 
-          isLoading={isLoading} 
+          loading={isLoading} 
           onRefresh={fetchRequests}
         />
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>الرد على طلب تفعيل يدوي</DialogTitle>
-            <DialogDescription>
-              {selectedRequest && (
-                <div className="mt-2">
-                  <p><strong>الخدمة:</strong> {selectedRequest.service?.name}</p>
-                  <p><strong>المستخدم:</strong> {selectedRequest.user?.username}</p>
-                  <p><strong>ملاحظات المستخدم:</strong> {selectedRequest.notes || 'لا توجد ملاحظات'}</p>
-                </div>
-              )}
-            </DialogDescription>
+            <DialogTitle>إضافة طلب يدوي</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="response">الرد</Label>
-              <Textarea 
-                id="response" 
-                value={adminResponse} 
-                onChange={(e) => setAdminResponse(e.target.value)} 
-                placeholder="أدخل الرد للمستخدم هنا..." 
+              <Label htmlFor="service">الخدمة</Label>
+              <select
+                id="service"
+                className="w-full rounded-md border border-gray-200 px-3 py-2 shadow-sm focus:border-brand-500 focus:ring-brand-500"
+                onChange={(e) => {
+                  const selected = manualServices.find(s => s.id === e.target.value);
+                  setSelectedService(selected || null);
+                  setCustomService('');
+                }}
+                value={selectedService?.id || ''}
+              >
+                <option value="">اختر خدمة</option>
+                {manualServices.map(service => (
+                  <option key={service.id} value={service.id}>{service.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {!selectedService && (
+              <div className="space-y-2">
+                <Label htmlFor="customService">خدمة مخصصة</Label>
+                <Input
+                  id="customService"
+                  value={customService}
+                  onChange={(e) => setCustomService(e.target.value)}
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="phoneNumber">رقم الهاتف</Label>
+              <Input
+                id="phoneNumber"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="verificationCode">رمز التحقق (اختياري)</Label>
-              <Input 
-                id="verificationCode" 
-                value={verificationCode} 
-                onChange={(e) => setVerificationCode(e.target.value)} 
-                placeholder="أدخل رمز التحقق هنا (إذا كان متاحاً)..." 
+              <Label htmlFor="message">الرسالة</Label>
+              <Textarea
+                id="message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setDialogOpen(false)}
-            >
-              إلغاء
-            </Button>
-            <Button 
-              onClick={handleSubmitResponse}
-            >
-              إرسال الرد
-            </Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>إلغاء</Button>
+            <Button onClick={handleCreateRequest}>إرسال</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
