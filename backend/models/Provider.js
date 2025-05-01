@@ -7,12 +7,6 @@ const providerSchema = new mongoose.Schema({
     required: [true, 'اسم المزود مطلوب'],
     trim: true
   },
-  code: {
-    type: String,
-    required: [true, 'رمز المزود مطلوب'],
-    trim: true,
-    unique: true
-  },
   logo: {
     type: String
   },
@@ -34,40 +28,25 @@ const providerSchema = new mongoose.Schema({
   apiUrl: {
     type: String
   },
-  endpoints: {
-    balance: {
-      type: String,
-      default: '/balance'
-    },
-    countries: {
-      type: String,
-      default: '/countries'
-    },
-    products: {
-      type: String,
-      default: '/products'
-    },
-    purchase: {
-      type: String,
-      default: '/purchase'
-    },
-    status: {
-      type: String,
-      default: '/status'
-    },
-    cancel: {
-      type: String,
-      default: '/cancel'
-    }
+  type: {
+    type: String,
+    enum: ['5sim', 'smsactivate', 'getsms', 'smsman', 'onlinesim', 'other'],
+    default: 'other'
   },
-  settings: {
+  config: {
     type: mongoose.Schema.Types.Mixed,
-    default: {}
+    default: {},
+    select: false // لا يتم إرجاع الإعدادات في الاستعلامات العادية
   }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
+});
+
+// تحويل _id إلى id لسهولة الاستخدام في الواجهة
+providerSchema.virtual('id').get(function() {
+  return this._id.toHexString();
 });
 
 const Provider = mongoose.model('Provider', providerSchema);
