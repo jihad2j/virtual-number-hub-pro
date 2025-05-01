@@ -1,306 +1,426 @@
 
 import React, { useState, useEffect } from 'react';
-import { api, Provider, Country } from '@/services/api';
+import { api, Provider } from '@/services/api';
 import { toast } from 'sonner';
-import { ProviderCard } from '@/components/admin/providers/ProviderCard';
-import { NewProviderDialog } from '@/components/admin/providers/NewProviderDialog';
-import { fiveSimApi, phoneServiceApi, smsActivateApi } from '@/services/fiveSimService';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Check, Settings, RefreshCcw, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Providers = () => {
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [countries, setCountries] = useState<Country[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [openNewProviderDialog, setOpenNewProviderDialog] = useState(false);
-  const [testingProviderConnection, setTestingProviderConnection] = useState<string | null>(null);
-  const [connectionStatuses, setConnectionStatuses] = useState<Record<string, boolean>>({});
-  const [apiKeyVisible, setApiKeyVisible] = useState<Record<string, boolean>>({});
-  const [providerBalances, setProviderBalances] = useState<Record<string, { balance: number; currency: string }>>({});
-  const [fetchingBalance, setFetchingBalance] = useState<string | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [openNewDialog, setOpenNewDialog] = useState(false);
   const [newProvider, setNewProvider] = useState({
     name: '',
-    code: '', // Added code field which is required
+    code: '',
     description: '',
-    countries: [] as string[],
-    isActive: true,
     apiKey: '',
     apiUrl: '',
+    isActive: true
   });
+  const [connectionStatuses, setConnectionStatuses] = useState<Record<string, boolean>>({});
+  const [providerBalances, setProviderBalances] = useState<Record<string, { balance: number; currency: string }>>({});
+  const [testingProvider, setTestingProvider] = useState<string | null>(null);
+  const [apiKeyVisible, setApiKeyVisible] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    fetchData();
+    fetchProviders();
   }, []);
 
-  const fetchData = async () => {
+  const fetchProviders = async () => {
     setIsLoading(true);
     try {
-      const [providersData, countriesData] = await Promise.all([
-        api.getAllProviders(),
-        api.getAllCountries()
-      ]);
-      setProviders(providersData);
-      setCountries(countriesData || []);
-      
-      // Test connection for each provider
-      for (const provider of providersData) {
-        testProviderConnection(provider.id);
-      }
+      const data = await api.getAllProviders();
+      setProviders(data);
     } catch (error) {
-      console.error('Failed to fetch data', error);
-      toast.error('فشل في جلب البيانات');
+      console.error('Error fetching providers:', error);
+      toast.error('فشل في جلب مزودي الخدمة');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const testProviderConnection = async (providerId: string) => {
-    setTestingProviderConnection(providerId);
+  const handleCreateProvider = async () => {
     try {
-      // Find the provider
-      const provider = providers.find(p => p.id === providerId);
-      if (!provider) return;
-      
-      // Use the backend API for testing connection
-      const success = await api.testProviderConnection(providerId);
-      
-      // Update connection status
-      setConnectionStatuses(prev => ({
-        ...prev,
-        [providerId]: success
-      }));
-      
-      if (success) {
-        toast.success(`تم الاتصال بمزود الخدمة ${provider.name} بنجاح`);
-        // After successful connection, fetch balance
-        fetchProviderBalance(providerId);
-      } else {
-        toast.error(`فشل الاتصال بمزود الخدمة ${provider.name}`);
+      if (!newProvider.name || !newProvider.code) {
+        toast.error('يرجى إدخال اسم ورمز مزود الخدمة');
+        return;
       }
-    } catch (error) {
-      console.error(`Failed to test connection for provider ${providerId}:`, error);
-      setConnectionStatuses(prev => ({
-        ...prev,
-        [providerId]: false
-      }));
-      toast.error('فشل اختبار الاتصال بالمزود');
-    } finally {
-      setTestingProviderConnection(null);
-    }
-  };
-  
-  const fetchProviderBalance = async (providerId: string) => {
-    setFetchingBalance(providerId);
-    try {
-      const balance = await api.getProviderBalance(providerId);
-      
-      setProviderBalances(prev => ({
-        ...prev,
-        [providerId]: balance
-      }));
-      
-      const provider = providers.find(p => p.id === providerId);
-      toast.success(`تم جلب رصيد مزود الخدمة ${provider?.name} بنجاح`);
-    } catch (error) {
-      console.error(`Failed to fetch balance for provider ${providerId}:`, error);
-      toast.error('فشل في جلب رصيد المزود');
-    } finally {
-      setFetchingBalance(null);
-    }
-  };
-  
-  const fetchProviderCountries = async (providerId: string) => {
-    try {
-      const provider = providers.find(p => p.id === providerId);
-      if (!provider) return;
-      
-      toast.info(`جاري جلب الدول المتاحة من ${provider.name}...`);
-      
-      const fetchedCountries = await api.getProviderCountries(providerId);
-      
-      if (fetchedCountries.length > 0) {
-        // Process countries to match our format
-        const formattedCountries = fetchedCountries.map(country => ({
-          id: country.id || country.iso || country.code,
-          name: country.name,
-          code: country.iso || country.code,
-          flag: country.flag || getFlagEmoji(country.code?.toUpperCase() || country.iso?.toUpperCase()),
-          services: [] // Adding required services field
-        }));
-        
-        // Add any new countries to our database
-        try {
-          await api.addCountries(formattedCountries);
-          // Refresh country list
-          const updatedCountries = await api.getAllCountries();
-          setCountries(updatedCountries);
-          toast.success(`تم جلب وتحديث الدول المتاحة`);
-        } catch (e) {
-          console.error('Failed to add countries to database', e);
-          toast.error('فشل في إضافة الدول إلى قاعدة البيانات');
-        }
-      } else {
-        toast.warning('لم يتم العثور على أي دول من هذا المزود');
-      }
-    } catch (error) {
-      console.error(`Failed to fetch countries from provider ${providerId}:`, error);
-      toast.error('فشل في جلب الدول من المزود');
-    }
-  };
-  
-  // Helper function to get flag emoji from country code
-  const getFlagEmoji = (countryCode: string) => {
-    if (!countryCode) return '🌍';
-    const codePoints = countryCode
-      .toUpperCase()
-      .split('')
-      .map(char => 127397 + char.charCodeAt(0));
-    return String.fromCodePoint(...codePoints);
-  };
-  
-  const toggleApiKeyVisibility = (providerId: string) => {
-    setApiKeyVisible(prev => ({
-      ...prev,
-      [providerId]: !prev[providerId]
-    }));
-  };
 
-  const handleToggleCountry = (providerId: string, countryId: string) => {
-    setProviders(providers.map(provider => {
-      if (provider.id === providerId) {
-        const updatedCountries = provider.countries?.includes(countryId)
-          ? provider.countries.filter(id => id !== countryId)
-          : [...(provider.countries || []), countryId];
-        
-        return { ...provider, countries: updatedCountries };
-      }
-      return provider;
-    }));
-  };
+      const providerData = {
+        name: newProvider.name,
+        code: newProvider.code,
+        description: newProvider.description,
+        apiKey: newProvider.apiKey,
+        apiUrl: newProvider.apiUrl,
+        isActive: newProvider.isActive,
+        countries: []
+      };
 
-  const handleToggleProviderActive = (providerId: string) => {
-    setProviders(providers.map(provider => {
-      if (provider.id === providerId) {
-        return { ...provider, isActive: !provider.isActive };
-      }
-      return provider;
-    }));
-  };
-
-  const handleSaveProvider = async (provider: Provider) => {
-    try {
-      await api.updateProvider(provider);
-      toast.success(`تم تحديث مزود الخدمة ${provider.name} بنجاح`);
-    } catch (error) {
-      console.error('Failed to save provider', error);
-      toast.error('حدث خطأ أثناء حفظ مزود الخدمة');
-    }
-  };
-
-  const handleAddProvider = async () => {
-    if (!newProvider.name) {
-      toast.error('الرجاء إدخال اسم مزود الخدمة');
-      return;
-    }
-
-    if (!newProvider.code) {
-      // Generate a code from name if not provided
-      newProvider.code = newProvider.name.toLowerCase().replace(/\s+/g, '');
-    }
-
-    try {
-      const addedProvider = await api.createProvider(newProvider);
-      setProviders([...providers, addedProvider]);
+      const createdProvider = await api.createProvider(providerData);
+      setProviders([...providers, createdProvider]);
       setNewProvider({
         name: '',
         code: '',
         description: '',
-        countries: [],
-        isActive: true,
         apiKey: '',
         apiUrl: '',
+        isActive: true
       });
-      setOpenNewProviderDialog(false);
-      toast.success(`تم إضافة مزود الخدمة ${addedProvider.name} بنجاح`);
-      
-      // Test the connection of the new provider
-      testProviderConnection(addedProvider.id);
+      setOpenNewDialog(false);
+      toast.success('تم إنشاء مزود خدمة جديد بنجاح');
     } catch (error) {
-      console.error('Failed to add provider', error);
-      toast.error('حدث خطأ أثناء إضافة مزود الخدمة');
+      console.error('Error creating provider:', error);
+      toast.error('فشل في إنشاء مزود الخدمة');
     }
   };
 
-  const handleNewProviderChange = (field: string, value: any) => {
-    setNewProvider(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleToggleNewProviderCountry = (countryId: string) => {
-    setNewProvider(prev => {
-      const updatedCountries = prev.countries.includes(countryId)
-        ? prev.countries.filter(id => id !== countryId)
-        : [...prev.countries, countryId];
+  const handleUpdateProvider = async () => {
+    try {
+      if (!selectedProvider) return;
       
-      return { ...prev, countries: updatedCountries };
+      await api.updateProvider(selectedProvider);
+      setProviders(providers.map(p => p.id === selectedProvider.id ? selectedProvider : p));
+      setOpenDialog(false);
+      toast.success('تم تحديث مزود الخدمة بنجاح');
+    } catch (error) {
+      console.error('Error updating provider:', error);
+      toast.error('فشل في تحديث مزود الخدمة');
+    }
+  };
+
+  const testConnection = async (providerId: string) => {
+    setTestingProvider(providerId);
+    try {
+      const success = await api.testProviderConnection(providerId);
+      
+      setConnectionStatuses({
+        ...connectionStatuses,
+        [providerId]: success
+      });
+      
+      if (success) {
+        toast.success('تم الاتصال بنجاح');
+        // Get balance after successful connection
+        fetchBalance(providerId);
+      } else {
+        toast.error('فشل الاتصال');
+      }
+    } catch (error) {
+      console.error('Error testing connection:', error);
+      toast.error('فشل اختبار الاتصال');
+      setConnectionStatuses({
+        ...connectionStatuses,
+        [providerId]: false
+      });
+    } finally {
+      setTestingProvider(null);
+    }
+  };
+
+  const fetchBalance = async (providerId: string) => {
+    try {
+      const balanceData = await api.getProviderBalance(providerId);
+      setProviderBalances({
+        ...providerBalances,
+        [providerId]: balanceData
+      });
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+      toast.error('فشل في جلب الرصيد');
+    }
+  };
+
+  const toggleProviderActive = async (provider: Provider) => {
+    try {
+      const updatedProvider = { ...provider, isActive: !provider.isActive };
+      await api.updateProvider(updatedProvider);
+      setProviders(providers.map(p => p.id === provider.id ? updatedProvider : p));
+      toast.success(`تم ${updatedProvider.isActive ? 'تفعيل' : 'تعطيل'} مزود الخدمة بنجاح`);
+    } catch (error) {
+      console.error('Error toggling provider status:', error);
+      toast.error('فشل في تغيير حالة مزود الخدمة');
+    }
+  };
+
+  const toggleApiKeyVisibility = (providerId: string) => {
+    setApiKeyVisible({
+      ...apiKeyVisible,
+      [providerId]: !apiKeyVisible[providerId]
     });
-  };
-
-  const handleToggleApiKey = (providerId: string) => {
-    setApiKeyVisible(prev => ({
-      ...prev,
-      [providerId]: !prev[providerId]
-    }));
-  };
-
-  const handleUpdateProvider = (updatedProvider: Provider) => {
-    setProviders(providers.map(p => 
-      p.id === updatedProvider.id ? updatedProvider : p
-    ));
   };
 
   if (isLoading) {
     return (
-      <div className="flex justify-center py-12">
+      <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="container mx-auto py-10">
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">إدارة مزودي الخدمة</h1>
-        <NewProviderDialog
-          open={openNewProviderDialog}
-          onOpenChange={setOpenNewProviderDialog}
-          newProvider={newProvider}
-          countries={countries}
-          onNewProviderChange={handleNewProviderChange}
-          onToggleNewProviderCountry={handleToggleNewProviderCountry}
-          onAddProvider={handleAddProvider}
-        />
+        <Button onClick={() => setOpenNewDialog(true)}>إضافة مزود جديد</Button>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {Array.isArray(providers) && providers.map(provider => (
-          <ProviderCard
-            key={provider.id}
-            provider={provider}
-            countries={countries}
-            connectionStatus={connectionStatuses[provider.id]}
-            apiKeyVisible={apiKeyVisible[provider.id]}
-            providerBalance={providerBalances[provider.id]}
-            testingConnection={testingProviderConnection === provider.id}
-            fetchingBalance={fetchingBalance === provider.id}
-            onToggleCountry={handleToggleCountry}
-            onToggleActive={handleToggleProviderActive}
-            onSave={handleSaveProvider}
-            onTestConnection={testProviderConnection}
-            onFetchCountries={fetchProviderCountries}
-            onFetchBalance={fetchProviderBalance}
-            onToggleApiKey={handleToggleApiKey}
-            onUpdateProvider={handleUpdateProvider}
-          />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {providers.map((provider) => (
+          <Card key={provider.id}>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <CardTitle>{provider.name}</CardTitle>
+                <Badge variant={provider.isActive ? "success" : "destructive"}>
+                  {provider.isActive ? 'نشط' : 'معطل'}
+                </Badge>
+              </div>
+              <CardDescription>{provider.code}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-sm">
+                {provider.description || 'لا يوجد وصف'}
+              </div>
+              
+              {connectionStatuses[provider.id] && (
+                <div className="flex items-center text-sm text-green-600">
+                  <Check className="w-4 h-4 mr-1" />
+                  متصل
+                </div>
+              )}
+              
+              {providerBalances[provider.id] && (
+                <div className="text-sm font-medium">
+                  الرصيد: {providerBalances[provider.id].balance} {providerBalances[provider.id].currency}
+                </div>
+              )}
+              
+              <div className="flex items-center justify-between mt-2">
+                <span>حالة التنشيط</span>
+                <Switch 
+                  checked={provider.isActive}
+                  onCheckedChange={() => toggleProviderActive(provider)}
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-col gap-2">
+              <div className="flex gap-2 w-full">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1"
+                  onClick={() => testConnection(provider.id)}
+                  disabled={testingProvider === provider.id}
+                >
+                  {testingProvider === provider.id ? (
+                    <RefreshCcw className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4 mr-1" />
+                  )}
+                  اختبار الاتصال
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  className="flex-1"
+                  onClick={() => {
+                    setSelectedProvider(provider);
+                    setOpenDialog(true);
+                  }}
+                >
+                  <Settings className="w-4 h-4 mr-1" />
+                  إعدادات
+                </Button>
+              </div>
+            </CardFooter>
+          </Card>
         ))}
       </div>
+
+      {/* Provider Settings Dialog */}
+      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>إعدادات مزود الخدمة</DialogTitle>
+          </DialogHeader>
+
+          {selectedProvider && (
+            <Tabs defaultValue="general">
+              <TabsList className="grid grid-cols-2">
+                <TabsTrigger value="general">عام</TabsTrigger>
+                <TabsTrigger value="api">إعدادات API</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="general" className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="name">الاسم</Label>
+                  <Input 
+                    id="name"
+                    value={selectedProvider.name}
+                    onChange={(e) => setSelectedProvider({...selectedProvider, name: e.target.value})}
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="code">الرمز</Label>
+                  <Input 
+                    id="code"
+                    value={selectedProvider.code}
+                    onChange={(e) => setSelectedProvider({...selectedProvider, code: e.target.value})}
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="description">الوصف</Label>
+                  <Input 
+                    id="description"
+                    value={selectedProvider.description || ''}
+                    onChange={(e) => setSelectedProvider({...selectedProvider, description: e.target.value})}
+                  />
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="isActive"
+                    checked={selectedProvider.isActive}
+                    onCheckedChange={(checked) => setSelectedProvider({...selectedProvider, isActive: checked})}
+                  />
+                  <Label htmlFor="isActive">نشط</Label>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="api" className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="apiKey">مفتاح API</Label>
+                  <div className="relative">
+                    <Input 
+                      id="apiKey"
+                      type={apiKeyVisible[selectedProvider.id] ? 'text' : 'password'}
+                      value={selectedProvider.apiKey}
+                      onChange={(e) => setSelectedProvider({...selectedProvider, apiKey: e.target.value})}
+                    />
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm"
+                      className="absolute left-2 top-1/2 transform -translate-y-1/2"
+                      onClick={() => toggleApiKeyVisibility(selectedProvider.id)}
+                    >
+                      {apiKeyVisible[selectedProvider.id] ? 'إخفاء' : 'إظهار'}
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="apiUrl">رابط API</Label>
+                  <Input 
+                    id="apiUrl"
+                    value={selectedProvider.apiUrl || ''}
+                    onChange={(e) => setSelectedProvider({...selectedProvider, apiUrl: e.target.value})}
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Button 
+                    variant="outline"
+                    onClick={() => testConnection(selectedProvider.id)}
+                    disabled={testingProvider === selectedProvider.id}
+                  >
+                    {testingProvider === selectedProvider.id ? 
+                      <RefreshCcw className="w-4 h-4 mr-1 animate-spin" /> : 
+                      <Check className="w-4 h-4 mr-1" />
+                    }
+                    اختبار الاتصال
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenDialog(false)}>إلغاء</Button>
+            <Button onClick={handleUpdateProvider}>حفظ</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Provider Dialog */}
+      <Dialog open={openNewDialog} onOpenChange={setOpenNewDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>إضافة مزود خدمة جديد</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="new-name">الاسم</Label>
+              <Input 
+                id="new-name"
+                value={newProvider.name}
+                onChange={(e) => setNewProvider({...newProvider, name: e.target.value})}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="new-code">الرمز</Label>
+              <Input 
+                id="new-code"
+                value={newProvider.code}
+                onChange={(e) => setNewProvider({...newProvider, code: e.target.value})}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="new-description">الوصف</Label>
+              <Input 
+                id="new-description"
+                value={newProvider.description}
+                onChange={(e) => setNewProvider({...newProvider, description: e.target.value})}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="new-apiKey">مفتاح API</Label>
+              <Input 
+                id="new-apiKey"
+                value={newProvider.apiKey}
+                onChange={(e) => setNewProvider({...newProvider, apiKey: e.target.value})}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="new-apiUrl">رابط API</Label>
+              <Input 
+                id="new-apiUrl"
+                value={newProvider.apiUrl}
+                onChange={(e) => setNewProvider({...newProvider, apiUrl: e.target.value})}
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch 
+                id="new-isActive"
+                checked={newProvider.isActive}
+                onCheckedChange={(checked) => setNewProvider({...newProvider, isActive: checked})}
+              />
+              <Label htmlFor="new-isActive">نشط</Label>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenNewDialog(false)}>إلغاء</Button>
+            <Button onClick={handleCreateProvider}>إنشاء</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
