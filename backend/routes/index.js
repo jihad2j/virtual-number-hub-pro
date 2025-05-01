@@ -1,29 +1,27 @@
 
 const express = require('express');
 const router = express.Router();
-
 const authRoutes = require('./auth');
-const usersRoutes = require('./users');
-const countriesRoutes = require('./countries');
-const providersRoutes = require('./providers');
-const numbersRoutes = require('./numbers');
-const transactionsRoutes = require('./transactions');
-const manualServicesRoutes = require('./manualServices');
-const manualRequestsRoutes = require('./manualRequests');
+const userRoutes = require('./users');
+const countryRoutes = require('./countries');
+const providerRoutes = require('./providers');
+const numberRoutes = require('./numbers');
 const supportRoutes = require('./support');
+const transactionRoutes = require('./transactions');
+const manualServiceRoutes = require('./manualServices');
+const manualRequestRoutes = require('./manualRequests');
 const initRoutes = require('./init');
-const prepaidCodesRoutes = require('./prepaidCodes');
 
+// Mount the routes
 router.use('/auth', authRoutes);
-router.use('/users', usersRoutes);
-router.use('/countries', countriesRoutes);
-router.use('/providers', providersRoutes);
-router.use('/numbers', numbersRoutes);
-router.use('/transactions', transactionsRoutes);
-router.use('/manual-services', manualServicesRoutes);
-router.use('/manual-requests', manualRequestsRoutes);
+router.use('/users', userRoutes);
+router.use('/countries', countryRoutes);
+router.use('/providers', providerRoutes);
+router.use('/numbers', numberRoutes);
 router.use('/support', supportRoutes);
+router.use('/transactions', transactionRoutes);
+router.use('/manual-services', manualServiceRoutes);
+router.use('/manual-requests', manualRequestRoutes);
 router.use('/init', initRoutes);
-router.use('/prepaid-codes', prepaidCodesRoutes);
 
 module.exports = router;

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -13,8 +12,7 @@ import {
   Menu,
   X,
   PhoneCall,
-  LayoutDashboard,
-  ChartBar
+  LayoutDashboard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -37,7 +35,6 @@ export const Sidebar: React.FC = () => {
   ];
 
   const adminNavItems = [
-    { path: '/dashboard/admin', label: 'لوحة المشرف', icon: ChartBar },
     { path: '/dashboard/admin/providers', label: 'مزودي الخدمة', icon: Server },
     { path: '/dashboard/admin/countries', label: 'إدارة الدول', icon: Globe },
     { path: '/dashboard/admin/users', label: 'المستخدمين', icon: Users },
