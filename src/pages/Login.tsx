@@ -25,11 +25,13 @@ const Login = () => {
       console.log("Attempting login with:", email);
       await login(email, password);
       console.log("Login successful, navigating to dashboard");
-      toast.success('تم تسجيل الدخول بنجاح');
-      navigate('/dashboard');
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 100); // Add a small delay to ensure state updates before navigation
     } catch (error) {
       console.error('Login error:', error);
       setError('فشل تسجيل الدخول. تأكد من صحة البريد الإلكتروني وكلمة المرور');
+      toast.error('فشل تسجيل الدخول');
     } finally {
       setIsLoading(false);
     }

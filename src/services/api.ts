@@ -1,4 +1,3 @@
-
 import { apiClient } from '@/services/apiClient';
 import { User } from '@/types/User';
 import { Country } from '@/types/Country';
@@ -34,7 +33,19 @@ export const api = {
   // Authentication
   async login(email: string, password: string): Promise<LoginResponse> {
     const response = await apiClient.post('/auth/login', { email, password });
-    return response.data;
+    console.log("Login API response:", response.data);
+    
+    // Handle both types of API responses
+    if (response.data.status === "success") {
+      // Backend returns {status: "success", token, data: {user}}
+      return {
+        user: response.data.data?.user || response.data.user,
+        token: response.data.token
+      };
+    } else {
+      // Standard format
+      return response.data;
+    }
   },
 
   async register(username: string, email: string, password: string): Promise<LoginResponse> {

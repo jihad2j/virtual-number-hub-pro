@@ -11,13 +11,18 @@ const Index = () => {
   useEffect(() => {
     console.log("Index page loaded, authentication status:", isAuthenticated);
     
-    if (isAuthenticated) {
-      console.log("User is authenticated, redirecting to dashboard");
-      navigate('/dashboard');
-    } else {
-      console.log("User is not authenticated, redirecting to login");
-      navigate('/login');
-    }
+    const redirectUser = () => {
+      if (isAuthenticated) {
+        console.log("User is authenticated, redirecting to dashboard");
+        navigate('/dashboard', { replace: true });
+      } else {
+        console.log("User is not authenticated, redirecting to login");
+        navigate('/login', { replace: true });
+      }
+    };
+    
+    // Add a small delay to ensure auth state is properly loaded
+    const timeout = setTimeout(redirectUser, 100);
     
     // تهيئة البيانات المحلية عند بدء التطبيق
     const initData = async () => {
@@ -31,6 +36,8 @@ const Index = () => {
     };
     
     initData();
+    
+    return () => clearTimeout(timeout);
   }, [isAuthenticated, navigate]);
 
   return <div className="min-h-screen flex items-center justify-center">

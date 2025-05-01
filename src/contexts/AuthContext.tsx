@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
@@ -69,12 +70,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await api.login(email, password);
       console.log("AuthContext: Login successful, setting user and token");
       
+      // Get user data from response, handling different API structures
+      const userData = response.user;
+      console.log("User data received:", userData);
+      
+      if (!userData || !userData.email) {
+        throw new Error("Invalid user data received from API");
+      }
+      
       const authUser: AuthUser = {
-        id: response.user.id,
-        name: response.user.username,
-        email: response.user.email,
-        balance: response.user.balance,
-        role: response.user.role,
+        id: userData.id || userData._id,
+        name: userData.username,
+        email: userData.email,
+        balance: userData.balance || 0,
+        role: (userData.role === 'admin' || userData.role === 'user') ? userData.role : 'user',
       };
 
       setUser(authUser);
@@ -136,7 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Convert API User to AuthUser
       const authUser: AuthUser = {
-        id: userData.id,
+        id: userData.id || userData._id,
         name: userData.username,
         email: userData.email,
         balance: userData.balance,
