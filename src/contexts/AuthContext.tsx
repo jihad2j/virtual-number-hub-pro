@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/services/api';
@@ -5,11 +6,11 @@ import { api } from '@/services/api';
 export interface AuthUser {
   id: string;
   email: string;
-  username: string; // Adding username property
+  username: string;
   role: 'user' | 'admin';
   balance: number;
   isActive: boolean;
-  createdAt: string; // Adding createdAt property
+  createdAt: string;
 }
 
 export interface AuthContextType {
@@ -19,8 +20,8 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
-  loadingInitial: boolean; // Adding loadingInitial property
-  updateUserData: (userData: Partial<AuthUser>) => Promise<void>; // Adding update function
+  loadingInitial: boolean;
+  updateUserData: (userData: Partial<AuthUser>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -91,7 +92,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     navigate('/login');
   };
 
-  // Add updateUserData function to the context provider
   const updateUserData = async (userData: Partial<AuthUser>) => {
     if (!user || !user.id) return;
     
@@ -107,7 +107,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Update the context value to include loadingInitial and updateUserData
   const value: AuthContextType = {
     user,
     isAuthenticated,

@@ -117,10 +117,12 @@ const Balance = () => {
                     {transaction.type === 'purchase' && 'شراء خدمة'}
                     {transaction.type === 'refund' && 'استرجاع'}
                     {transaction.type === 'manual' && 'خدمة يدوية'}
-                    {transaction.type === 'code' && 'كود شحن'}
+                    {transaction.type === 'withdrawal' && 'سحب'}
+                    {transaction.type === 'gift' && 'هدية'}
+                    {transaction.type === 'admin' && 'تعديل إداري'}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {transaction.details?.description || ''}
+                    {transaction.description || ''}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(transaction.createdAt || '').toLocaleDateString('ar-SA')}

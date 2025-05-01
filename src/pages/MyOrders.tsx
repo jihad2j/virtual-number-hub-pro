@@ -10,8 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ColumnDef } from '@tanstack/react-table';
 
-// Define the Order type to match the PhoneNumber type we're using
-interface Order extends PhoneNumber {
+// Define the Order type separately, not extending PhoneNumber
+interface Order {
   id: string;
   phoneNumber: string;
   service: string;
@@ -35,11 +35,10 @@ const MyOrders = () => {
     try {
       const numbers = await api.getUserPhoneNumbers();
       setOrders(numbers.map(number => ({
-        ...number,
         id: number.id || '',
-        phoneNumber: number.phoneNumber || '',
-        service: number.service || '',
-        country: number.country || '',
+        phoneNumber: number.number || '', // Update to use 'number' instead of 'phoneNumber'
+        service: number.serviceId || '',
+        country: number.countryId || '', // Update to use 'countryId' instead of 'country'
         status: number.status || 'pending',
         smsCode: number.smsCode || '',
         createdAt: number.createdAt || new Date().toISOString(),

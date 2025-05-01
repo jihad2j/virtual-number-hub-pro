@@ -7,7 +7,7 @@ export interface ManualService {
   price: number;
   available: boolean;
   image?: string;
-  isActive: boolean;  // Making this required
+  isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
