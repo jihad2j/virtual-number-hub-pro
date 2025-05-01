@@ -20,7 +20,7 @@ import SystemSettings from './pages/SystemSettings';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
-import AdminProviders from './pages/admin/Providers';
+import ProviderSettings from './pages/admin/ProviderSettings';
 import AdminCountries from './pages/admin/Countries';
 import AdminUsers from './pages/admin/Users';
 import AdminManualServices from './pages/admin/ManualServices';
@@ -71,7 +71,7 @@ function App() {
           } />
           <Route path="admin/providers" element={
             <AdminRoute>
-              <AdminProviders />
+              <ProviderSettings />
             </AdminRoute>
           } />
           <Route path="admin/countries" element={
