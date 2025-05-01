@@ -77,19 +77,22 @@ exports.initData = catchAsync(async (req, res, next) => {
         name: 'تفعيل واتساب',
         description: 'تفعيل رقم واتساب جديد',
         price: 5,
-        available: true
+        available: true,
+        isActive: true
       },
       {
         name: 'تفعيل تلغرام',
         description: 'تفعيل حساب تلغرام جديد',
         price: 3,
-        available: true
+        available: true,
+        isActive: true
       },
       {
         name: 'تفعيل فيسبوك',
         description: 'تفعيل حساب فيسبوك جديد',
         price: 7,
-        available: true
+        available: true,
+        isActive: true
       }
     ]);
     
@@ -107,5 +110,29 @@ exports.initData = catchAsync(async (req, res, next) => {
       status: 'success',
       message: 'البيانات موجودة بالفعل'
     });
+  }
+});
+
+// Get local data for initialization in the frontend
+exports.getLocalData = catchAsync(async (req, res, next) => {
+  try {
+    // Fetch countries and providers for frontend initialization
+    const [countries, providers, services] = await Promise.all([
+      Country.find({ available: true }),
+      Provider.find({ isActive: true }),
+      ManualService.find({ available: true })
+    ]);
+    
+    res.status(200).json({
+      status: 'success',
+      data: {
+        countries,
+        providers,
+        services
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching local data:', error);
+    return next(new AppError('Failed to fetch initialization data', 500));
   }
 });

@@ -1,178 +1,135 @@
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api } from '@/services/api';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { api } from '../services/api';
+export interface AuthUser {
+  id: string;
+  email: string;
+  username: string; // Adding username property
+  role: 'user' | 'admin';
+  balance: number;
+  isActive: boolean;
+  createdAt: string; // Adding createdAt property
+}
 
-type AuthContextType = {
-  isAuthenticated: boolean;
-  loading: boolean;
+export interface AuthContextType {
   user: AuthUser | null;
+  isAuthenticated: boolean;
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
-  refreshUser: () => Promise<void>;
-};
-
-// Local user type that includes name field needed by UI
-interface AuthUser {
-  id: string;
-  name: string;  // This is mapped from username
-  email: string;
-  balance: number;
-  role: 'user' | 'admin';
+  loadingInitial: boolean; // Adding loadingInitial property
+  updateUserData: (userData: Partial<AuthUser>) => Promise<void>; // Adding update function
 }
 
-const AuthContext = createContext<AuthContextType>({
-  isAuthenticated: false,
-  loading: true,
-  user: null,
-  isAdmin: false,
-  login: async () => {},
-  register: async () => {},
-  logout: () => {},
-  refreshUser: async () => {},
-});
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Export the hook separately from the provider
-export const useAuth = () => useContext(AuthContext);
-
-// Create the provider as a proper React functional component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is stored in localStorage
-    const storedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('authToken');
-    console.log("Initial auth check - Token exists:", !!token);
-    
-    if (storedUser && token) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        console.log("Found stored user:", parsedUser.email);
-        setUser(parsedUser);
-      } catch (error) {
-        console.error('Failed to parse user from localStorage', error);
-        localStorage.removeItem('user');
-        localStorage.removeItem('authToken');
+    const checkAuthStatus = async () => {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        try {
+          const currentUser = await api.getCurrentUser();
+          setUser(currentUser);
+          setIsAuthenticated(true);
+          setIsAdmin(currentUser.role === 'admin');
+        } catch (error) {
+          console.error('Failed to fetch current user:', error);
+          localStorage.removeItem('authToken');
+          setIsAuthenticated(false);
+          setIsAdmin(false);
+          setUser(null);
+        }
       }
-    }
-    setLoading(false);
+      setLoadingInitial(false);
+    };
+
+    checkAuthStatus();
   }, []);
 
   const login = async (email: string, password: string) => {
-    setLoading(true);
     try {
-      console.log("AuthContext: Attempting login with API");
-      // Use the API to login with backend authentication
       const response = await api.login(email, password);
-      console.log("AuthContext: Login successful, setting user and token");
-      
-      // Get user data from response, handling different API structures
-      const userData = response.user;
-      console.log("User data received:", userData);
-      
-      if (!userData || !userData.email) {
-        throw new Error("Invalid user data received from API");
-      }
-      
-      const authUser: AuthUser = {
-        id: userData.id || userData._id,
-        name: userData.username,
-        email: userData.email,
-        balance: userData.balance || 0,
-        role: (userData.role === 'admin' || userData.role === 'user') ? userData.role : 'user',
-      };
-
-      setUser(authUser);
-      localStorage.setItem('user', JSON.stringify(authUser));
       localStorage.setItem('authToken', response.token);
-      
-      console.log("AuthContext: User authenticated as", authUser.role);
-      toast.success('تم تسجيل الدخول بنجاح');
+      setUser(response.user);
+      setIsAuthenticated(true);
+      setIsAdmin(response.user.role === 'admin');
+      navigate('/dashboard');
     } catch (error) {
-      console.error('Login failed', error);
+      console.error('Login failed:', error);
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
   const register = async (username: string, email: string, password: string) => {
-    setLoading(true);
     try {
-      // Use the API to register with backend
       const response = await api.register(username, email, password);
-      
-      const authUser: AuthUser = {
-        id: response.user.id,
-        name: response.user.username,
-        email: response.user.email,
-        balance: response.user.balance || 0,
-        role: response.user.role || 'user',
-      };
-
-      setUser(authUser);
-      localStorage.setItem('user', JSON.stringify(authUser));
       localStorage.setItem('authToken', response.token);
-      
-      toast.success('تم إنشاء الحساب بنجاح');
+      setUser(response.user);
+      setIsAuthenticated(true);
+      setIsAdmin(response.user.role === 'admin');
+      navigate('/dashboard');
     } catch (error) {
-      console.error('Registration failed', error);
+      console.error('Registration failed:', error);
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
     localStorage.removeItem('authToken');
-    toast.success('تم تسجيل الخروج بنجاح');
+    setUser(null);
+    setIsAuthenticated(false);
+    setIsAdmin(false);
+    navigate('/login');
   };
 
-  const isAuthenticated = !!user && !!localStorage.getItem('authToken');
-  const isAdmin = user?.role === 'admin';
-
-  const refreshUser = async () => {
-    if (!isAuthenticated) return;
+  // Add updateUserData function to the context provider
+  const updateUserData = async (userData: Partial<AuthUser>) => {
+    if (!user || !user.id) return;
     
     try {
-      const userData = await api.getCurrentUser();
-      
-      // Convert API User to AuthUser
-      const authUser: AuthUser = {
-        id: userData.id || userData._id,
-        name: userData.username,
-        email: userData.email,
-        balance: userData.balance,
-        role: userData.role,
-      };
-      
-      setUser(authUser);
-      localStorage.setItem('user', JSON.stringify(authUser));
+      const updatedUser = await api.updateUser(user.id, userData);
+      setUser({
+        ...user,
+        ...updatedUser,
+      });
     } catch (error) {
-      console.error('Error refreshing user:', error);
+      console.error('Failed to update user data:', error);
+      throw error;
     }
   };
 
+  // Update the context value to include loadingInitial and updateUserData
+  const value: AuthContextType = {
+    user,
+    isAuthenticated,
+    isAdmin,
+    login,
+    register,
+    logout,
+    loadingInitial,
+    updateUserData,
+  };
+
   return (
-    <AuthContext.Provider 
-      value={{ 
-        isAuthenticated, 
-        loading, 
-        user, 
-        isAdmin, 
-        login, 
-        register, 
-        logout,
-        refreshUser
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

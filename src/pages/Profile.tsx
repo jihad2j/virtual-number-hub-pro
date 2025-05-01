@@ -1,197 +1,123 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { api } from '@/services/api';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { User as UserIcon, Mail, DollarSign, Calendar } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { User } from 'lucide-react';
 
 const Profile = () => {
   const { user, updateUserData } = useAuth();
-  const [username, setUsername] = useState('');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [username, setUsername] = useState(user?.username || '');
 
-  useEffect(() => {
-    if (user) {
-      setUsername(user.username);
-    }
-  }, [user]);
-
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    setIsLoading(true);
-    try {
-      const updatedUser = await api.updateUser(user?.id || '', { username });
-      updateUserData(updatedUser);
-      toast.success('تم تحديث الملف الشخصي بنجاح');
-    } catch (error) {
-      console.error('Failed to update profile', error);
-      toast.error('فشل في تحديث الملف الشخصي');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (newPassword !== confirmPassword) {
-      toast.error('كلمات المرور الجديدة غير متطابقة');
+  const handleUpdate = async () => {
+    if (!username.trim()) {
+      toast.error('يرجى إدخال اسم المستخدم');
       return;
     }
     
-    setIsLoading(true);
     try {
-      await api.changePassword(currentPassword, newPassword);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      toast.success('تم تغيير كلمة المرور بنجاح');
+      await updateUserData({ username });
+      setIsEditing(false);
+      toast.success('تم تحديث الملف الشخصي بنجاح');
     } catch (error) {
-      console.error('Failed to change password', error);
-      toast.error('فشل في تغيير كلمة المرور');
-    } finally {
-      setIsLoading(false);
+      console.error('Failed to update profile:', error);
+      toast.error('فشل في تحديث الملف الشخصي');
     }
   };
 
   if (!user) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <p>جاري التحميل...</p>
+      <div className="text-center py-10">
+        <p>يرجى تسجيل الدخول لعرض الملف الشخصي</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-8">
+    <div className="space-y-6">
       <h1 className="text-2xl font-bold">الملف الشخصي</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>معلومات المستخدم</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col items-center justify-center py-6">
-                <div className="h-24 w-24 rounded-full bg-brand-100 flex items-center justify-center mb-4">
-                  <UserIcon className="h-12 w-12 text-brand-600" />
-                </div>
-                <h2 className="text-xl font-semibold">{user.username}</h2>
-                <span className="text-gray-500">{user.email}</span>
-                <div className="mt-4 bg-brand-50 text-brand-600 px-3 py-1 rounded-full text-sm">
-                  {user.role === 'admin' ? 'مشرف' : 'مستخدم'}
-                </div>
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-muted/30">
+          <CardTitle className="flex items-center">
+            <div className="bg-brand-100 text-brand-800 rounded-full w-10 h-10 flex items-center justify-center mr-3">
+              <User className="h-5 w-5" />
+            </div>
+            <span>معلومات الحساب</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">البريد الإلكتروني</label>
+              <div className="p-2 bg-muted/30 rounded-md">
+                {user.email}
               </div>
-
-              <div className="pt-4 border-t">
-                <div className="flex items-center py-2">
-                  <Mail className="h-5 w-5 text-gray-500 mr-3" />
-                  <div>
-                    <p className="text-sm text-gray-500">البريد الإلكتروني</p>
-                    <p>{user.email}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center py-2">
-                  <DollarSign className="h-5 w-5 text-gray-500 mr-3" />
-                  <div>
-                    <p className="text-sm text-gray-500">الرصيد</p>
-                    <p>{user.balance} $</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center py-2">
-                  <Calendar className="h-5 w-5 text-gray-500 mr-3" />
-                  <div>
-                    <p className="text-sm text-gray-500">تاريخ التسجيل</p>
-                    <p>{new Date(user.createdAt).toLocaleDateString('ar-SA')}</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="md:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>تعديل الملف الشخصي</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleUpdateProfile} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">اسم المستخدم</Label>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">اسم المستخدم</label>
+              {isEditing ? (
+                <div className="flex gap-2">
                   <Input 
-                    id="username" 
                     value={username} 
-                    onChange={(e) => setUsername(e.target.value)} 
-                    required 
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="flex-1"
                   />
+                  <Button onClick={handleUpdate}>حفظ</Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsEditing(false);
+                      setUsername(user.username || '');
+                    }}
+                  >
+                    إلغاء
+                  </Button>
                 </div>
-                
-                <Button type="submit" disabled={isLoading} className="w-full">
-                  {isLoading ? 'جاري التحديث...' : 'تحديث الملف الشخصي'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>تغيير كلمة المرور</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleChangePassword} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="current-password">كلمة المرور الحالية</Label>
-                  <Input 
-                    id="current-password" 
-                    type="password" 
-                    value={currentPassword} 
-                    onChange={(e) => setCurrentPassword(e.target.value)} 
-                    required 
-                  />
+              ) : (
+                <div className="flex justify-between items-center">
+                  <div className="p-2 bg-muted/30 rounded-md flex-1">
+                    {user.username}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setIsEditing(true)}
+                    className="ml-2"
+                  >
+                    تعديل
+                  </Button>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">كلمة المرور الجديدة</Label>
-                  <Input 
-                    id="new-password" 
-                    type="password" 
-                    value={newPassword} 
-                    onChange={(e) => setNewPassword(e.target.value)} 
-                    required 
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">تأكيد كلمة المرور الجديدة</Label>
-                  <Input 
-                    id="confirm-password" 
-                    type="password" 
-                    value={confirmPassword} 
-                    onChange={(e) => setConfirmPassword(e.target.value)} 
-                    required 
-                  />
-                </div>
-                
-                <Button type="submit" disabled={isLoading} className="w-full">
-                  {isLoading ? 'جاري التحديث...' : 'تغيير كلمة المرور'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">الرصيد الحالي</label>
+              <div className="p-2 bg-muted/30 rounded-md font-bold text-brand-600">
+                {user.balance} $
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">نوع الحساب</label>
+              <div className="p-2 bg-muted/30 rounded-md">
+                {user.role === 'admin' ? 'مدير النظام' : 'مستخدم عادي'}
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">تاريخ إنشاء الحساب</label>
+              <div className="p-2 bg-muted/30 rounded-md">
+                {new Date(user.createdAt).toLocaleDateString('ar-SA')}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

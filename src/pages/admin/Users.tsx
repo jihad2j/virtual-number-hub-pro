@@ -12,17 +12,7 @@ import { toast } from 'sonner';
 import { api } from '@/services/api';
 import { Edit, Trash, Ban, Key, Plus, User } from 'lucide-react';
 import { ColumnDef } from '@tanstack/react-table';
-
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  role: 'user' | 'admin';
-  isActive: boolean;
-  balance: number;
-  createdAt: string;
-  updatedAt?: string;
-}
+import { User as UserType } from '@/types/User';
 
 interface EditUserData {
   username: string;
@@ -36,7 +26,7 @@ interface PasswordChangeData {
 }
 
 const Users = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -114,7 +104,7 @@ const Users = () => {
     }
   };
 
-  const openEditDialog = (user: User) => {
+  const openEditDialog = (user: UserType) => {
     setEditUserId(user.id);
     setEditUserData({
       username: user.username,
@@ -150,7 +140,10 @@ const Users = () => {
     }
     
     try {
-      await api.updateUser(editUserId, { password: passwordChangeData.newPassword });
+      // Using updateUser instead of directly handling password changes
+      await api.updateUser(editUserId, { 
+        password: passwordChangeData.newPassword 
+      });
       setIsPasswordDialogOpen(false);
       toast.success('تم تغيير كلمة المرور بنجاح');
     } catch (error) {
@@ -183,7 +176,7 @@ const Users = () => {
     }
   };
 
-  const columns: ColumnDef<User>[] = [
+  const columns: ColumnDef<UserType>[] = [
     {
       accessorKey: 'username',
       header: 'اسم المستخدم',

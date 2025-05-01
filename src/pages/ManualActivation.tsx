@@ -1,248 +1,238 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
-import { DataTable } from '@/components/ui/data-table';
-import { ColumnDef } from '@tanstack/react-table';
-import { ManualRequest } from '@/types/ManualRequest';
-import { ManualService } from '@/types/ManualService';
+import { ManualService, ManualRequest } from '@/types/ManualRequest';
 import { Badge } from '@/components/ui/badge';
-import { Check, MessageSquare } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ManualActivation = () => {
-  const [manualServices, setManualServices] = useState<ManualService[]>([]);
-  const [message, setMessage] = useState('');
+  const [services, setServices] = useState<ManualService[]>([]);
   const [requests, setRequests] = useState<ManualRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [selectedService, setSelectedService] = useState<ManualService | null>(null);
+  const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [confirmRequestId, setConfirmRequestId] = useState<string>('');
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
-    fetchServices();
-    fetchRequests();
+    fetchData();
   }, []);
 
-  const fetchServices = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      const data = await api.getManualServices();
-      setManualServices(data);
+      const [servicesData, requestsData] = await Promise.all([
+        api.getManualServices(),
+        api.getUserManualRequests()
+      ]);
+      
+      setServices(servicesData.filter(service => service.available));
+      setRequests(requestsData);
     } catch (error) {
-      console.error('Error fetching manual services:', error);
-      toast.error('فشل في جلب الخدمات');
-    }
-  };
-
-  const fetchRequests = async () => {
-    setIsLoading(true);
-    try {
-      const data = await api.getUserManualRequests();
-      setRequests(data);
-    } catch (error) {
-      console.error('Error fetching manual requests:', error);
-      toast.error('فشل في جلب الطلبات');
+      console.error('Failed to fetch data:', error);
+      toast.error('فشل في تحميل البيانات');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleCreateRequest = async (serviceId: string) => {
+  const handleRequestService = (service: ManualService) => {
+    setSelectedService(service);
+    setNotes('');
+    setIsRequestDialogOpen(true);
+  };
+
+  const handleSubmitRequest = async () => {
+    if (!selectedService) return;
+    
     try {
-      const requestData = {
-        serviceId: serviceId,
-        notes: message
-      };
+      await api.createManualRequest({
+        serviceId: selectedService.id,
+        notes
+      });
       
-      const response = await api.createManualRequest(requestData);
-      
-      if (response) {
-        toast.success('تم إرسال طلبك بنجاح');
-        setMessage('');
-        // Refresh requests
-        fetchRequests();
-      }
+      toast.success('تم إرسال طلب التفعيل بنجاح');
+      setIsRequestDialogOpen(false);
+      fetchData();
     } catch (error) {
-      console.error('Error creating manual request:', error);
-      toast.error('فشل في إرسال الطلب');
+      console.error('Failed to submit request:', error);
+      toast.error('فشل في إرسال طلب التفعيل');
     }
   };
 
-  const handleConfirmServiceReceived = async (id: string) => {
+  const handleConfirmReceived = (requestId: string) => {
+    setConfirmRequestId(requestId);
+    setIsConfirmDialogOpen(true);
+  };
+
+  const confirmReceived = async () => {
     try {
-      await api.respondToManualRequest(id, { status: 'completed' });
+      await api.respondToManualRequest(confirmRequestId, { status: 'completed' });
       toast.success('تم تأكيد استلام الخدمة بنجاح');
-      // Refresh requests
-      fetchRequests();
+      setIsConfirmDialogOpen(false);
+      fetchData();
     } catch (error) {
-      console.error('Error confirming service receipt:', error);
+      console.error('Failed to confirm request:', error);
       toast.error('فشل في تأكيد استلام الخدمة');
     }
   };
 
-  const handleDeleteRequest = async (id: string) => {
-    try {
-      await api.deleteManualRequest(id);
-      toast.success('تم حذف الطلب بنجاح');
-      // Refresh requests
-      fetchRequests();
-    } catch (error) {
-      console.error('Error deleting manual request:', error);
-      toast.error('فشل في حذف الطلب');
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="outline">قيد الانتظار</Badge>;
+      case 'processing':
+        return <Badge variant="secondary">قيد المعالجة</Badge>;
+      case 'completed':
+        return <Badge variant="default">مكتمل</Badge>;
+      case 'cancelled':
+        return <Badge variant="destructive">ملغي</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string, variant: "default" | "secondary" | "destructive" | "outline" | "success" | "link" | "ghost" }> = {
-      'pending': { label: 'قيد الانتظار', variant: 'secondary' },
-      'processing': { label: 'قيد المعالجة', variant: 'default' },
-      'completed': { label: 'مكتمل', variant: 'success' },
-      'cancelled': { label: 'ملغي', variant: 'destructive' }
-    };
-    const statusInfo = statusMap[status] || { label: status, variant: 'secondary' };
-    
-    return (
-      <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
-    );
-  };
-
-  const columns: ColumnDef<ManualRequest>[] = [
-    {
-      accessorKey: 'serviceName',
-      header: 'الخدمة',
-    },
-    {
-      accessorKey: 'status',
-      header: 'الحالة',
-      cell: ({ row }) => getStatusBadge(row.original.status)
-    },
-    {
-      accessorKey: 'notes',
-      header: 'التفاصيل',
-    },
-    {
-      accessorKey: 'adminResponse',
-      header: 'رد المشرف',
-    },
-    {
-      accessorKey: 'verificationCode',
-      header: 'رمز التحقق',
-    },
-    {
-      accessorKey: 'createdAt',
-      header: 'تاريخ الإنشاء',
-      cell: ({ row }) => new Date(row.original.createdAt).toLocaleString(),
-    },
-    {
-      id: 'actions',
-      header: 'الإجراءات',
-      cell: ({ row }) => (
-        <div className="flex gap-2">
-          {row.original.status === 'processing' && row.original.verificationCode && (
-            <Button 
-              variant="success" 
-              size="sm" 
-              className="bg-green-500 hover:bg-green-600"
-              onClick={() => handleConfirmServiceReceived(row.original.id)}
-            >
-              <Check className="w-4 h-4 mr-1" /> تم استلام الخدمة
-            </Button>
-          )}
-          <Button 
-            variant="destructive" 
-            size="sm" 
-            onClick={() => handleDeleteRequest(row.original.id)}
-          >
-            حذف
-          </Button>
-        </div>
-      ),
-    },
-  ];
+  if (loading) {
+    return <div className="flex justify-center items-center min-h-[60vh]">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
+    </div>;
+  }
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">طلب تفعيل يدوي</h1>
-        
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>معلومات الطلب</CardTitle>
-            <CardDescription>أدخل أي معلومات إضافية للتفعيل اليدوي (اختياري)</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="message" className="flex items-center">
-                <MessageSquare className="w-4 h-4 mr-2" /> رسالة إضافية (اختياري)
-              </Label>
-              <Textarea
-                id="message"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="أدخل أي معلومات إضافية هنا..."
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <h2 className="text-xl font-bold">اختر خدمة</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {manualServices.map((service) => (
-            <Card key={service.id} className={!service.available ? 'opacity-60' : ''}>
-              <CardHeader>
-                <CardTitle>{service.name}</CardTitle>
-                <CardDescription>{service.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-xl font-bold text-green-600 mt-2">
-                  {service.price} $
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">خدمات التفعيل اليدوي</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {services.map((service) => (
+          <Card key={service.id} className="overflow-hidden">
+            <CardHeader>
+              <CardTitle>{service.name}</CardTitle>
+              <CardDescription>{service.description}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-lg font-semibold">{service.price} $</p>
+            </CardContent>
+            <CardFooter className="bg-muted/20 flex justify-end">
+              <Button onClick={() => handleRequestService(service)}>طلب الخدمة</Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+      
+      {services.length === 0 && (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">لا توجد خدمات متاحة حالياً</p>
+        </div>
+      )}
+      
+      <h2 className="text-xl font-bold mt-8">طلباتي السابقة</h2>
+      
+      <div className="space-y-4">
+        {requests.map((request) => (
+          <Card key={request.id} className="overflow-hidden">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>{request.serviceName}</CardTitle>
+                  <CardDescription className="mt-1">
+                    تاريخ الطلب: {new Date(request.createdAt).toLocaleDateString('ar-SA')}
+                  </CardDescription>
                 </div>
-                {!service.available && (
-                  <Badge variant="destructive" className="mt-2">غير متاح حالياً</Badge>
+                {getStatusBadge(request.status)}
+              </div>
+            </CardHeader>
+            
+            {request.notes && (
+              <CardContent>
+                <p><strong>ملاحظاتك:</strong> {request.notes}</p>
+              </CardContent>
+            )}
+            
+            {request.adminResponse && (
+              <CardContent className="border-t pt-4">
+                <p><strong>رد المدير:</strong> {request.adminResponse}</p>
+                
+                {request.verificationCode && (
+                  <p className="mt-2"><strong>كود التفعيل:</strong> <span className="bg-muted p-1 rounded">{request.verificationCode}</span></p>
                 )}
               </CardContent>
-              <CardFooter>
-                <Button 
-                  onClick={() => handleCreateRequest(service.id)} 
-                  disabled={!service.available}
-                  className="w-full"
-                >
-                  طلب الخدمة
+            )}
+            
+            <CardFooter className="bg-muted/20 flex justify-end">
+              {request.status === 'processing' && request.verificationCode && (
+                <Button onClick={() => handleConfirmReceived(request.id)}>
+                  تم استلام الخدمة
                 </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-
-        <div className="mt-10">
-          <h2 className="text-2xl font-bold mb-4">طلبات التفعيل اليدوية</h2>
-          <Card className="overflow-hidden">
-            <DataTable 
-              columns={columns} 
-              data={requests} 
-              loading={isLoading} 
-              onRefresh={fetchRequests}
-            />
+              )}
+            </CardFooter>
           </Card>
-        </div>
+        ))}
+        
+        {requests.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">لا توجد طلبات سابقة</p>
+          </div>
+        )}
       </div>
+      
+      {/* Request Service Dialog */}
+      <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>طلب خدمة {selectedService?.name}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="notes">ملاحظات إضافية (اختياري)</Label>
+              <Textarea 
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="أضف أي ملاحظات تريد إرسالها مع الطلب"
+              />
+            </div>
+            
+            <div className="font-medium">
+              <p>سعر الخدمة: {selectedService?.price} $</p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRequestDialogOpen(false)}>إلغاء</Button>
+            <Button onClick={handleSubmitRequest}>تأكيد الطلب</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Confirm Received Dialog */}
+      <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>تأكيد استلام الخدمة</DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <p>هل أنت متأكد من أنك تريد تأكيد استلام هذه الخدمة؟</p>
+            <p className="text-muted-foreground text-sm mt-2">
+              بعد التأكيد، سيتم إغلاق الطلب وتحديثه كمكتمل.
+            </p>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)}>إلغاء</Button>
+            <Button onClick={confirmReceived}>تأكيد الاستلام</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-  );
-};
-
-// Add Label component missing in the original code
-const Label: React.FC<{
-  htmlFor?: string;
-  className?: string;
-  children: React.ReactNode;
-}> = ({ htmlFor, className, children }) => {
-  return (
-    <label
-      htmlFor={htmlFor}
-      className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${className}`}
-    >
-      {children}
-    </label>
   );
 };
 

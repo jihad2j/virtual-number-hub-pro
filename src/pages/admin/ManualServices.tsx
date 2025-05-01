@@ -1,121 +1,194 @@
+
 import React, { useState, useEffect } from 'react';
-import { DataTable } from '@/components/ui/data-table';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
-
-interface ManualService {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  isActive: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
+import { Edit, Trash, Plus } from 'lucide-react';
+import { DataTable } from '@/components/ui/data-table';
+import { ColumnDef } from '@tanstack/react-table';
+import { ManualService } from '@/types/ManualService';
 
 const ManualServices = () => {
-  const [manualServices, setManualServices] = useState<ManualService[]>([]);
+  const [services, setServices] = useState<ManualService[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [newService, setNewService] = useState({
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [currentService, setCurrentService] = useState<ManualService | null>(null);
+  const [formValues, setFormValues] = useState({
     name: '',
-    price: 0,
     description: '',
+    price: 0,
     isActive: true,
   });
 
   useEffect(() => {
-    fetchManualServices();
+    fetchServices();
   }, []);
 
-  const fetchManualServices = async () => {
+  const fetchServices = async () => {
     setIsLoading(true);
     try {
       const data = await api.getAllManualServices();
-      setManualServices(data);
+      // Convert data to match our updated ManualService type
+      const convertedData = data.map(service => ({
+        ...service,
+        isActive: service.isActive ?? service.available ?? true
+      }));
+      setServices(convertedData);
     } catch (error) {
-      console.error('Failed to fetch manual services', error);
-      toast.error('فشل في جلب الخدمات اليدوية');
+      console.error('Failed to fetch services', error);
+      toast.error('فشل في جلب قائمة الخدمات');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCreateService = async () => {
+  const handleAddService = async () => {
+    if (!formValues.name || !formValues.description || formValues.price <= 0) {
+      toast.error('يرجى ملء جميع الحقول المطلوبة');
+      return;
+    }
+
     try {
-      const response = await api.createManualService(newService);
+      const serviceToAdd = {
+        name: formValues.name,
+        description: formValues.description,
+        price: formValues.price,
+        available: true, // Set available to true to match the required property
+        isActive: formValues.isActive,
+      };
       
-      if (response) {
-        setManualServices([...manualServices, response]);
-        setNewService({
-          name: '',
-          price: 0,
-          description: '',
-          isActive: true,
-        });
-        setDialogOpen(false);
-        toast.success('تم إنشاء الخدمة بنجاح');
-      }
+      const addedService = await api.createManualService(serviceToAdd);
+      // Add isActive field to match our type
+      const updatedService = { ...addedService, isActive: addedService.isActive ?? addedService.available ?? true };
+      setServices([...services, updatedService]);
+      resetForm();
+      setIsAddDialogOpen(false);
+      toast.success(`تم إضافة الخدمة ${addedService.name} بنجاح`);
     } catch (error) {
-      console.error('Error creating service:', error);
-      toast.error('فشل في إنشاء الخدمة');
+      console.error('Failed to add service', error);
+      toast.error('فشل في إضافة الخدمة');
     }
   };
 
-  const handleUpdateService = async (id: string, data: Partial<ManualService>) => {
+  const handleEditService = async () => {
+    if (!currentService) return;
+    if (!formValues.name || !formValues.description || formValues.price <= 0) {
+      toast.error('يرجى ملء جميع الحقول المطلوبة');
+      return;
+    }
+
     try {
-      await api.updateManualService(id, data);
-      setManualServices(manualServices.map(service =>
-        service.id === id ? { ...service, ...data } : service
-      ));
-      toast.success('تم تحديث الخدمة بنجاح');
+      const serviceToUpdate = {
+        name: formValues.name,
+        description: formValues.description,
+        price: formValues.price,
+        available: true, // Set available to true to match the required property
+        isActive: formValues.isActive,
+      };
+      
+      const updatedService = await api.updateManualService(currentService.id, serviceToUpdate);
+      // Add isActive field to match our type
+      const convertedService = { ...updatedService, isActive: updatedService.isActive ?? updatedService.available ?? true };
+      setServices(services.map(service => service.id === currentService.id ? convertedService : service));
+      setIsEditDialogOpen(false);
+      toast.success(`تم تحديث الخدمة ${updatedService.name} بنجاح`);
     } catch (error) {
-      console.error('Failed to update manual service', error);
+      console.error('Failed to update service', error);
       toast.error('فشل في تحديث الخدمة');
     }
   };
 
   const handleDeleteService = async (id: string) => {
     if (!window.confirm('هل أنت متأكد من رغبتك في حذف هذه الخدمة؟')) return;
-
+    
     try {
       await api.deleteManualService(id);
-      setManualServices(manualServices.filter(service => service.id !== id));
+      setServices(services.filter(service => service.id !== id));
       toast.success('تم حذف الخدمة بنجاح');
     } catch (error) {
-      console.error('Failed to delete manual service', error);
+      console.error('Failed to delete service', error);
       toast.error('فشل في حذف الخدمة');
     }
   };
 
-  const columns = [
+  const handleToggleActive = async (id: string, isActive: boolean) => {
+    try {
+      const serviceToUpdate = services.find(service => service.id === id);
+      if (!serviceToUpdate) return;
+      
+      const updatedService = await api.updateManualService(id, { 
+        isActive, 
+        available: isActive // Update both fields to ensure compatibility
+      });
+      
+      // Add isActive field to match our type
+      const convertedService = { ...updatedService, isActive: updatedService.isActive ?? updatedService.available ?? true };
+      setServices(services.map(service => service.id === id ? convertedService : service));
+      toast.success(`تم ${isActive ? 'تنشيط' : 'تعطيل'} الخدمة بنجاح`);
+    } catch (error) {
+      console.error('Failed to update service status', error);
+      toast.error('فشل في تحديث حالة الخدمة');
+    }
+  };
+
+  const openEditDialog = (service: ManualService) => {
+    setCurrentService(service);
+    setFormValues({
+      name: service.name,
+      description: service.description,
+      price: service.price,
+      isActive: service.isActive ?? service.available ?? true,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const resetForm = () => {
+    setFormValues({
+      name: '',
+      description: '',
+      price: 0,
+      isActive: true,
+    });
+    setCurrentService(null);
+  };
+
+  const columns: ColumnDef<ManualService>[] = [
     {
       accessorKey: 'name',
       header: 'اسم الخدمة',
     },
     {
-      accessorKey: 'price',
-      header: 'السعر',
-    },
-    {
       accessorKey: 'description',
       header: 'الوصف',
+      cell: ({ row }) => (
+        <div className="max-w-[300px] truncate">
+          {row.original.description}
+        </div>
+      )
+    },
+    {
+      accessorKey: 'price',
+      header: 'السعر',
+      cell: ({ row }) => (
+        <div className="font-medium">
+          {row.original.price} $
+        </div>
+      )
     },
     {
       accessorKey: 'isActive',
-      header: 'مفعلة',
+      header: 'نشطة',
       cell: ({ row }) => (
-        <Switch
-          checked={row.original.isActive}
-          onCheckedChange={(checked) =>
-            handleUpdateService(row.original.id, { isActive: checked })
-          }
+        <Switch 
+          checked={row.original.isActive ?? row.original.available ?? true} 
+          onCheckedChange={(checked) => handleToggleActive(row.original.id, checked)}
         />
       )
     },
@@ -123,13 +196,22 @@ const ManualServices = () => {
       id: 'actions',
       header: 'الإجراءات',
       cell: ({ row }) => (
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={() => handleDeleteService(row.original.id)}
-        >
-          حذف
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => openEditDialog(row.original)}
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="destructive" 
+            size="sm"
+            onClick={() => handleDeleteService(row.original.id)}
+          >
+            <Trash className="h-4 w-4" />
+          </Button>
+        </div>
       )
     }
   ];
@@ -137,64 +219,124 @@ const ManualServices = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">إدارة الخدمات اليدوية</h1>
-        <Button onClick={() => setDialogOpen(true)}>إضافة خدمة جديدة</Button>
+        <h1 className="text-2xl font-bold">إدارة خدمات التفعيل اليدوي</h1>
+        <Button onClick={() => {
+          resetForm();
+          setIsAddDialogOpen(true);
+        }}>
+          <Plus className="h-4 w-4 mr-1" /> إضافة خدمة
+        </Button>
       </div>
-
+      
       <Card className="overflow-hidden">
-        <DataTable
-          columns={columns}
-          data={manualServices}
-          loading={isLoading}
-          onRefresh={fetchManualServices}
+        <DataTable 
+          columns={columns} 
+          data={services} 
+          loading={isLoading} 
+          onRefresh={fetchServices}
         />
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* Add Service Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>إضافة خدمة يدوية جديدة</DialogTitle>
+            <DialogTitle>إضافة خدمة جديدة</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">اسم الخدمة</Label>
-              <Input
+              <Input 
                 id="name"
-                value={newService.name}
-                onChange={(e) => setNewService({ ...newService, name: e.target.value })}
+                value={formValues.name}
+                onChange={(e) => setFormValues({...formValues, name: e.target.value})}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="price">السعر</Label>
-              <Input
+              <Label htmlFor="description">وصف الخدمة</Label>
+              <Textarea 
+                id="description"
+                value={formValues.description}
+                onChange={(e) => setFormValues({...formValues, description: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="price">السعر (بالدولار)</Label>
+              <Input 
                 id="price"
                 type="number"
-                value={newService.price}
-                onChange={(e) => setNewService({ ...newService, price: parseFloat(e.target.value) })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">الوصف</Label>
-              <Input
-                id="description"
-                value={newService.description}
-                onChange={(e) => setNewService({ ...newService, description: e.target.value })}
+                min="0"
+                step="0.01"
+                value={formValues.price}
+                onChange={(e) => setFormValues({...formValues, price: parseFloat(e.target.value) || 0})}
               />
             </div>
             <div className="flex items-center space-x-2">
-              <Switch
+              <Switch 
                 id="isActive"
-                checked={newService.isActive}
-                onCheckedChange={(checked) => setNewService({ ...newService, isActive: checked })}
+                checked={formValues.isActive}
+                onCheckedChange={(checked) => setFormValues({...formValues, isActive: checked})}
               />
-              <Label htmlFor="isActive">مفعلة</Label>
+              <Label htmlFor="isActive">نشطة</Label>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>إلغاء</Button>
-            <Button onClick={handleCreateService}>إضافة</Button>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>إلغاء</Button>
+            <Button onClick={handleAddService}>إضافة</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Service Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>تعديل الخدمة</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">اسم الخدمة</Label>
+              <Input 
+                id="edit-name"
+                value={formValues.name}
+                onChange={(e) => setFormValues({...formValues, name: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">وصف الخدمة</Label>
+              <Textarea 
+                id="edit-description"
+                value={formValues.description}
+                onChange={(e) => setFormValues({...formValues, description: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-price">السعر (بالدولار)</Label>
+              <Input 
+                id="edit-price"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formValues.price}
+                onChange={(e) => setFormValues({...formValues, price: parseFloat(e.target.value) || 0})}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch 
+                id="edit-isActive"
+                checked={formValues.isActive}
+                onCheckedChange={(checked) => setFormValues({...formValues, isActive: checked})}
+              />
+              <Label htmlFor="edit-isActive">نشطة</Label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>إلغاء</Button>
+            <Button onClick={handleEditService}>حفظ التغييرات</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
