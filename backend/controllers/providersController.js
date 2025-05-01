@@ -182,3 +182,86 @@ exports.getProviderServices = catchAsync(async (req, res, next) => {
     return next(new AppError(`فشل في جلب الخدمات المتاحة: ${error.message}`, 400));
   }
 });
+
+// وظائف إضافية لشراء وإدارة الأرقام
+exports.purchaseNumber = catchAsync(async (req, res, next) => {
+  const { providerId, countryCode, service } = req.body;
+  
+  // البحث عن المزود مع استرجاع apiKey (محمي عادة)
+  const provider = await Provider.findById(providerId).select('+apiKey');
+  
+  if (!provider) {
+    return next(new AppError('لم يتم العثور على مزود خدمة بهذا المعرف', 404));
+  }
+  
+  // إنشاء كائن المزود المناسب باستخدام مصنع المزودين
+  const providerService = ProviderFactory.createProvider(provider);
+  
+  try {
+    const purchaseData = await providerService.purchaseNumber({
+      countryCode,
+      service
+    });
+    
+    // هنا يمكن تسجيل عملية الشراء في قاعدة البيانات
+    
+    res.status(200).json({
+      status: 'success',
+      data: purchaseData
+    });
+  } catch (error) {
+    return next(new AppError(`فشل في شراء الرقم: ${error.message}`, 400));
+  }
+});
+
+exports.checkNumberStatus = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const { providerId } = req.query;
+  
+  // البحث عن المزود مع استرجاع apiKey (محمي عادة)
+  const provider = await Provider.findById(providerId).select('+apiKey');
+  
+  if (!provider) {
+    return next(new AppError('لم يتم العثور على مزود خدمة بهذا المعرف', 404));
+  }
+  
+  // إنشاء كائن المزود المناسب باستخدام مصنع المزودين
+  const providerService = ProviderFactory.createProvider(provider);
+  
+  try {
+    const numberStatus = await providerService.checkNumber(id);
+    
+    res.status(200).json({
+      status: 'success',
+      data: numberStatus
+    });
+  } catch (error) {
+    return next(new AppError(`فشل في التحقق من حالة الرقم: ${error.message}`, 400));
+  }
+});
+
+exports.cancelNumber = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const { providerId } = req.body;
+  
+  // البحث عن المزود مع استرجاع apiKey (محمي عادة)
+  const provider = await Provider.findById(providerId).select('+apiKey');
+  
+  if (!provider) {
+    return next(new AppError('لم يتم العثور على مزود خدمة بهذا المعرف', 404));
+  }
+  
+  // إنشاء كائن المزود المناسب باستخدام مصنع المزودين
+  const providerService = ProviderFactory.createProvider(provider);
+  
+  try {
+    const cancelResult = await providerService.cancelNumber(id);
+    
+    res.status(200).json({
+      status: 'success',
+      success: cancelResult
+    });
+  } catch (error) {
+    return next(new AppError(`فشل في إلغاء الرقم: ${error.message}`, 400));
+  }
+});

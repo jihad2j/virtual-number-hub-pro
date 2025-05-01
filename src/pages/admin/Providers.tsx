@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { api, Provider } from '@/services/api';
+import { providerService } from '@/services/providerService';
 import { toast } from 'sonner';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -100,7 +101,7 @@ const Providers = () => {
   const testConnection = async (providerId: string) => {
     setTestingProvider(providerId);
     try {
-      const success = await api.testProviderConnection(providerId);
+      const success = await providerService.testConnection(providerId);
       
       setConnectionStatuses({
         ...connectionStatuses,
@@ -128,7 +129,7 @@ const Providers = () => {
 
   const fetchBalance = async (providerId: string) => {
     try {
-      const balanceData = await api.getProviderBalance(providerId);
+      const balanceData = await providerService.getBalance(providerId);
       setProviderBalances({
         ...providerBalances,
         [providerId]: balanceData

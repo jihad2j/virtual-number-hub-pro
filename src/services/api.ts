@@ -7,6 +7,7 @@ import { PhoneNumber } from '@/types/PhoneNumber';
 import { PrepaidCode } from '@/types/PrepaidCode';
 import { SupportTicket } from '@/types/SupportTicket';
 import { ManualService, ManualRequest, AdminManualRequest } from '@/types/ManualRequest';
+import { providerService } from '@/services/providerService';
 
 // Re-export types that other components need
 export type { User, Country, Provider, Transaction, PhoneNumber, PrepaidCode, SupportTicket, ManualService, ManualRequest };
@@ -146,27 +147,24 @@ export const api = {
     return response.data.data;
   },
 
+  // Provider functions now delegate to the providerService
   async testProviderConnection(providerId: string): Promise<boolean> {
-    const response = await apiClient.get(`/providers/${providerId}/test-connection`);
-    return response.data.connected;
+    return providerService.testConnection(providerId);
   },
 
   async getProviderBalance(providerId: string): Promise<{ balance: number; currency: string }> {
-    const response = await apiClient.get(`/providers/${providerId}/balance`);
-    return response.data.data;
+    return providerService.getBalance(providerId);
   },
 
   async getProviderCountries(providerId: string): Promise<any[]> {
-    const response = await apiClient.get(`/providers/${providerId}/countries`);
-    return response.data.data;
+    return providerService.getCountries(providerId);
   },
 
   async getProviderServices(providerId: string, countryCode: string): Promise<any[]> {
-    const response = await apiClient.get(`/providers/${providerId}/services/${countryCode}`);
-    return response.data.data;
+    return providerService.getServices(providerId, countryCode);
   },
 
-  // Phone Numbers
+  // Phone Numbers - delegate to providerService for provider-specific actions
   async getAllPhoneNumbers(): Promise<PhoneNumber[]> {
     const response = await apiClient.get('/numbers');
     return response.data.data;
@@ -178,18 +176,15 @@ export const api = {
   },
 
   async purchasePhoneNumber(providerId: string, countryCode: string, service: string): Promise<PhoneNumber> {
-    const response = await apiClient.post('/numbers/purchase', { providerId, countryCode, service });
-    return response.data.data;
+    return providerService.purchaseNumber(providerId, countryCode, service);
   },
 
   async checkPhoneNumber(id: string): Promise<PhoneNumber> {
-    const response = await apiClient.get(`/numbers/${id}/check`);
-    return response.data.data;
+    return providerService.checkNumber(id);
   },
 
   async cancelPhoneNumber(id: string): Promise<boolean> {
-    const response = await apiClient.post(`/numbers/${id}/cancel`);
-    return response.data.success;
+    return providerService.cancelNumber(id);
   },
 
   // Transactions

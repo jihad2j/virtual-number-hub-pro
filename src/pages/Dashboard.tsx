@@ -1,23 +1,52 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 import { DollarSign, Phone, Globe, ShoppingCart, AlertCircle, RefreshCw } from 'lucide-react';
-import { fiveSimApi, FiveSimCountry, FiveSimProduct, FiveSimPhoneNumber } from '@/services/fiveSimService';
+import { providerService } from '@/services/providerService';
+import { api } from '@/services/api';
+import { PhoneNumber } from '@/types/PhoneNumber';
+
+interface Country {
+  id: number;
+  name: string;
+  iso: string;
+  prefix: string;
+}
+
+interface Product {
+  category?: string;
+  price: number;
+  count: number;
+}
+
+interface UserProfile {
+  id?: number;
+  email?: string;
+  balance: number;
+  rating?: number;
+  default_country?: {
+    name: string;
+    iso: string;
+    prefix: string;
+  };
+}
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
+  // Provider ID - in a real app this might come from user settings or be configurable
+  const providerId = '5sim'; // This would be the actual ID from the database
+  
   // States
-  const [countries, setCountries] = useState<FiveSimCountry[]>([]);
-  const [selectedCountry, setSelectedCountry] = useState<FiveSimCountry | null>(null);
-  const [products, setProducts] = useState<Record<string, FiveSimProduct>>({});
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
+  const [products, setProducts] = useState<Record<string, Product>>({});
   const [balance, setBalance] = useState<number | null>(null);
-  const [purchasedNumber, setPurchasedNumber] = useState<FiveSimPhoneNumber | null>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [purchasedNumber, setPurchasedNumber] = useState<PhoneNumber | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   
   // Loading states
   const [isLoadingCountries, setIsLoadingCountries] = useState(false);
@@ -40,13 +69,13 @@ const Dashboard = () => {
     fetchUserProfile();
   }, []);
 
-  // Fetch countries from 5Sim API
+  // Fetch countries from provider API via backend
   const fetchCountries = async () => {
     setIsLoadingCountries(true);
     setCountriesError(null);
     
     try {
-      const countriesData = await fiveSimApi.getCountries();
+      const countriesData = await providerService.getCountries(providerId);
       setCountries(countriesData);
     } catch (error) {
       console.error('Failed to fetch countries', error);
@@ -61,13 +90,13 @@ const Dashboard = () => {
     }
   };
 
-  // Fetch balance from 5Sim API
+  // Fetch balance from provider API via backend
   const fetchBalance = async () => {
     setIsLoadingBalance(true);
     setBalanceError(null);
     
     try {
-      const balanceData = await fiveSimApi.getBalance();
+      const balanceData = await providerService.getBalance(providerId);
       setBalance(balanceData.balance);
     } catch (error) {
       console.error('Failed to fetch balance', error);
@@ -77,15 +106,19 @@ const Dashboard = () => {
     }
   };
   
-  // Fetch user profile from 5Sim API
+  // Fetch user profile - we'll use a simplified version since the provider service
+  // doesn't have a direct method for this - in a real app, we might add one
   const fetchUserProfile = async () => {
     setIsLoadingProfile(true);
     setProfileError(null);
     
     try {
-      const profileData = await fiveSimApi.getProfile();
-      setUserProfile(profileData);
-      setBalance(profileData.balance); // Update balance from profile data
+      // Use the balance as a basic profile for now
+      const balanceData = await providerService.getBalance(providerId);
+      setUserProfile({
+        balance: balanceData.balance,
+        email: user?.email || ""
+      });
     } catch (error) {
       console.error('Failed to fetch user profile', error);
       setProfileError('فشل في جلب بيانات المستخدم، يرجى المحاولة مرة أخرى.');
@@ -121,7 +154,7 @@ const Dashboard = () => {
   };
 
   // Handle country selection
-  const handleSelectCountry = async (country: FiveSimCountry) => {
+  const handleSelectCountry = async (country: Country) => {
     setSelectedCountry(country);
     fetchProducts(country.iso);
   };
@@ -132,7 +165,7 @@ const Dashboard = () => {
     setProductsError(null);
     
     try {
-      const productsData = await fiveSimApi.getProducts(countryCode);
+      const productsData = await providerService.getServices(providerId, countryCode);
       setProducts(productsData);
     } catch (error) {
       console.error(`Failed to fetch products for ${countryCode}`, error);
@@ -152,11 +185,11 @@ const Dashboard = () => {
     setIsPurchasing(product);
     
     try {
-      const phoneNumber = await fiveSimApi.purchaseNumber(country, "any", product);
+      const phoneNumber = await providerService.purchaseNumber(providerId, country, product);
       setPurchasedNumber(phoneNumber);
       toast({
         title: "تم الشراء بنجاح",
-        description: `تم شراء الرقم ${phoneNumber.phone} بنجاح.`,
+        description: `تم شراء الرقم ${phoneNumber.number} بنجاح.`,
         variant: "default"
       });
       
@@ -175,9 +208,9 @@ const Dashboard = () => {
   };
   
   // Check number for updates
-  const checkNumber = async (id: number) => {
+  const checkNumber = async (id: string) => {
     try {
-      const updatedNumber = await fiveSimApi.checkNumber(id);
+      const updatedNumber = await providerService.checkNumber(id);
       setPurchasedNumber(updatedNumber);
       return updatedNumber;
     } catch (error) {
@@ -272,22 +305,26 @@ const Dashboard = () => {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>معلومات الحساب</CardTitle>
-            <CardDescription>بيانات حساب 5sim</CardDescription>
+            <CardDescription>بيانات حساب المزود</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <p className="text-sm text-gray-500">البريد الإلكتروني</p>
-                <p className="font-bold">{userProfile.email}</p>
-              </div>
+              {userProfile.email && (
+                <div>
+                  <p className="text-sm text-gray-500">البريد الإلكتروني</p>
+                  <p className="font-bold">{userProfile.email}</p>
+                </div>
+              )}
               <div>
                 <p className="text-sm text-gray-500">الرصيد</p>
                 <p className="font-bold">{userProfile.balance.toFixed(2)} RUB</p>
               </div>
-              <div>
-                <p className="text-sm text-gray-500">التقييم</p>
-                <p className="font-bold">{userProfile.rating} / 96</p>
-              </div>
+              {userProfile.rating !== undefined && (
+                <div>
+                  <p className="text-sm text-gray-500">التقييم</p>
+                  <p className="font-bold">{userProfile.rating} / 96</p>
+                </div>
+              )}
               {userProfile.default_country && (
                 <div>
                   <p className="text-sm text-gray-500">الدولة الافتراضية</p>
@@ -413,27 +450,19 @@ const Dashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">الرقم</p>
-                  <p className="font-bold text-xl">{purchasedNumber.phone}</p>
+                  <p className="font-bold text-xl">{purchasedNumber.number}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">البلد</p>
-                  <p className="font-bold">{purchasedNumber.country}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">المشغل</p>
-                  <p className="font-bold">{purchasedNumber.operator}</p>
+                  <p className="font-bold">{purchasedNumber.countryName || purchasedNumber.countryId}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">الخدمة</p>
-                  <p className="font-bold">{purchasedNumber.product}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">السعر</p>
-                  <p className="font-bold">{purchasedNumber.price} RUB</p>
+                  <p className="font-bold">{purchasedNumber.service}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">تاريخ الشراء</p>
-                  <p className="font-bold">{new Date(purchasedNumber.created_at).toLocaleString()}</p>
+                  <p className="font-bold">{new Date(purchasedNumber.createdAt).toLocaleString()}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">الحالة</p>
@@ -441,24 +470,15 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">تاريخ الانتهاء</p>
-                  <p className="font-bold">{new Date(purchasedNumber.expires).toLocaleString()}</p>
+                  <p className="font-bold">{new Date(purchasedNumber.expiresAt).toLocaleString()}</p>
                 </div>
               </div>
               
               <div className="mt-4 space-y-2">
                 <p className="font-bold">الرسائل المستلمة</p>
-                {purchasedNumber.sms && purchasedNumber.sms.length > 0 ? (
-                  <div className="space-y-2">
-                    {purchasedNumber.sms.map((sms, index) => (
-                      <div key={index} className="border p-3 rounded-lg">
-                        <p className="font-medium">{sms.sender}</p>
-                        <p>{sms.text}</p>
-                        {sms.code && <p className="font-bold text-green-600">الكود: {sms.code}</p>}
-                        <p className="text-xs text-gray-500">
-                          {new Date(sms.created_at).toLocaleString()}
-                        </p>
-                      </div>
-                    ))}
+                {purchasedNumber.smsCode ? (
+                  <div className="border p-3 rounded-lg">
+                    <p className="font-bold text-green-600">الكود: {purchasedNumber.smsCode}</p>
                   </div>
                 ) : (
                   <p className="text-gray-500">لم يتم استلام أي رسائل بعد</p>
@@ -470,7 +490,7 @@ const Dashboard = () => {
                   variant="outline" 
                   onClick={async () => {
                     try {
-                      await fiveSimApi.cancelNumber(purchasedNumber.id);
+                      await providerService.cancelNumber(purchasedNumber.id);
                       setPurchasedNumber(null);
                       toast({
                         title: "تم الإلغاء",
@@ -489,52 +509,9 @@ const Dashboard = () => {
                   إلغاء الرقم
                 </Button>
                 <Button 
-                  variant="outline"
                   onClick={async () => {
                     try {
-                      await fiveSimApi.banNumber(purchasedNumber.id);
-                      setPurchasedNumber(null);
-                      toast({
-                        title: "تم الحظر",
-                        description: "تم حظر الرقم بنجاح",
-                      });
-                      fetchBalance();
-                    } catch (error) {
-                      toast({
-                        title: "خطأ",
-                        description: "فشل في حظر الرقم",
-                        variant: "destructive"
-                      });
-                    }
-                  }}
-                >
-                  حظر الرقم
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      await fiveSimApi.finishNumber(purchasedNumber.id);
-                      const updated = await checkNumber(purchasedNumber.id);
-                      toast({
-                        title: "تم الانهاء",
-                        description: "تم انهاء الطلب بنجاح",
-                      });
-                    } catch (error) {
-                      toast({
-                        title: "خطأ",
-                        description: "فشل في انهاء الطلب",
-                        variant: "destructive"
-                      });
-                    }
-                  }}
-                >
-                  انهاء الطلب
-                </Button>
-                <Button 
-                  onClick={async () => {
-                    try {
-                      const updatedNumber = await fiveSimApi.checkNumber(purchasedNumber.id);
+                      const updatedNumber = await providerService.checkNumber(purchasedNumber.id);
                       setPurchasedNumber(updatedNumber);
                       toast({
                         title: "تم التحديث",

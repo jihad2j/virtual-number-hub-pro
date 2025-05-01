@@ -4,16 +4,17 @@ const numbersController = require('../controllers/numbersController');
 const authController = require('../controllers/authController');
 const router = express.Router();
 
-// المسارات المحمية للمستخدمين المسجلين
+// جميع المسارات محمية للمستخدمين المسجلين
 router.use(authController.protect);
-router.get('/country/:countryId', numbersController.getNumbersByCountry);
-router.post('/purchase/:numberId', numbersController.purchaseNumber);
-router.get('/user', numbersController.getUserNumbers);
 
-// المسارات المحمية للمشرفين فقط
+// مسارات المستخدمين
+router.get('/my', numbersController.getUserNumbers);
+router.post('/purchase', numbersController.purchaseNumber);
+router.get('/:id/check', numbersController.checkNumber);
+router.post('/:id/cancel', numbersController.cancelNumber);
+
+// مسارات المشرفين
 router.use(authController.restrictTo('admin'));
-router.post('/', numbersController.createNumber);
-router.put('/:id', numbersController.updateNumber);
-router.delete('/:id', numbersController.deleteNumber);
+router.get('/', numbersController.getAllNumbers);
 
 module.exports = router;
