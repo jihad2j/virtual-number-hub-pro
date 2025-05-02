@@ -104,7 +104,10 @@ const Countries = () => {
     setSelectedCountry(country);
     // Find providers that have this country in their countries array
     const countryProviders = providers.filter(provider => 
-      provider.countries?.some(c => c === country.id || (typeof c === 'object' && c.id === country.id))
+      provider.countries?.some(c => {
+        if (c === null) return false;
+        return typeof c === 'string' ? c === country.id : c.id === country.id;
+      })
     );
     setSelectedProviders(countryProviders.map(p => p.id));
     setProviderDialogOpen(true);
@@ -118,7 +121,7 @@ const Countries = () => {
       for (const provider of providers) {
         const hasCountry = selectedProviders.includes(provider.id);
         const currentCountries = Array.isArray(provider.countries) 
-          ? provider.countries.map(c => typeof c === 'object' ? c.id : c)
+          ? provider.countries.filter(c => c !== null).map(c => typeof c === 'string' ? c : c.id)
           : [];
         
         if (hasCountry && !currentCountries.includes(selectedCountry.id)) {

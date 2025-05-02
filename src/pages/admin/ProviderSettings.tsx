@@ -290,7 +290,9 @@ const ProviderSettings: React.FC = () => {
     setSelectedProvider(provider);
     // Get ids of countries that are associated with this provider
     const providerCountryIds = Array.isArray(provider.countries) 
-      ? provider.countries.map(c => typeof c === 'object' ? c.id : c) 
+      ? provider.countries
+          .filter(c => c !== null) // Filter out null values
+          .map(c => typeof c === 'string' ? c : c.id) 
       : [];
     setSelectedCountries(providerCountryIds);
     setCountryDialogOpen(true);
@@ -352,7 +354,9 @@ const ProviderSettings: React.FC = () => {
 
           // Get country objects for this provider
           const providerCountryIds = Array.isArray(provider.countries) 
-            ? provider.countries.map(c => typeof c === 'object' ? c.id : c) 
+            ? provider.countries
+                .filter(c => c !== null) // Filter out null values
+                .map(c => typeof c === 'string' ? c : c.id) 
             : [];
           const providerCountries = countries.filter(country => 
             providerCountryIds.includes(country.id)
