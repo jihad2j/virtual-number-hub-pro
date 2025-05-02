@@ -18,6 +18,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 
+// Define a type for the country reference in provider.countries
+type CountryRef = string | Country | null;
+
 const providerDefaults: Record<ProviderCode, {
   name: string;
   description: string;
@@ -291,8 +294,8 @@ const ProviderSettings: React.FC = () => {
     // Get ids of countries that are associated with this provider
     const providerCountryIds = Array.isArray(provider.countries) 
       ? provider.countries
-          .filter(c => c !== null) // Filter out null values
-          .map(c => typeof c === 'string' ? c : c.id) 
+          .filter((c: CountryRef): c is (string | Country) => c !== null) // Filter out null values
+          .map((c: string | Country) => typeof c === 'string' ? c : c.id)
       : [];
     setSelectedCountries(providerCountryIds);
     setCountryDialogOpen(true);
@@ -355,8 +358,8 @@ const ProviderSettings: React.FC = () => {
           // Get country objects for this provider
           const providerCountryIds = Array.isArray(provider.countries) 
             ? provider.countries
-                .filter(c => c !== null) // Filter out null values
-                .map(c => typeof c === 'string' ? c : c.id) 
+                .filter((c: CountryRef): c is (string | Country) => c !== null) // Filter out null values
+                .map((c: string | Country) => typeof c === 'string' ? c : c.id)
             : [];
           const providerCountries = countries.filter(country => 
             providerCountryIds.includes(country.id)

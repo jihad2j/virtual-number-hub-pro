@@ -13,6 +13,9 @@ import { Country } from '@/types/Country';
 import { Provider } from '@/types/Provider';
 import { Checkbox } from '@/components/ui/checkbox';
 
+// Define a type for the country reference in provider.countries
+type CountryRef = string | Country | null;
+
 const Countries = () => {
   const [countries, setCountries] = useState<Country[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -104,9 +107,10 @@ const Countries = () => {
     setSelectedCountry(country);
     // Find providers that have this country in their countries array
     const countryProviders = providers.filter(provider => 
-      provider.countries?.some(c => {
+      provider.countries?.some((c: CountryRef) => {
         if (c === null) return false;
-        return typeof c === 'string' ? c === country.id : c.id === country.id;
+        if (typeof c === 'string') return c === country.id;
+        return (c as Country).id === country.id;
       })
     );
     setSelectedProviders(countryProviders.map(p => p.id));
@@ -121,7 +125,9 @@ const Countries = () => {
       for (const provider of providers) {
         const hasCountry = selectedProviders.includes(provider.id);
         const currentCountries = Array.isArray(provider.countries) 
-          ? provider.countries.filter(c => c !== null).map(c => typeof c === 'string' ? c : c.id)
+          ? provider.countries
+              .filter((c: CountryRef): c is (string | Country) => c !== null)
+              .map((c: string | Country) => typeof c === 'string' ? c : c.id)
           : [];
         
         if (hasCountry && !currentCountries.includes(selectedCountry.id)) {
@@ -145,7 +151,7 @@ const Countries = () => {
       const updatedProviders = await api.getAllProviders();
       setProviders(updatedProviders);
     } catch (error) {
-      console.error('Failed to update provider countries', error);
+      console.error('Failed to update provider countries:', error);
       toast.error('فشل في تحديث مزودي الخدمة للدولة');
     }
   };
