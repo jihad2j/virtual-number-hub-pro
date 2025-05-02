@@ -11,6 +11,8 @@ export interface AuthUser {
   balance: number;
   isActive: boolean;
   createdAt: string;
+  name?: string;
+  avatar?: string;
 }
 
 export interface AuthContextType {
@@ -22,6 +24,7 @@ export interface AuthContextType {
   logout: () => void;
   loadingInitial: boolean;
   updateUserData: (userData: Partial<AuthUser>) => Promise<void>;
+  refreshUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -106,6 +109,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw error;
     }
   };
+  
+  const refreshUserData = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const currentUser = await api.getCurrentUser();
+      setUser(currentUser);
+    } catch (error) {
+      console.error('Failed to refresh user data:', error);
+      throw error;
+    }
+  };
 
   const value: AuthContextType = {
     user,
@@ -116,6 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     loadingInitial,
     updateUserData,
+    refreshUserData,
   };
 
   return (
