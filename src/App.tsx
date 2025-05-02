@@ -1,3 +1,4 @@
+
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { Toaster } from './components/ui/sonner';
@@ -21,6 +22,7 @@ import SystemSettings from './pages/SystemSettings';
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
 import ProviderSettings from './pages/admin/ProviderSettings';
+import ProviderBalances from './pages/admin/ProviderBalances';
 import AdminCountries from './pages/admin/Countries';
 import AdminUsers from './pages/admin/Users';
 import AdminManualServices from './pages/admin/ManualServices';
@@ -72,6 +74,11 @@ function App() {
           <Route path="admin/providers" element={
             <AdminRoute>
               <ProviderSettings />
+            </AdminRoute>
+          } />
+          <Route path="admin/provider-balances" element={
+            <AdminRoute>
+              <ProviderBalances />
             </AdminRoute>
           } />
           <Route path="admin/countries" element={

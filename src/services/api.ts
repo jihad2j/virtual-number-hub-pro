@@ -98,8 +98,8 @@ export const api = {
   },
 
   async getAvailableCountries(): Promise<Country[]> {
-    // This is an alias for getAllCountries to fix the type error
-    return this.getAllCountries();
+    const response = await apiClient.get('/countries/available');
+    return response.data.data;
   },
 
   async createCountry(data: Partial<Country>): Promise<Country> {
@@ -129,6 +129,11 @@ export const api = {
   // Providers
   async getAllProviders(): Promise<Provider[]> {
     const response = await apiClient.get('/providers');
+    return response.data.data;
+  },
+
+  async getAvailableProviders(): Promise<Provider[]> {
+    const response = await apiClient.get('/providers/available');
     return response.data.data;
   },
 
@@ -172,6 +177,18 @@ export const api = {
 
   async getProviderServices(providerId: string, countryCode: string): Promise<any[]> {
     return providerService.getServices(providerId, countryCode);
+  },
+
+  // New method for getting all providers' balances
+  async getAllProvidersBalances(): Promise<Array<{
+    id: string;
+    name: string;
+    code: string;
+    balance?: { balance: number; currency: string };
+    error?: string;
+  }>> {
+    const response = await apiClient.get('/providers/admin/all-balances');
+    return response.data.data;
   },
 
   // Phone Numbers - delegate to providerService for provider-specific actions

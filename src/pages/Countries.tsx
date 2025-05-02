@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { api, Country } from '@/services/api';
 import { Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Countries = () => {
   const [countries, setCountries] = useState<Country[]>([]);
@@ -17,7 +18,7 @@ const Countries = () => {
   const fetchCountries = async () => {
     setIsLoading(true);
     try {
-      console.log("Fetching countries for user view...");
+      console.log("Fetching available countries for user view...");
       const data = await api.getAvailableCountries();
       console.log("Fetched countries for user:", data);
       setCountries(Array.isArray(data) ? data : []);
@@ -40,7 +41,7 @@ const Countries = () => {
       <Card>
         <CardHeader>
           <CardTitle>الدول المتاحة</CardTitle>
-          <CardDescription>جميع الدول المتاحة على المنصة</CardDescription>
+          <CardDescription>جميع الدول المتاحة على المنصة لطلب الأرقام</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="relative mb-6">
@@ -64,13 +65,14 @@ const Countries = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {filteredCountries.map(country => (
-                <div 
+                <Link 
+                  to={`/dashboard/services/${country.code}`} 
                   key={country.id} 
                   className="border rounded-lg p-4 text-center card-hover bg-white hover:shadow-md transition-all cursor-pointer"
                 >
                   <div className="text-4xl mb-2">{country.flag}</div>
                   <h3 className="font-medium">{country.name}</h3>
-                </div>
+                </Link>
               ))}
             </div>
           )}
