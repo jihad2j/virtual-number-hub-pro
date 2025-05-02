@@ -1,10 +1,9 @@
 
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@/components/ui/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
-import { AuthProvider } from '@/contexts/AuthContext';
 
 // Layouts
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -32,6 +31,7 @@ import SystemSettings from '@/pages/SystemSettings';
 import ManualServices from '@/pages/admin/ManualServices';
 import ManualRequests from '@/pages/admin/ManualRequests';
 import AdminSupport from '@/pages/admin/Support';
+import PrepaidCodes from '@/pages/admin/PrepaidCodes';
 
 // New Page
 import ActiveProviders from '@/pages/dashboard/ActiveProviders';
@@ -78,6 +78,7 @@ function App() {
               <Route path="/dashboard/admin/manual-services" element={<ManualServices />} />
               <Route path="/dashboard/admin/manual-requests" element={<ManualRequests />} />
               <Route path="/dashboard/admin/support" element={<AdminSupport />} />
+              <Route path="/dashboard/admin/prepaid-codes" element={<PrepaidCodes />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

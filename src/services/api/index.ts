@@ -1,64 +1,69 @@
 
-// Re-export all API services
-export * from './authApi';
-export * from './userApi';
-export * from './countryApi';
-export * from './providerApi';
-export * from './phoneNumberApi';
-export * from './transactionApi';
-export * from './prepaidCodeApi';
-export * from './supportApi';
-export * from './manualServiceApi';
-export * from './adminApi';
-export * from './initApi';
-
-// Re-export types from the original api.ts
-import { User } from '@/types/User';
-import { Country } from '@/types/Country';
-import { Provider } from '@/types/Provider';
-import { Transaction } from '@/types/Transaction';
-import { PhoneNumber } from '@/types/PhoneNumber';
-import { PrepaidCode } from '@/types/PrepaidCode';
-import { SupportTicket } from '@/types/SupportTicket';
-import { ManualService, ManualRequest, AdminManualRequest } from '@/types/ManualRequest';
-
-export type {
-  User,
-  Country,
-  Provider,
-  Transaction,
-  PhoneNumber,
-  PrepaidCode,
-  SupportTicket,
-  ManualService,
-  ManualRequest,
-  AdminManualRequest
-};
-
-// Create a unified API object that contains all methods from individual API services
 import { authApi } from './authApi';
-import { userApi } from './userApi';
 import { countryApi } from './countryApi';
+import { numberApi } from './numberApi';
 import { providerApi } from './providerApi';
-import { phoneNumberApi } from './phoneNumberApi';
 import { transactionApi } from './transactionApi';
-import { prepaidCodeApi } from './prepaidCodeApi';
 import { supportApi } from './supportApi';
 import { manualServiceApi } from './manualServiceApi';
-import { adminApi } from './adminApi';
-import { initApi } from './initApi';
+import { prepaidCodeApi } from './prepaidCodeApi';
 
-// Combine all API services into one object for backward compatibility
+// Consolidate all API functions into one object
 export const api = {
-  ...authApi,
-  ...userApi,
-  ...countryApi,
-  ...providerApi,
-  ...phoneNumberApi,
-  ...transactionApi,
-  ...prepaidCodeApi,
-  ...supportApi,
-  ...manualServiceApi,
-  ...adminApi,
-  ...initApi
+  // Auth API
+  login: authApi.login,
+  logout: authApi.logout,
+  register: authApi.register,
+  getCurrentUser: authApi.getCurrentUser,
+  updateUser: authApi.updateUser,
+
+  // Country API
+  getCountries: countryApi.getCountries,
+  getCountryServices: countryApi.getCountryServices,
+
+  // Number API
+  getNumbersByCountry: numberApi.getNumbersByCountry,
+  getNumberByService: numberApi.getNumberByService,
+  getActiveNumbers: numberApi.getActiveNumbers,
+  checkActivationStatus: numberApi.checkActivationStatus,
+  cancelActivation: numberApi.cancelActivation,
+
+  // Provider API
+  getProviders: providerApi.getProviders,
+  updateProvider: providerApi.updateProvider,
+  createProvider: providerApi.createProvider,
+  deleteProvider: providerApi.deleteProvider,
+  getProviderBalance: providerApi.getProviderBalance,
+  getActiveProviders: providerApi.getActiveProviders,
+
+  // Transaction API
+  getAllTransactions: transactionApi.getAllTransactions,
+  getUserTransactions: transactionApi.getUserTransactions,
+  createDepositTransaction: transactionApi.createDepositTransaction,
+  giftBalance: transactionApi.giftBalance,
+
+  // Support API
+  createSupportTicket: supportApi.createSupportTicket,
+  getUserSupportTickets: supportApi.getUserSupportTickets,
+  getAllSupportTickets: supportApi.getAllSupportTickets,
+  replySupportTicket: supportApi.replySupportTicket,
+
+  // Manual Service API
+  getManualServices: manualServiceApi.getManualServices,
+  getAllManualServices: manualServiceApi.getAllManualServices,
+  getManualService: manualServiceApi.getManualService,
+  createManualService: manualServiceApi.createManualService,
+  updateManualService: manualServiceApi.updateManualService,
+  deleteManualService: manualServiceApi.deleteManualService,
+  getUserManualRequests: manualServiceApi.getUserManualRequests,
+  getAllManualRequests: manualServiceApi.getAllManualRequests,
+  createManualRequest: manualServiceApi.createManualRequest,
+  deleteManualRequest: manualServiceApi.deleteManualRequest,
+  respondToManualRequest: manualServiceApi.respondToManualRequest,
+
+  // Prepaid Code API
+  getAllPrepaidCodes: prepaidCodeApi.getAllPrepaidCodes,
+  generatePrepaidCodes: prepaidCodeApi.generatePrepaidCodes,
+  redeemPrepaidCode: prepaidCodeApi.redeemPrepaidCode,
+  deletePrepaidCode: prepaidCodeApi.deletePrepaidCode
 };
