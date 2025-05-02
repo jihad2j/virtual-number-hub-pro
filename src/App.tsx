@@ -1,9 +1,9 @@
-
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@/components/ui/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 // Layouts
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -48,41 +48,45 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" attribute="class">
-        <div className="app">
-          <Toaster />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route element={<DashboardLayout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/dashboard/orders" element={<MyOrders />} />
-              <Route path="/dashboard/balance" element={<Balance />} />
-              <Route path="/dashboard/profile" element={<Profile />} />
-              <Route path="/dashboard/settings" element={<Profile />} />
-              <Route path="/dashboard/support" element={<Support />} />
-              <Route path="/dashboard/countries" element={<Countries />} />
-              <Route path="/dashboard/services/:countryCode" element={<ManualActivation />} />
-              <Route path="/dashboard/active-providers" element={<ActiveProviders />} />
-              
-              {/* Admin Routes */}
-              <Route path="/dashboard/admin" element={<AdminDashboard />} />
-              <Route path="/dashboard/admin/countries" element={<AdminCountries />} />
-              <Route path="/dashboard/admin/users" element={<Users />} />
-              <Route path="/dashboard/admin/providers" element={<Providers />} />
-              <Route path="/dashboard/admin/providers/balances" element={<ProviderBalances />} />
-              <Route path="/dashboard/admin/settings" element={<SystemSettings />} />
-              <Route path="/dashboard/admin/manual-services" element={<ManualServices />} />
-              <Route path="/dashboard/admin/manual-requests" element={<ManualRequests />} />
-              <Route path="/dashboard/admin/support" element={<AdminSupport />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </div>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <ThemeProvider defaultTheme="light" attribute="class">
+            <div className="app">
+              <Toaster />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route element={<DashboardLayout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/dashboard/orders" element={<MyOrders />} />
+                  <Route path="/dashboard/balance" element={<Balance />} />
+                  <Route path="/dashboard/profile" element={<Profile />} />
+                  <Route path="/dashboard/settings" element={<Profile />} />
+                  <Route path="/dashboard/support" element={<Support />} />
+                  <Route path="/dashboard/countries" element={<Countries />} />
+                  <Route path="/dashboard/services/:countryCode" element={<ManualActivation />} />
+                  <Route path="/dashboard/active-providers" element={<ActiveProviders />} />
+                  
+                  {/* Admin Routes */}
+                  <Route path="/dashboard/admin" element={<AdminDashboard />} />
+                  <Route path="/dashboard/admin/countries" element={<AdminCountries />} />
+                  <Route path="/dashboard/admin/users" element={<Users />} />
+                  <Route path="/dashboard/admin/providers" element={<Providers />} />
+                  <Route path="/dashboard/admin/providers/balances" element={<ProviderBalances />} />
+                  <Route path="/dashboard/admin/settings" element={<SystemSettings />} />
+                  <Route path="/dashboard/admin/manual-services" element={<ManualServices />} />
+                  <Route path="/dashboard/admin/manual-requests" element={<ManualRequests />} />
+                  <Route path="/dashboard/admin/support" element={<AdminSupport />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </div>
+          </ThemeProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </BrowserRouter>
   );
 }
 
