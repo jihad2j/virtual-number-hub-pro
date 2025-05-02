@@ -1,12 +1,20 @@
 
 import { authApi } from './authApi';
 import { countryApi } from './countryApi';
-import { numberApi } from './numberApi';
+import { phoneNumberApi } from './phoneNumberApi';
 import { providerApi } from './providerApi';
 import { transactionApi } from './transactionApi';
 import { supportApi } from './supportApi';
 import { manualServiceApi } from './manualServiceApi';
 import { prepaidCodeApi } from './prepaidCodeApi';
+import { initApi } from './initApi';
+import { adminApi } from './adminApi';
+import { userApi } from './userApi';
+
+// Export types from files for easier access
+export type { Country } from '@/types/Country';
+export type { Provider } from '@/types/Provider';
+export type { SupportTicket } from '@/types/SupportTicket';
 
 // Consolidate all API functions into one object
 export const api = {
@@ -18,18 +26,24 @@ export const api = {
   updateUser: authApi.updateUser,
 
   // Country API
-  getCountries: countryApi.getCountries,
+  getCountries: countryApi.getAllCountries,
   getCountryServices: countryApi.getCountryServices,
+  getAvailableCountries: countryApi.getAvailableCountries,
+  createCountry: countryApi.createCountry,
+  updateCountry: countryApi.updateCountry,
+  deleteCountry: countryApi.deleteCountry,
 
   // Number API
-  getNumbersByCountry: numberApi.getNumbersByCountry,
-  getNumberByService: numberApi.getNumberByService,
-  getActiveNumbers: numberApi.getActiveNumbers,
-  checkActivationStatus: numberApi.checkActivationStatus,
-  cancelActivation: numberApi.cancelActivation,
+  getNumbersByCountry: phoneNumberApi.getAllPhoneNumbers,
+  getNumberByService: phoneNumberApi.purchasePhoneNumber,
+  getActiveNumbers: phoneNumberApi.getUserPhoneNumbers,
+  checkActivationStatus: phoneNumberApi.checkPhoneNumber,
+  cancelActivation: phoneNumberApi.cancelPhoneNumber,
+  getUserPhoneNumbers: phoneNumberApi.getUserPhoneNumbers,
 
   // Provider API
   getProviders: providerApi.getProviders,
+  getAllProviders: providerApi.getProviders, // Alias for getProviders
   updateProvider: providerApi.updateProvider,
   createProvider: providerApi.createProvider,
   deleteProvider: providerApi.deleteProvider,
@@ -46,7 +60,9 @@ export const api = {
   createSupportTicket: supportApi.createSupportTicket,
   getUserSupportTickets: supportApi.getUserSupportTickets,
   getAllSupportTickets: supportApi.getAllSupportTickets,
-  replySupportTicket: supportApi.replySupportTicket,
+  replySupportTicket: supportApi.respondToSupportTicket,
+  respondToSupportTicket: supportApi.respondToSupportTicket, // Alias for replySupportTicket
+  closeSupportTicket: supportApi.closeSupportTicket,
 
   // Manual Service API
   getManualServices: manualServiceApi.getManualServices,
@@ -65,5 +81,15 @@ export const api = {
   getAllPrepaidCodes: prepaidCodeApi.getAllPrepaidCodes,
   generatePrepaidCodes: prepaidCodeApi.generatePrepaidCodes,
   redeemPrepaidCode: prepaidCodeApi.redeemPrepaidCode,
-  deletePrepaidCode: prepaidCodeApi.deletePrepaidCode
+  deletePrepaidCode: prepaidCodeApi.deletePrepaidCode,
+
+  // Init API
+  initLocalData: initApi.initLocalData,
+
+  // Admin API
+  getDashboardStats: adminApi.getDashboardStats,
+
+  // User API
+  getAllUsers: userApi.getAllUsers
 };
+
