@@ -1,130 +1,181 @@
-
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { 
-  Home, 
-  Globe, 
-  DollarSign, 
-  ShoppingCart, 
-  MessageSquare,
-  Settings,
-  Users,
-  Server, 
-  Menu,
-  X,
-  PhoneCall,
+import React from "react";
+import {
   LayoutDashboard,
-  ChartBar,
-  User,
-  Bell
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/AuthContext';
+  ListOrdered,
+  WalletCards,
+  UserCog,
+  Flag,
+  CircleHelp,
+  Server,
+  Users,
+} from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useMobile } from "@/hooks/useMobile";
 
-export const Sidebar: React.FC = () => {
-  const { isAdmin } = useAuth();
-  const location = useLocation();
-  const [isOpen, setIsOpen] = useState(false);
+interface NavItemProps {
+  icon: React.ReactNode;
+  text: string;
+  to: string;
+  active: boolean;
+}
 
-  const toggleSidebar = () => setIsOpen(!isOpen);
-
-  const userNavItems = [
-    { path: '/dashboard', label: 'لوحة التحكم', icon: LayoutDashboard },
-    { path: '/dashboard/profile', label: 'الملف الشخصي', icon: User },
-    { path: '/dashboard/countries', label: 'الدول المتاحة', icon: Globe },
-    { path: '/dashboard/manual-activation', label: 'التفعيل اليدوي', icon: PhoneCall },
-    { path: '/dashboard/balance', label: 'رصيد الحساب', icon: DollarSign },
-    { path: '/dashboard/orders', label: 'طلباتي', icon: ShoppingCart },
-    { path: '/dashboard/support', label: 'الدعم الفني', icon: MessageSquare },
-  ];
-
-  const adminNavItems = [
-    { path: '/dashboard/admin', label: 'لوحة المشرف', icon: ChartBar },
-    { path: '/dashboard/admin/providers', label: 'مزودي الخدمة', icon: Server },
-    { path: '/dashboard/admin/countries', label: 'إدارة الدول', icon: Globe },
-    { path: '/dashboard/admin/users', label: 'المستخدمين', icon: Users },
-    { path: '/dashboard/admin/support', label: 'إدارة الدعم الفني', icon: MessageSquare },
-    { path: '/dashboard/admin/manual-requests', label: 'طلبات التفعيل اليدوي', icon: PhoneCall },
-    { path: '/dashboard/admin/manual-services', label: 'خدمات التفعيل اليدوي', icon: PhoneCall },
-    { path: '/dashboard/admin/settings', label: 'إعدادات النظام', icon: Settings },
-  ];
-
-  // Get all nav items based on user role
-  const navItems = [...userNavItems, ...(isAdmin ? adminNavItems : [])];
-
+const NavItem: React.FC<NavItemProps> = ({ icon, text, to, active }) => {
   return (
-    <>
-      {/* Mobile toggle button */}
-      <button
-        className="md:hidden fixed top-4 right-4 z-50 p-2 rounded-md bg-white shadow-md"
-        onClick={toggleSidebar}
-      >
-        {isOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
-    
-      {/* Mobile overlay */}
-      {isOpen && (
-        <div 
-          className="md:hidden fixed inset-0 bg-black/50 z-40"
-          onClick={toggleSidebar}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside 
-        className={cn(
-          "bg-white border-l border-gray-200 w-64 flex-shrink-0 flex flex-col z-50",
-          "fixed inset-y-0 right-0 md:relative md:translate-x-0 transition-transform duration-300 ease-in-out",
-          {
-            "translate-x-0": isOpen,
-            "translate-x-full": !isOpen && typeof window !== 'undefined' && window.innerWidth < 768
-          }
-        )}
-      >
-        <div className="p-4 border-b">
-          <h1 className="text-xl font-bold text-brand-600 text-center">Virtual Number Hub</h1>
-        </div>
-
-        <div className="flex-1 overflow-y-auto py-4">
-          <nav className="px-2 space-y-1">
-            {navItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <Link 
-                  key={item.path}
-                  to={item.path}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-md transition-colors",
-                    isActive 
-                      ? "bg-brand-50 text-brand-600" 
-                      : "text-gray-700 hover:bg-gray-100"
-                  )}
-                  onClick={() => setIsOpen(false)}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        {isAdmin && (
-          <div className="p-4 border-t">
-            <Button 
-              variant="outline" 
-              className="w-full"
-              asChild
-            >
-              <Link to="/dashboard/settings">
-                <Settings className="h-4 w-4 ml-2" />
-                <span>إعدادات الحساب</span>
-              </Link>
-            </Button>
-          </div>
-        )}
-      </aside>
-    </>
+    <Link
+      to={to}
+      className={`flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors ${
+        active ? "bg-brand-50 text-brand-600" : "text-gray-700"
+      }`}
+    >
+      {icon}
+      <span>{text}</span>
+    </Link>
   );
 };
+
+const FooterItem: React.FC<NavItemProps> = ({ icon, text, to, active }) => {
+  return (
+    <Link
+      to={to}
+      className={`flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors text-gray-500`}
+    >
+      {icon}
+      <span>{text}</span>
+    </Link>
+  );
+};
+
+export function Sidebar() {
+  const { pathname } = useLocation();
+  const { user } = useAuth();
+  const isMobile = useMobile();
+
+  const userAvatar = user?.avatar || "/img/default-user.jpg";
+
+  const isActive = (path: string) => {
+    return pathname === path;
+  };
+
+  return (
+    <aside
+      className={`fixed inset-y-0 z-10 flex flex-col ${
+        isMobile ? "hidden" : "lg:flex"
+      } w-64 p-3 bg-white border-l border-gray-200 shadow transition-transform duration-300 overflow-auto scrollbar-hidden`}
+    >
+      {/* Logo and User Info Section */}
+      <div className="flex items-center justify-center h-16">
+        <Link to="/" className="flex items-center space-x-2">
+          <img src="/img/logo.png" alt="Logo" className="w-auto h-8" />
+          <span className="text-lg font-bold">اسم الموقع</span>
+        </Link>
+      </div>
+
+      <div className="flex items-center p-3 mt-4 space-x-3 rounded-md">
+        <div className="relative">
+          <img
+            src={userAvatar}
+            alt="User Avatar"
+            className="w-10 h-10 rounded-full"
+          />
+          <span className="absolute bottom-0 right-0 inline-block w-3 h-3 bg-green-500 border border-white rounded-full"></span>
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold">{user?.name}</h2>
+          <p className="text-xs text-gray-500">{user?.email}</p>
+        </div>
+      </div>
+
+      <nav className="flex-1 mt-6 space-y-1.5">
+        <NavItem
+          icon={<LayoutDashboard className="ml-2" />}
+          text="لوحة التحكم"
+          to="/dashboard"
+          active={isActive("/dashboard")}
+        />
+        <NavItem
+          icon={<ListOrdered className="ml-2" />}
+          text="طلباتي"
+          to="/dashboard/orders"
+          active={isActive("/dashboard/orders")}
+        />
+        <NavItem
+          icon={<WalletCards className="ml-2" />}
+          text="رصيدي"
+          to="/dashboard/balance"
+          active={isActive("/dashboard/balance")}
+        />
+        <NavItem
+          icon={<Flag className="ml-2" />}
+          text="الدول المتاحة"
+          to="/dashboard/countries"
+          active={isActive("/dashboard/countries")}
+        />
+        <NavItem
+          icon={<Server className="ml-2" />}
+          text="المزودين النشطين"
+          to="/dashboard/active-providers"
+          active={isActive("/dashboard/active-providers")}
+        />
+        <NavItem
+          icon={<CircleHelp className="ml-2" />}
+          text="الدعم الفني"
+          to="/dashboard/support"
+          active={isActive("/dashboard/support")}
+        />
+
+        {/* Admin Menu */}
+        {user?.role === "admin" && (
+          <>
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase">
+                Admin
+              </h3>
+            </div>
+            
+            <NavItem
+              icon={<LayoutDashboard className="ml-2" />}
+              text="لوحة تحكم المدير"
+              to="/dashboard/admin"
+              active={isActive("/dashboard/admin")}
+            />
+            <NavItem
+              icon={<Users className="ml-2" />}
+              text="المستخدمين"
+              to="/dashboard/admin/users"
+              active={isActive("/dashboard/admin/users")}
+            />
+            <NavItem
+              icon={<Flag className="ml-2" />}
+              text="إدارة الدول"
+              to="/dashboard/admin/countries"
+              active={isActive("/dashboard/admin/countries")}
+            />
+            <NavItem
+              icon={<Server className="ml-2" />}
+              text="إدارة المزودين"
+              to="/dashboard/admin/providers"
+              active={isActive("/dashboard/admin/providers")}
+            />
+            <NavItem
+              icon={<WalletCards className="ml-2" />}
+              text="أرصدة المزودين"
+              to="/dashboard/admin/providers/balances"
+              active={isActive("/dashboard/admin/providers/balances")}
+            />
+          </>
+        )}
+      </nav>
+
+      {/* Footer Items */}
+      <div className="mt-auto space-y-1.5">
+        <FooterItem
+          icon={<UserCog className="ml-2" />}
+          text="تعديل الحساب"
+          to="/dashboard/settings"
+          active={isActive("/dashboard/settings")}
+        />
+      </div>
+    </aside>
+  );
+}

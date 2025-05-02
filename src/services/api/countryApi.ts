@@ -28,7 +28,7 @@ export const countryApi = {
   },
 
   async updateCountry(id: string, data: Partial<Country>): Promise<Country> {
-    const response = await apiClient.patch(`/countries/${id}`, data);
+    const response = await apiClient.put(`/countries/${id}`, data);
     return response.data.data;
   },
 
