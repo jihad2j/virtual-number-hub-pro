@@ -405,7 +405,7 @@ exports.getProviderBalanceByCode = catchAsync(async (req, res, next) => {
   }
 });
 
-// جلب الدول المت��حة من مزود الخدمة باستخدام الكود
+// جلب الدول المتاحة من مزود الخدمة باستخدام الكود
 exports.getProviderCountriesByCode = catchAsync(async (req, res, next) => {
   const { providerCode } = req.params;
   
@@ -449,6 +449,7 @@ exports.getProviderServicesByCode = catchAsync(async (req, res, next) => {
   try {
     const services = await providerService.getServices(countryCode);
     
+    // Even if there are no services, return an empty array with success status
     res.status(200).json({
       status: 'success',
       results: services.length,

@@ -63,7 +63,22 @@ class FiveSimProvider extends BaseProvider {
    */
   async getServices(countryCode) {
     try {
-      const response = await axios.get(`${this.baseUrl}guest/products/${countryCode.toLowerCase()}`, {
+      // 5sim API expects lowercase country codes
+      const normalizedCountryCode = countryCode.toLowerCase();
+
+      // First check if the country exists in the API
+      const countryResponse = await axios.get(`${this.baseUrl}guest/countries`, {
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+      
+      // Check if the country is supported by 5sim
+      if (!countryResponse.data[normalizedCountryCode]) {
+        throw new Error(`Country ${countryCode} is not supported by 5SIM`);
+      }
+      
+      const response = await axios.get(`${this.baseUrl}guest/products/${normalizedCountryCode}`, {
         headers: {
           'Accept': 'application/json',
         }
@@ -77,7 +92,14 @@ class FiveSimProvider extends BaseProvider {
         available: true
       }));
     } catch (error) {
-      console.error('5SIM getServices error:', error.message);
+      // Check if this is a 404 error (country not found)
+      if (error.response && error.response.status === 404) {
+        console.error(`5SIM: Country ${countryCode} not found in the API`);
+        // Return empty array instead of throwing error
+        return [];
+      }
+      
+      console.error(`5SIM getServices error: ${error.message}`);
       throw new Error(`Failed to get services for country ${countryCode} from 5SIM`);
     }
   }
