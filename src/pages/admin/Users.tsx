@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -46,9 +47,9 @@ export default function Users() {
     if (!selectedUser) return;
 
     try {
-      // Correcting the function call to use only one parameter with the shape expected
+      // Correcting the function call to use the format expected by the API
       await api.updateUser({
-        userId: selectedUser.id,
+        id: selectedUser.id,
         balance: parseFloat(newBalance)
       });
       
