@@ -26,7 +26,8 @@ export const api = {
   updateUser: authApi.updateUser,
 
   // Country API
-  getCountries: countryApi.getAllCountries,
+  getCountries: countryApi.getCountries,
+  getAllCountries: countryApi.getAllCountries,
   getCountryServices: countryApi.getCountryServices,
   getAvailableCountries: countryApi.getAvailableCountries,
   createCountry: countryApi.createCountry,
@@ -43,12 +44,16 @@ export const api = {
 
   // Provider API
   getProviders: providerApi.getProviders,
-  getAllProviders: providerApi.getProviders, // Alias for getProviders
+  getAllProviders: providerApi.getAllProviders, 
+  getAvailableProviders: providerApi.getAvailableProviders,
   updateProvider: providerApi.updateProvider,
   createProvider: providerApi.createProvider,
   deleteProvider: providerApi.deleteProvider,
   getProviderBalance: providerApi.getProviderBalance,
   getActiveProviders: providerApi.getActiveProviders,
+  toggleProviderStatus: providerApi.toggleProviderStatus,
+  setDefaultProvider: providerApi.setDefaultProvider,
+  getAllProvidersBalances: providerApi.getAllProvidersBalances,
 
   // Transaction API
   getAllTransactions: transactionApi.getAllTransactions,
@@ -61,7 +66,7 @@ export const api = {
   getUserSupportTickets: supportApi.getUserSupportTickets,
   getAllSupportTickets: supportApi.getAllSupportTickets,
   replySupportTicket: supportApi.respondToSupportTicket,
-  respondToSupportTicket: supportApi.respondToSupportTicket, // Alias for replySupportTicket
+  respondToSupportTicket: supportApi.respondToSupportTicket,
   closeSupportTicket: supportApi.closeSupportTicket,
 
   // Manual Service API
@@ -90,6 +95,6 @@ export const api = {
   getDashboardStats: adminApi.getDashboardStats,
 
   // User API
-  getAllUsers: userApi.getAllUsers
+  getAllUsers: userApi.getAllUsers,
+  createUser: userApi.createUser
 };
-

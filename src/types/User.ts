@@ -1,13 +1,20 @@
 
 export interface User {
   id: string;
-  _id?: string; // Add _id field to support MongoDB's _id format
   username: string;
   email: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'moderator';
   balance: number;
-  isActive: boolean;
-  createdAt: string; // Changed from optional to required to match usage
-  lastLogin?: string;
-  updatedAt?: string;
+  isActive?: boolean;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  lastLogin?: Date | string;
+  profilePicture?: string;
+  phoneNumber?: string;
+  country?: string;
+  settings?: {
+    notifications?: boolean;
+    theme?: 'light' | 'dark' | 'system';
+    language?: string;
+  };
 }

@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
-import { ManualService, ManualRequest } from '@/types/ManualRequest';
+import { ManualService, ManualRequest } from '@/types/ManualService';
 import { Badge } from '@/components/ui/badge';
 
 const ManualActivation = () => {

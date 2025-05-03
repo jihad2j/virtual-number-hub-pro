@@ -1,33 +1,22 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import { api } from '@/services/api';
 import { Transaction } from '@/types/Transaction';
-import { Badge } from '@/components/ui/badge';
-import { CreditCard, Gift, RefreshCw, Ticket } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Balance = () => {
-  const { user, refreshUserData } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isDepositDialogOpen, setIsDepositDialogOpen] = useState(false);
-  const [isGiftDialogOpen, setIsGiftDialogOpen] = useState(false);
-  const [isRedeemDialogOpen, setIsRedeemDialogOpen] = useState(false);
-  
-  // Form states
-  const [depositAmount, setDepositAmount] = useState<number>(10);
-  const [paymentMethod, setPaymentMethod] = useState<string>('credit_card');
-  const [giftAmount, setGiftAmount] = useState<number>(5);
-  const [giftRecipient, setGiftRecipient] = useState<string>('');
-  const [giftNote, setGiftNote] = useState<string>('');
-  const [redeemCode, setRedeemCode] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [redeemDialogOpen, setRedeemDialogOpen] = useState(false);
+  const [prepaidCode, setPrepaidCode] = useState('');
+  const [isRedeeming, setIsRedeeming] = useState(false);
+  const { currentUser, refreshUserData } = useAuth();
 
   useEffect(() => {
     fetchTransactions();
@@ -37,286 +26,187 @@ const Balance = () => {
     setIsLoading(true);
     try {
       const data = await api.getUserTransactions();
-      setTransactions(data);
+      console.log("User transactions:", data);
+      setTransactions(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Failed to fetch transactions', error);
-      toast.error('فشل في جلب المعاملات');
+      console.error('Error fetching transactions:', error);
+      toast.error('فشل في جلب سجل المعاملات');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDeposit = async () => {
-    if (depositAmount <= 0) {
-      toast.error('يرجى إدخال مبلغ صالح');
-      return;
-    }
-
-    try {
-      await api.createDepositTransaction(depositAmount, paymentMethod);
-      await refreshUserData();
-      fetchTransactions();
-      setIsDepositDialogOpen(false);
-      toast.success('تم إضافة الرصيد بنجاح');
-    } catch (error) {
-      console.error('Failed to deposit', error);
-      toast.error('فشل في إضافة الرصيد');
-    }
-  };
-
-  const handleGift = async () => {
-    if (giftAmount <= 0) {
-      toast.error('يرجى إدخال مبلغ صالح');
-      return;
-    }
-
-    if (!giftRecipient) {
-      toast.error('يرجى تحديد المستلم');
-      return;
-    }
-
-    if (user && giftAmount > user.balance) {
-      toast.error('رصيدك غير كافٍ');
-      return;
-    }
-
-    try {
-      await api.giftBalance(giftRecipient, giftAmount, giftNote);
-      await refreshUserData();
-      fetchTransactions();
-      setIsGiftDialogOpen(false);
-      toast.success('تم إرسال الهدية بنجاح');
-    } catch (error) {
-      console.error('Failed to send gift', error);
-      toast.error('فشل في إرسال الهدية');
-    }
-  };
-
   const handleRedeemCode = async () => {
-    if (!redeemCode.trim()) {
-      toast.error('يرجى إدخال كود الشحن');
+    if (!prepaidCode.trim()) {
+      toast.error('يرجى إدخال كود صالح');
       return;
     }
 
+    setIsRedeeming(true);
     try {
-      const result = await api.redeemPrepaidCode(redeemCode);
-      await refreshUserData();
+      const result = await api.redeemPrepaidCode(prepaidCode.trim());
+      console.log("Redemption result:", result);
+      
+      toast.success(`تم شحن رصيدك بنجاح بقيمة ${result.amount}$`);
+      setRedeemDialogOpen(false);
+      setPrepaidCode('');
+      
+      // Refresh transactions and user data
       fetchTransactions();
-      setIsRedeemDialogOpen(false);
-      toast.success(`تم شحن الرصيد بنجاح: ${result.amount}$`);
-      setRedeemCode('');
+      refreshUserData();
     } catch (error) {
-      console.error('Failed to redeem code', error);
-      toast.error('كود الشحن غير صالح أو مستخدم بالفعل');
+      console.error('Error redeeming prepaid code:', error);
+      toast.error('كود الشحن غير صالح أو تم استخدامه بالفعل');
+    } finally {
+      setIsRedeeming(false);
     }
   };
 
-  const getTransactionTypeDisplay = (type: string) => {
+  const formatDate = (dateString: string | Date) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('ar', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (e) {
+      return 'تاريخ غير صالح';
+    }
+  };
+
+  const getTransactionIcon = (type: string) => {
     switch (type) {
-      case 'deposit': return 'إيداع';
-      case 'withdrawal': return 'سحب';
-      case 'purchase': return 'شراء';
-      case 'gift': return 'هدية';
-      case 'refund': return 'استرداد';
-      default: return type;
+      case 'deposit':
+        return '➕';
+      case 'withdrawal':
+        return '➖';
+      case 'purchase':
+        return '🛒';
+      case 'refund':
+        return '↩️';
+      default:
+        return '💸';
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getTransactionStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <Badge variant="default">مكتمل</Badge>;
+        return <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">مكتمل</span>;
       case 'pending':
-        return <Badge variant="secondary">قيد المعالجة</Badge>;
+        return <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">معلق</span>;
       case 'failed':
-        return <Badge variant="destructive">فشل</Badge>;
+        return <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">فاشل</span>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs">{status}</span>;
     }
   };
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">رصيدي</h1>
-
-      {/* Current Balance and Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="col-span-1 md:col-span-2">
-          <CardHeader>
-            <CardTitle>رصيدك الحالي</CardTitle>
-            <CardDescription>يمكنك استخدام هذا الرصيد لشراء أرقام جديدة</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-brand-600">
-              {user?.balance || 0} $
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button onClick={() => setIsDepositDialogOpen(true)}>
-                <CreditCard className="mr-2 h-4 w-4" /> شحن رصيد
-              </Button>
-              <Button variant="outline" onClick={() => setIsGiftDialogOpen(true)}>
-                <Gift className="mr-2 h-4 w-4" /> إهداء رصيد
-              </Button>
-              <Button variant="outline" onClick={() => setIsRedeemDialogOpen(true)}>
-                <Ticket className="mr-2 h-4 w-4" /> استخدام كود شحن
-              </Button>
-              <Button variant="ghost" onClick={() => fetchTransactions()}>
-                <RefreshCw className="mr-2 h-4 w-4" /> تحديث
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">رصيدي</h1>
+        <div className="flex space-x-2">
+          <Button onClick={() => setRedeemDialogOpen(true)} variant="outline">استخدام كود الشحن</Button>
+          <Button onClick={fetchTransactions}>تحديث</Button>
+        </div>
       </div>
-
-      {/* Recent Transactions */}
+      
+      {/* Balance Card */}
       <Card>
         <CardHeader>
-          <CardTitle>المعاملات الأخيرة</CardTitle>
-          <CardDescription>سجل معاملاتك المالية</CardDescription>
+          <CardTitle>الرصيد الحالي</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center">
+            <p className="text-4xl font-bold text-brand-600">${currentUser?.balance?.toFixed(2) || '0.00'}</p>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Transactions History */}
+      <Card>
+        <CardHeader>
+          <CardTitle>سجل المعاملات</CardTitle>
+          <CardDescription>سجل كامل بالمعاملات على حسابك</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-600 mx-auto"></div>
-              <p className="mt-2 text-muted-foreground">جاري التحميل...</p>
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
             </div>
-          ) : transactions.length > 0 ? (
+          ) : transactions.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              لا توجد معاملات حتى الآن
+            </div>
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="py-2 px-4 text-right">التاريخ</th>
-                    <th className="py-2 px-4 text-right">النوع</th>
-                    <th className="py-2 px-4 text-right">المبلغ</th>
-                    <th className="py-2 px-4 text-right">الحالة</th>
-                    <th className="py-2 px-4 text-right">الوصف</th>
+                    <th className="px-4 py-2 text-right">النوع</th>
+                    <th className="px-4 py-2 text-right">المبلغ</th>
+                    <th className="px-4 py-2 text-right">الوصف</th>
+                    <th className="px-4 py-2 text-right">الحالة</th>
+                    <th className="px-4 py-2 text-right">التاريخ</th>
                   </tr>
                 </thead>
                 <tbody>
                   {transactions.map((transaction) => (
-                    <tr key={transaction.id} className="border-b hover:bg-muted/50">
-                      <td className="py-2 px-4">{new Date(transaction.createdAt).toLocaleDateString()}</td>
-                      <td className="py-2 px-4">{getTransactionTypeDisplay(transaction.type)}</td>
-                      <td className={`py-2 px-4 ${transaction.type === 'purchase' || transaction.type === 'withdrawal' ? 'text-red-500' : 'text-green-500'}`}>
-                        {transaction.type === 'purchase' || transaction.type === 'withdrawal' ? '-' : '+'}{transaction.amount} $
+                    <tr key={transaction.id} className="border-b hover:bg-gray-50">
+                      <td className="px-4 py-2">
+                        <span className="mr-2">{getTransactionIcon(transaction.type)}</span>
+                        {transaction.type === 'deposit' ? 'إيداع' :
+                          transaction.type === 'withdrawal' ? 'سحب' :
+                          transaction.type === 'purchase' ? 'شراء' :
+                          transaction.type === 'refund' ? 'استرداد' : transaction.type}
                       </td>
-                      <td className="py-2 px-4">{getStatusBadge(transaction.status)}</td>
-                      <td className="py-2 px-4">{transaction.description}</td>
+                      <td className={`px-4 py-2 ${transaction.type === 'deposit' || transaction.type === 'refund' ? 'text-green-600' : 'text-red-600'}`}>
+                        {transaction.type === 'deposit' || transaction.type === 'refund' ? '+' : '-'}${transaction.amount.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-2">{transaction.description}</td>
+                      <td className="px-4 py-2">{getTransactionStatusBadge(transaction.status)}</td>
+                      <td className="px-4 py-2">{formatDate(transaction.createdAt)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">لا توجد معاملات حتى الآن</p>
-            </div>
           )}
         </CardContent>
       </Card>
-
-      {/* Deposit Dialog */}
-      <Dialog open={isDepositDialogOpen} onOpenChange={setIsDepositDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>شحن رصيد</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="deposit-amount">المبلغ (بالدولار)</Label>
-              <Input
-                id="deposit-amount"
-                type="number"
-                min="5"
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(Number(e.target.value))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="payment-method">طريقة الدفع</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger id="payment-method">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="credit_card">بطاقة ائتمان</SelectItem>
-                  <SelectItem value="paypal">PayPal</SelectItem>
-                  <SelectItem value="bank_transfer">تحويل بنكي</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDepositDialogOpen(false)}>إلغاء</Button>
-            <Button onClick={handleDeposit}>تأكيد</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Gift Dialog */}
-      <Dialog open={isGiftDialogOpen} onOpenChange={setIsGiftDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>إهداء رصيد</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="gift-recipient">اسم المستخدم أو البريد الإلكتروني للمستلم</Label>
-              <Input
-                id="gift-recipient"
-                value={giftRecipient}
-                onChange={(e) => setGiftRecipient(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="gift-amount">المبلغ (بالدولار)</Label>
-              <Input
-                id="gift-amount"
-                type="number"
-                min="1"
-                max={user?.balance || 0}
-                value={giftAmount}
-                onChange={(e) => setGiftAmount(Number(e.target.value))}
-              />
-              <p className="text-xs text-muted-foreground">رصيدك الحالي: {user?.balance || 0} $</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="gift-note">رسالة (اختياري)</Label>
-              <Input
-                id="gift-note"
-                value={giftNote}
-                onChange={(e) => setGiftNote(e.target.value)}
-                placeholder="أضف رسالة مع الهدية"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsGiftDialogOpen(false)}>إلغاء</Button>
-            <Button onClick={handleGift}>إرسال الهدية</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
+      
       {/* Redeem Code Dialog */}
-      <Dialog open={isRedeemDialogOpen} onOpenChange={setIsRedeemDialogOpen}>
+      <Dialog open={redeemDialogOpen} onOpenChange={setRedeemDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>استخدام كود شحن</DialogTitle>
+            <DialogTitle>استخدام كود الشحن</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="redeem-code">كود الشحن</Label>
-              <Input
-                id="redeem-code"
-                value={redeemCode}
-                onChange={(e) => setRedeemCode(e.target.value)}
-                placeholder="أدخل كود الشحن هنا"
-              />
-            </div>
+            <Label htmlFor="code">أدخل كود الشحن</Label>
+            <Input 
+              id="code" 
+              value={prepaidCode} 
+              onChange={(e) => setPrepaidCode(e.target.value)} 
+              placeholder="مثال: ABC123DEF456"
+            />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRedeemDialogOpen(false)}>إلغاء</Button>
-            <Button onClick={handleRedeemCode}>تأكيد</Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setRedeemDialogOpen(false)}
+            >
+              إلغاء
+            </Button>
+            <Button 
+              onClick={handleRedeemCode} 
+              disabled={isRedeeming || !prepaidCode.trim()}
+            >
+              {isRedeeming ? 'جاري التنفيذ...' : 'تأكيد'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
