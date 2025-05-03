@@ -1,28 +1,49 @@
 
 import { apiClient } from '@/services/apiClient';
 import { PhoneNumber } from '@/types/PhoneNumber';
-import { providerService } from '@/services/providerService';
 
 export const phoneNumberApi = {
-  async getAllPhoneNumbers(): Promise<PhoneNumber[]> {
-    const response = await apiClient.get('/numbers');
+  async getAllPhoneNumbers(countryCode: string): Promise<PhoneNumber[]> {
+    const response = await apiClient.get(`/numbers/country/${countryCode}`);
     return response.data.data;
   },
-
+  
   async getUserPhoneNumbers(): Promise<PhoneNumber[]> {
-    const response = await apiClient.get('/numbers/my');
+    const response = await apiClient.get('/numbers/user');
     return response.data.data;
   },
-
-  async purchasePhoneNumber(providerId: string, countryCode: string, service: string): Promise<PhoneNumber> {
-    return providerService.purchaseNumber(providerId, countryCode, service);
+  
+  async purchasePhoneNumber(providerName: string, countryCode: string, service: string): Promise<PhoneNumber> {
+    const response = await apiClient.post('/numbers/purchase', { providerName, countryCode, service });
+    return response.data.data;
   },
-
+  
   async checkPhoneNumber(id: string): Promise<PhoneNumber> {
-    return providerService.checkNumber(id);
+    const response = await apiClient.get(`/numbers/${id}/check`);
+    return response.data.data;
+  },
+  
+  async cancelPhoneNumber(id: string): Promise<void> {
+    await apiClient.post(`/numbers/${id}/cancel`);
   },
 
-  async cancelPhoneNumber(id: string): Promise<boolean> {
-    return providerService.cancelNumber(id);
+  async getNumbersByCountry(countryCode: string): Promise<PhoneNumber[]> {
+    return this.getAllPhoneNumbers(countryCode);
+  },
+  
+  async getNumberByService(providerName: string, countryCode: string, service: string): Promise<PhoneNumber> {
+    return this.purchasePhoneNumber(providerName, countryCode, service);
+  },
+  
+  async getActiveNumbers(): Promise<PhoneNumber[]> {
+    return this.getUserPhoneNumbers();
+  },
+  
+  async checkActivationStatus(id: string): Promise<PhoneNumber> {
+    return this.checkPhoneNumber(id);
+  },
+  
+  async cancelActivation(id: string): Promise<void> {
+    return this.cancelPhoneNumber(id);
   }
 };

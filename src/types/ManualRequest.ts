@@ -29,7 +29,7 @@ export interface ManualService {
   price: number;
   available: boolean;
   image?: string;
-  isActive?: boolean;
+  isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

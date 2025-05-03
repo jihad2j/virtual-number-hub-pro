@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,15 +24,15 @@ const AdminUsers = () => {
   // Form states
   const [newUsername, setNewUsername] = useState("");
   const [newEmail, setNewEmail] = useState("");
-  const [newPassword, setNewPassword] = useState(""); // Added password state
-  const [newRole, setNewRole] = useState<"user" | "admin">("user");
+  const [newPassword, setNewPassword] = useState("");
+  const [newRole, setNewRole] = useState<"user" | "admin" | "moderator">("user");
   const [newIsActive, setNewIsActive] = useState(true);
   const [newBalance, setNewBalance] = useState(0);
   
   // Edit states
   const [editUsername, setEditUsername] = useState("");
   const [editEmail, setEditEmail] = useState("");
-  const [editRole, setEditRole] = useState<"user" | "admin">("user");
+  const [editRole, setEditRole] = useState<"user" | "admin" | "moderator">("user");
   const [editIsActive, setEditIsActive] = useState(true);
   const [editBalance, setEditBalance] = useState(0);
   
@@ -54,14 +55,17 @@ const AdminUsers = () => {
   
   const handleCreateUser = async () => {
     try {
-      const newUser = await api.createUser({
+      // Create new user data object, handling password separately
+      const userData: any = {
         username: newUsername,
         email: newEmail,
-        password: newPassword, // Added password field
+        password: newPassword, // This will be handled separately in the backend
         role: newRole,
         isActive: newIsActive,
         balance: newBalance,
-      });
+      };
+      
+      const newUser = await api.createUser(userData);
       
       setUsers([...users, newUser]);
       toast.success("تم إنشاء المستخدم بنجاح");
@@ -102,7 +106,7 @@ const AdminUsers = () => {
   const resetCreateForm = () => {
     setNewUsername("");
     setNewEmail("");
-    setNewPassword(""); // Reset password field
+    setNewPassword("");
     setNewRole("user");
     setNewIsActive(true);
     setNewBalance(0);
@@ -113,7 +117,7 @@ const AdminUsers = () => {
     setEditUsername(user.username || "");
     setEditEmail(user.email);
     setEditRole(user.role);
-    setEditIsActive(user.isActive);
+    setEditIsActive(user.isActive || true);
     setEditBalance(user.balance);
     setIsEditDialogOpen(true);
   };
@@ -232,7 +236,6 @@ const AdminUsers = () => {
               />
             </div>
             
-            {/* Add Password Field */}
             <div className="space-y-2">
               <Label htmlFor="new-password">كلمة المرور</Label>
               <Input 
@@ -248,7 +251,7 @@ const AdminUsers = () => {
               <Label htmlFor="new-role">نوع المستخدم</Label>
               <Select 
                 value={newRole} 
-                onValueChange={(value) => setNewRole(value as "user" | "admin")}
+                onValueChange={(value: "user" | "admin" | "moderator") => setNewRole(value)}
               >
                 <SelectTrigger id="new-role">
                   <SelectValue placeholder="اختر نوع المستخدم" />
@@ -256,6 +259,7 @@ const AdminUsers = () => {
                 <SelectContent>
                   <SelectItem value="user">مستخدم عادي</SelectItem>
                   <SelectItem value="admin">مدير النظام</SelectItem>
+                  <SelectItem value="moderator">مشرف</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -321,7 +325,7 @@ const AdminUsers = () => {
               <Label htmlFor="edit-role">نوع المستخدم</Label>
               <Select 
                 value={editRole} 
-                onValueChange={(value) => setEditRole(value as "user" | "admin")}
+                onValueChange={(value: "user" | "admin" | "moderator") => setEditRole(value)}
               >
                 <SelectTrigger id="edit-role">
                   <SelectValue placeholder="اختر نوع المستخدم" />
@@ -329,6 +333,7 @@ const AdminUsers = () => {
                 <SelectContent>
                   <SelectItem value="user">مستخدم عادي</SelectItem>
                   <SelectItem value="admin">مدير النظام</SelectItem>
+                  <SelectItem value="moderator">مشرف</SelectItem>
                 </SelectContent>
               </Select>
             </div>
