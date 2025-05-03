@@ -1,11 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
 import { SupportTicket } from '@/types/SupportTicket';
+import { MessageSquare, Send } from 'lucide-react';
 
 const Support = () => {
   const [subject, setSubject] = useState('');
@@ -13,6 +16,8 @@ const Support = () => {
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [replyMessages, setReplyMessages] = useState<Record<string, string>>({});
+  const [replying, setReplying] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchTickets();
@@ -55,6 +60,31 @@ const Support = () => {
       toast.error('فشل في إرسال التذكرة');
     } finally {
       setSubmitting(false);
+    }
+  };
+  
+  const handleReplyChange = (ticketId: string, value: string) => {
+    setReplyMessages(prev => ({ ...prev, [ticketId]: value }));
+  };
+  
+  const handleReplySubmit = async (ticketId: string) => {
+    if (!replyMessages[ticketId]?.trim()) {
+      toast.error('يرجى كتابة رد أولاً');
+      return;
+    }
+    
+    setReplying(prev => ({ ...prev, [ticketId]: true }));
+    
+    try {
+      await api.replySupportTicket(ticketId, replyMessages[ticketId]);
+      toast.success('تم إرسال الرد بنجاح');
+      setReplyMessages(prev => ({ ...prev, [ticketId]: '' }));
+      fetchTickets(); // إعادة تحميل التذاكر بعد إرسال الرد
+    } catch (error) {
+      console.error('Failed to send reply:', error);
+      toast.error('فشل في إرسال الرد');
+    } finally {
+      setReplying(prev => ({ ...prev, [ticketId]: false }));
     }
   };
 

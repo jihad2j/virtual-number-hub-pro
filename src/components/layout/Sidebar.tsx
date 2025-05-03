@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   LayoutDashboard,
@@ -55,7 +54,7 @@ export function Sidebar() {
   const isMobile = useMobile();
   const [collapsed, setCollapsed] = useState(false);
 
-  const userAvatar = user?.avatar || "/img/default-user.jpg";
+  const userAvatar = user?.profilePicture || user?.avatar || "/img/default-user.jpg";
 
   const isActive = (path: string) => {
     return pathname === path;

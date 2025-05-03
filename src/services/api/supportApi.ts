@@ -28,6 +28,10 @@ export const supportApi = {
     return resp.data.data;
   },
   
+  async replySupportTicket(ticketId: string, message: string): Promise<SupportTicket> {
+    return this.respondToSupportTicket(ticketId, message);
+  },
+  
   async closeSupportTicket(ticketId: string): Promise<SupportTicket> {
     const response = await apiClient.patch(`/support/${ticketId}/close`);
     return response.data.data;
