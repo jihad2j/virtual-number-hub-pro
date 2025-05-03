@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   LayoutDashboard,
@@ -132,6 +133,12 @@ export function Sidebar() {
             text="المزودين النشطين"
             to="/dashboard/active-providers"
             active={isActive("/dashboard/active-providers")}
+          />
+          <NavItem
+            icon={<ListOrdered className="ml-2" />}
+            text="طلبات التفعيل اليدوي"
+            to="/dashboard/manual-requests"
+            active={isActive("/dashboard/manual-requests")}
           />
           <NavItem
             icon={<CircleHelp className="ml-2" />}
