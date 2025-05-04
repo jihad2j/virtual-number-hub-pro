@@ -10,24 +10,24 @@ export const BottomNav = () => {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 shadow-md z-50">
       <div className="flex justify-around items-center h-16">
-        <Link to="/dashboard" className={`flex flex-col items-center space-y-1 ${isActive('/dashboard') ? 'text-brand-600' : 'text-gray-600'}`}>
+        <Link to="/dashboard" className={`flex flex-col items-center space-y-1 ${isActive('/dashboard') ? 'text-brand-600' : 'text-gray-500'}`}>
           <Home size={24} />
           <span className="text-xs">الرئيسية</span>
         </Link>
         
-        <Link to="/dashboard/orders" className={`flex flex-col items-center space-y-1 ${isActive('/dashboard/orders') ? 'text-brand-600' : 'text-gray-600'}`}>
+        <Link to="/dashboard/orders" className={`flex flex-col items-center space-y-1 ${isActive('/dashboard/orders') ? 'text-brand-600' : 'text-gray-500'}`}>
           <ListOrdered size={24} />
           <span className="text-xs">طلباتي</span>
         </Link>
         
-        <Link to="/dashboard/balance" className={`flex flex-col items-center space-y-1 ${isActive('/dashboard/balance') ? 'text-brand-600' : 'text-gray-600'}`}>
+        <Link to="/dashboard/balance" className={`flex flex-col items-center space-y-1 ${isActive('/dashboard/balance') ? 'text-brand-600' : 'text-gray-500'}`}>
           <WalletCards size={24} />
           <span className="text-xs">رصيدي</span>
         </Link>
         
-        <Link to="/dashboard/settings" className={`flex flex-col items-center space-y-1 ${isActive('/dashboard/settings') ? 'text-brand-600' : 'text-gray-600'}`}>
+        <Link to="/dashboard/settings" className={`flex flex-col items-center space-y-1 ${isActive('/dashboard/settings') ? 'text-brand-600' : 'text-gray-500'}`}>
           <UserCog size={24} />
           <span className="text-xs">الإعدادات</span>
         </Link>

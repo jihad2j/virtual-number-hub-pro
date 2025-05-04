@@ -14,6 +14,8 @@ const manualServiceRoutes = require('./manualServices');
 const manualRequestRoutes = require('./manualRequests');
 const adminRoutes = require('./admin');
 const initRoutes = require('./init');
+const prepaidCodeRoutes = require('./prepaidCodes');
+const productVisibilityRoutes = require('./productVisibility');
 
 // Map routes to their respective path
 router.use('/auth', authRoutes);
@@ -27,5 +29,7 @@ router.use('/manual-services', manualServiceRoutes);
 router.use('/manual-requests', manualRequestRoutes);
 router.use('/admin', adminRoutes);
 router.use('/init', initRoutes);
+router.use('/prepaid-codes', prepaidCodeRoutes);
+router.use('/product-visibility', productVisibilityRoutes);
 
 module.exports = router;

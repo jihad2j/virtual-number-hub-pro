@@ -1,3 +1,4 @@
+
 import { apiClient } from '@/services/apiClient';
 import { User } from '@/types/User';
 import { Country } from '@/types/Country';
@@ -8,6 +9,7 @@ import { PrepaidCode } from '@/types/PrepaidCode';
 import { SupportTicket } from '@/types/SupportTicket';
 import { ManualService, ManualRequest, AdminManualRequest } from '@/types/ManualRequest';
 import { providerService } from '@/services/providerService';
+import { ProductVisibility, BulkUpdateProductsRequest } from '@/types/ProductVisibility';
 
 // Re-export types that other components need
 export type { User, Country, Provider, Transaction, PhoneNumber, PrepaidCode, SupportTicket, ManualService, ManualRequest };
@@ -188,6 +190,22 @@ export const api = {
     error?: string;
   }>> {
     const response = await apiClient.get('/providers/admin/all-balances');
+    return response.data.data;
+  },
+
+  // Product Visibility API functions
+  async getProductVisibilitySettings(providerId: string, countryId: string): Promise<ProductVisibility[]> {
+    const response = await apiClient.get(`/product-visibility?providerId=${providerId}&countryId=${countryId}`);
+    return response.data.data;
+  },
+
+  async updateProductVisibilitySettings(data: BulkUpdateProductsRequest): Promise<ProductVisibility[]> {
+    const response = await apiClient.post('/product-visibility/bulk', data);
+    return response.data.data;
+  },
+
+  async getVisibleProducts(countryId: string): Promise<ProductVisibility[]> {
+    const response = await apiClient.get(`/product-visibility/visible?countryId=${countryId}`);
     return response.data.data;
   },
 
