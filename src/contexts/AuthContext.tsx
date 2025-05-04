@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { api } from '@/services/api';
+import { authApi } from '@/services/api/authApi';
 import { User } from '@/types/User';
 import { toast } from 'sonner';
 
@@ -15,7 +15,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<User>;
   refreshUserData: () => Promise<User | null>;
-  updateUserData: (userData: Partial<User>) => Promise<User | null>; // Added function
+  updateUserData: (userData: Partial<User>) => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -53,14 +53,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     
     const token = localStorage.getItem('token');
-    if (!token) {
+    if (!token || token === 'undefined' || token === 'null') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       setCurrentUser(null);
       setIsLoading(false);
       return null;
     }
     
     try {
-      const user = await api.getCurrentUser();
+      const user = await authApi.getCurrentUser();
       setCurrentUser(user);
       return user;
     } catch (error) {
@@ -78,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Function to refresh user data from API
   const refreshUserData = async () => {
     try {
-      const user = await api.getCurrentUser();
+      const user = await authApi.getCurrentUser();
       setCurrentUser(user);
       return user;
     } catch (error) {
@@ -90,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Function to update user data
   const updateUserData = async (userData: Partial<User>) => {
     try {
-      const updatedUser = await api.updateUser(userData);
+      const updatedUser = await authApi.updateUser(userData);
       setCurrentUser(updatedUser);
       return updatedUser;
     } catch (error) {
@@ -105,7 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      const { token, user } = await api.login(email, password);
+      const { token, user } = await authApi.login(email, password);
       
       // Save token and user to localStorage
       localStorage.setItem('token', token);
@@ -122,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await api.logout();
+      await authApi.logout();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -135,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (username: string, email: string, password: string) => {
     try {
-      const { token, user } = await api.register(username, email, password);
+      const { token, user } = await authApi.register(username, email, password);
       
       // Save token and user to localStorage
       localStorage.setItem('token', token);
@@ -154,11 +156,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         currentUser,
-        user: currentUser, // Alias for currentUser
+        user: currentUser,
         isAuthenticated: !!currentUser,
         isAdmin: currentUser?.role === 'admin',
         isLoading,
-        loadingInitial: isLoading, // Alias for isLoading
+        loadingInitial: isLoading,
         login,
         logout,
         register,

@@ -12,25 +12,29 @@ module.exports = catchAsync(async (req, res, next) => {
     token = req.headers.authorization.split(' ')[1];
   }
 
-  if (!token) {
+  if (!token || token === 'undefined' || token === 'null') {
     return next(new AppError('أنت غير مسجل الدخول. يرجى تسجيل الدخول للوصول', 401));
   }
 
-  // 2) Verify the token
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  try {
+    // 2) Verify the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-  // 3) Check if the user still exists
-  const currentUser = await User.findById(decoded.id);
-  if (!currentUser) {
-    return next(new AppError('المستخدم الذي ينتمي إليه هذا الرمز لم يعد موجودًا', 401));
+    // 3) Check if the user still exists
+    const currentUser = await User.findById(decoded.id);
+    if (!currentUser) {
+      return next(new AppError('المستخدم الذي ينتمي إليه هذا الرمز لم يعد موجودًا', 401));
+    }
+
+    // 4) Check if user is active
+    if (!currentUser.isActive) {
+      return next(new AppError('هذا الحساب غير نشط حاليًا', 401));
+    }
+
+    // Grant access to protected route
+    req.user = currentUser;
+    next();
+  } catch (err) {
+    return next(new AppError('خطأ في التحقق من التوكن، يرجى تسجيل الدخول مرة أخرى', 401));
   }
-
-  // 4) Check if user changed password after the token was issued
-  if (currentUser.passwordChangedAfter && currentUser.passwordChangedAfter(decoded.iat)) {
-    return next(new AppError('تم تغيير كلمة المرور مؤخرًا! يرجى تسجيل الدخول مرة أخرى', 401));
-  }
-
-  // Grant access to protected route
-  req.user = currentUser;
-  next();
 });

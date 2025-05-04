@@ -1,22 +1,21 @@
 
 import axios from 'axios';
 
-// Create an Axios instance with custom configs
-export const apiClient = axios.create({
-  baseURL: 'http://localhost:5000/api',
+// Create an instance of axios with custom config
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   headers: {
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json'
   },
-  allowAbsoluteUrls: true,
+  allowAbsoluteUrls: true // Allow absolute URLs in requests
 });
 
-// Add a request interceptor to add auth token
+// Add a request interceptor to attach auth token to requests
 apiClient.interceptors.request.use(
   (config) => {
-    // Get token from localStorage
     const token = localStorage.getItem('token');
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+    if (token && token !== 'undefined' && token !== 'null') {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -31,14 +30,15 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Handle unauthorized errors (401)
+    const originalRequest = error.config;
+    
+    // Handle 401 errors (unauthorized)
     if (error.response && error.response.status === 401) {
-      // Clear token and redirect to login
+      // If token has expired, log the user out
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      
-      // Check if we're not already on the login page to avoid redirect loop
-      if (!window.location.pathname.includes('/login')) {
+      // Redirect to login page if needed
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
         window.location.href = '/login';
       }
     }
@@ -46,3 +46,5 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+export { apiClient };
