@@ -7,8 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
-import { ManualService } from '@/types/ManualService';
-import { ManualRequest } from '@/types/ManualRequest';
+import { ManualService, ManualRequest } from '@/types/ManualRequest';
 import { Badge } from '@/components/ui/badge';
 
 const ManualActivation = () => {
@@ -42,11 +41,7 @@ const ManualActivation = () => {
       }
       
       // Filter available services
-      if (Array.isArray(servicesData)) {
-        setServices(servicesData.filter(service => service.available));
-      } else {
-        setServices([]);
-      }
+      setServices(servicesData?.filter(service => service.available) || []);
     } catch (error) {
       console.error('Failed to fetch services data:', error);
       toast.error('فشل في تحميل الخدمات');
