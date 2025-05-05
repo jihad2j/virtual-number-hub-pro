@@ -6,25 +6,20 @@ import { toast } from 'sonner';
 
 interface AuthContextType {
   currentUser: User | null;
-  user: User | null; // Alias for currentUser
   isAuthenticated: boolean;
   isAdmin: boolean;
   isLoading: boolean;
-  loadingInitial: boolean; // Alias for isLoading
   login: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<User>;
   refreshUserData: () => Promise<User | null>;
-  updateUserData: (userData: Partial<User>) => Promise<User | null>; // Added function
 }
 
 const AuthContext = createContext<AuthContextType>({
   currentUser: null,
-  user: null,
   isAuthenticated: false,
   isAdmin: false,
   isLoading: true,
-  loadingInitial: true,
   login: async () => {
     throw new Error('login not implemented');
   },
@@ -36,9 +31,6 @@ const AuthContext = createContext<AuthContextType>({
   },
   refreshUserData: async () => {
     throw new Error('refreshUserData not implemented');
-  },
-  updateUserData: async () => {
-    throw new Error('updateUserData not implemented');
   }
 });
 
@@ -83,18 +75,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return user;
     } catch (error) {
       console.error('Error refreshing user data:', error);
-      return null;
-    }
-  };
-
-  // Function to update user data
-  const updateUserData = async (userData: Partial<User>) => {
-    try {
-      const updatedUser = await api.updateUser(userData);
-      setCurrentUser(updatedUser);
-      return updatedUser;
-    } catch (error) {
-      console.error('Error updating user data:', error);
       return null;
     }
   };
@@ -154,16 +134,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider
       value={{
         currentUser,
-        user: currentUser, // Alias for currentUser
         isAuthenticated: !!currentUser,
         isAdmin: currentUser?.role === 'admin',
         isLoading,
-        loadingInitial: isLoading, // Alias for isLoading
         login,
         logout,
         register,
-        refreshUserData,
-        updateUserData
+        refreshUserData
       }}
     >
       {children}

@@ -19,7 +19,6 @@ import Profile from '@/pages/Profile';
 import Support from '@/pages/Support';
 import Countries from '@/pages/Countries';
 import ManualActivation from '@/pages/ManualActivation';
-import MyManualRequests from '@/pages/MyManualRequests'; // Add import
 import NotFound from '@/pages/NotFound';
 
 // Admin Pages
@@ -67,7 +66,6 @@ function App() {
               <Route path="/dashboard/support" element={<Support />} />
               <Route path="/dashboard/countries" element={<Countries />} />
               <Route path="/dashboard/services/:countryCode" element={<ManualActivation />} />
-              <Route path="/dashboard/manual-requests" element={<MyManualRequests />} /> {/* Add route */}
               <Route path="/dashboard/active-providers" element={<ActiveProviders />} />
               
               {/* Admin Routes */}

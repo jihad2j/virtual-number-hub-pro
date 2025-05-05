@@ -10,8 +10,6 @@ export interface User {
   updatedAt?: Date | string;
   lastLogin?: Date | string;
   profilePicture?: string;
-  name?: string;
-  avatar?: string;
   phoneNumber?: string;
   country?: string;
   settings?: {
