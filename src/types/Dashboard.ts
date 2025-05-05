@@ -24,3 +24,11 @@ export interface ChartDataPoint {
   name: string;
   sales: number;
 }
+
+export interface QuickActionItem {
+  id: number;
+  title: string;
+  icon: React.ReactNode;
+  path: string;
+  color: string;
+}

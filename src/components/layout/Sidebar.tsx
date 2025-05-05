@@ -16,7 +16,7 @@ import {
   LayoutDashboard,
   ChartBar,
   User,
-  Bell
+  Activity
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -32,10 +32,10 @@ export const Sidebar: React.FC = () => {
   const userNavItems = [
     { path: '/dashboard', label: 'لوحة التحكم', icon: LayoutDashboard },
     { path: '/dashboard/profile', label: 'الملف الشخصي', icon: User },
-    { path: '/dashboard/countries', label: 'الدول المتاحة', icon: Globe },
+    { path: '/dashboard/countries', label: 'التفعيل التلقائي', icon: Globe },
     { path: '/dashboard/manual-activation', label: 'التفعيل اليدوي', icon: PhoneCall },
+    { path: '/dashboard/orders', label: 'سجل الخدمات', icon: ShoppingCart },
     { path: '/dashboard/balance', label: 'رصيد الحساب', icon: DollarSign },
-    { path: '/dashboard/orders', label: 'طلباتي', icon: ShoppingCart },
     { path: '/dashboard/support', label: 'الدعم الفني', icon: MessageSquare },
   ];
 
@@ -47,7 +47,7 @@ export const Sidebar: React.FC = () => {
     { path: '/dashboard/admin/users', label: 'المستخدمين', icon: Users },
     { path: '/dashboard/admin/support', label: 'إدارة الدعم الفني', icon: MessageSquare },
     { path: '/dashboard/admin/manual-requests', label: 'طلبات التفعيل اليدوي', icon: PhoneCall },
-    { path: '/dashboard/admin/manual-services', label: 'خدمات التفعيل اليدوي', icon: PhoneCall },
+    { path: '/dashboard/admin/manual-services', label: 'خدمات التفعيل اليدوي', icon: Activity },
     { path: '/dashboard/admin/settings', label: 'إعدادات النظام', icon: Settings },
   ];
 

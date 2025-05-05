@@ -6,7 +6,7 @@ import { formatCurrency } from '@/lib/utils';
 import { StatCards } from '@/components/admin/dashboard/StatCards';
 import { SalesChart } from '@/components/admin/dashboard/SalesChart';
 import { RecentTransactionsTable } from '@/components/admin/dashboard/RecentTransactionsTable';
-import { Transaction, DashboardStats } from '@/types/Dashboard';
+import { DashboardStats, Transaction } from '@/types/Dashboard';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState<DashboardStats[]>([
@@ -63,9 +63,20 @@ const AdminDashboard = () => {
         setChartData(dashboardData.chartData);
       }
       
-      // Update recent transactions
+      // Update recent transactions - transform backend data to match our Dashboard Transaction type
       if (dashboardData.recentTransactions) {
-        setRecentTransactions(dashboardData.recentTransactions);
+        const formattedTransactions = dashboardData.recentTransactions.map((tx: any) => ({
+          id: tx.id,
+          title: tx.username || 'غير معروف',
+          amount: tx.amount,
+          type: tx.type,
+          date: new Date(tx.createdAt).toLocaleString(),
+          icon: <CreditCard className="h-5 w-5 text-white" />,
+          status: tx.status,
+          username: tx.username,
+          createdAt: tx.createdAt
+        }));
+        setRecentTransactions(formattedTransactions);
       }
     } catch (error) {
       console.error('Failed to fetch dashboard data', error);
