@@ -22,11 +22,10 @@ export const DashboardLayout: React.FC = () => {
   }
 
   return (
-    <div dir="rtl" className="min-h-screen bg-background flex">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
+    <div dir="rtl" className="min-h-screen bg-background">
+      <div className="mobile-app-container relative">
         <TopBar />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 pb-20">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto px-4 py-4 pb-20">
           <Outlet />
         </main>
         <BottomNav />

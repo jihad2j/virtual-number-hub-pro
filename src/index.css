@@ -7,7 +7,7 @@
 
 @layer base {
   :root {
-    --background: 210 50% 98%;
+    --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -16,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 199 89% 48%;
+    --primary: 225 70% 60%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 40% 96.1%;
@@ -33,17 +33,24 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 199 89% 48%;
+    --ring: 225 70% 60%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 199 89% 48%;
+    --orange-card: 32 100% 50%;
+    --blue-card: 220 90% 56%;
+    --purple-icon: 270 80% 75%;
+    --green-icon: 145 70% 85%;
+    --orange-icon: 35 100% 88%;
+    --blue-icon: 218 80% 86%;
+    
+    --sidebar-background: 225 70% 60%;
     --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 199 89% 48%;
-    --sidebar-accent: 199 77% 44%;
+    --sidebar-primary-foreground: 225 70% 60%;
+    --sidebar-accent: 225 60% 55%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 199 77% 44%;
+    --sidebar-border: 225 60% 55%;
     --sidebar-ring: 0 0% 100%;
   }
 
@@ -57,7 +64,7 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 199 89% 48%;
+    --primary: 225 70% 60%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -76,13 +83,13 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
     
-    --sidebar-background: 199 89% 20%;
+    --sidebar-background: 225 70% 20%;
     --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 199 89% 48%;
-    --sidebar-accent: 199 77% 25%;
+    --sidebar-primary-foreground: 225 70% 60%;
+    --sidebar-accent: 225 60% 25%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 199 77% 25%;
+    --sidebar-border: 225 60% 25%;
     --sidebar-ring: 0 0% 100%;
   }
 }
@@ -124,4 +131,73 @@
   .icon-container {
     @apply flex items-center justify-center w-12 h-12 rounded-full;
   }
+
+  .orange-card {
+    @apply bg-[#FF9F2D] text-white;
+  }
+
+  .blue-card {
+    @apply bg-[#4285F4] text-white;
+  }
+
+  .transaction-item {
+    @apply flex items-center justify-between py-4 border-b border-gray-100 last:border-0;
+  }
+  
+  .quick-action-icon {
+    @apply flex items-center justify-center w-12 h-12 rounded-full mb-1;
+  }
+  
+  .quick-action-purple {
+    @apply bg-purple-100;
+  }
+  
+  .quick-action-green {
+    @apply bg-green-100;
+  }
+  
+  .quick-action-blue {
+    @apply bg-blue-100;
+  }
+  
+  .quick-action-orange {
+    @apply bg-orange-100;
+  }
+  
+  .app-header {
+    @apply bg-primary text-primary-foreground fixed top-0 left-0 right-0 h-16 flex items-center px-4 z-50;
+  }
+}
+
+/* Mobile App Style Overrides */
+.mobile-app-container {
+  max-width: 500px;
+  margin: 0 auto;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+  position: relative;
+  padding-top: 72px;
+  padding-bottom: 76px;
+}
+
+.search-bar {
+  background-color: white;
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.transaction-positive {
+  color: #2ecc71;
+}
+
+.transaction-negative {
+  color: #e74c3c;
+}
+
+.bottom-nav-active {
+  color: #4285F4;
+}
+
+.bottom-nav-inactive {
+  color: #71717a;
 }

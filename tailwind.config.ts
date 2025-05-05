@@ -74,6 +74,12 @@ export default {
 					700: '#0369a1',
 					800: '#075985',
 					900: '#0c4a6e',
+				},
+				app: {
+					blue: '#4285F4',
+					orange: '#FF9F2D',
+					purple: 'hsl(var(--purple-icon))',
+					green: 'hsl(var(--green-icon))',
 				}
 			},
 			borderRadius: {
