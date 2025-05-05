@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Activity } from 'lucide-react';
+import { DollarSign, Star } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 interface BalanceCardsProps {
@@ -18,26 +18,29 @@ export const BalanceCards: React.FC<BalanceCardsProps> = ({
 }) => {
   const { toast } = useToast();
   
-  const handleViewServices = () => {
-    window.location.href = '/dashboard/countries';
+  const handleExchangePoints = () => {
+    toast({
+      title: "تم الإرسال",
+      description: "تم إرسال طلب استبدال النقاط بنجاح"
+    });
   };
   
   return (
     <div className="grid grid-cols-2 gap-4">
       <Card className="p-4 orange-card rounded-2xl">
         <div className="flex justify-between items-start mb-2">
-          <Activity className="h-6 w-6" />
+          <Star className="h-6 w-6" />
           <div className="text-right">
-            <div className="text-sm opacity-90">الخدمات المتاحة</div>
-            <div className="font-bold text-2xl">{points.toLocaleString()}</div>
+            <div className="text-sm opacity-90">النقاط</div>
+            <div className="font-bold text-2xl">{points.toLocaleString()} نقطة</div>
           </div>
         </div>
         <div className="mt-4">
           <Button 
             className="w-full bg-white text-app-orange hover:bg-gray-100 rounded-full"
-            onClick={handleViewServices}
+            onClick={handleExchangePoints}
           >
-            عرض الخدمات
+            استبدال النقاط
           </Button>
         </div>
       </Card>

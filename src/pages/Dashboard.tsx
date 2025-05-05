@@ -17,7 +17,7 @@ const Dashboard = () => {
   
   // States
   const [balance, setBalance] = useState<number | null>(null);
-  const [points, setPoints] = useState<number>(85);
+  const [points, setPoints] = useState<number>(1850);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [transactions, setTransactions] = useState([
     { id: 1, title: 'متجر إلكترونيات', amount: -250, type: 'purchase', date: 'اليوم 10:45 ص', icon: <CreditCard className="h-5 w-5 text-white" /> },
@@ -51,8 +51,8 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Search bar - Comment out if you want to hide it */}
-      {/* <SearchBar /> */}
+      {/* Search bar */}
+      <SearchBar />
       
       {/* Balance and Points Cards */}
       <BalanceCards 
