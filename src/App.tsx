@@ -1,123 +1,92 @@
 
-import { Navigate, Route, Routes } from 'react-router-dom';
-import { DashboardLayout } from './components/layout/DashboardLayout';
-import { Toaster } from './components/ui/sonner';
-import { useAuth } from './contexts/AuthContext';
-import { useEffect } from 'react';
+import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from '@/components/ui/theme-provider';
+import { Toaster } from '@/components/ui/sonner';
+
+// Layouts
+import DashboardLayout from '@/components/layout/DashboardLayout';
 
 // Pages
-import Login from './pages/Login';
-import Register from './pages/Register';
-import NotFound from './pages/NotFound';
-import Index from './pages/Index';
-import Dashboard from './pages/Dashboard';
-import Countries from './pages/Countries';
-import Balance from './pages/Balance';
-import Profile from './pages/Profile';
-import MyOrders from './pages/MyOrders';
-import Support from './pages/Support';
-import ManualActivation from './pages/ManualActivation';
-import SystemSettings from './pages/SystemSettings';
+import Index from '@/pages/Index';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import Dashboard from '@/pages/Dashboard';
+import MyOrders from '@/pages/MyOrders';
+import Balance from '@/pages/Balance';
+import Profile from '@/pages/Profile';
+import Support from '@/pages/Support';
+import Countries from '@/pages/Countries';
+import ManualActivation from '@/pages/ManualActivation';
+import MyManualRequests from '@/pages/MyManualRequests'; // Add import
+import NotFound from '@/pages/NotFound';
 
 // Admin Pages
-import AdminDashboard from './pages/admin/Dashboard';
-import ProviderSettings from './pages/admin/ProviderSettings';
-import ProviderProducts from './pages/admin/ProviderProducts';
-import ProviderBalances from './pages/admin/ProviderBalances';
-import AdminCountries from './pages/admin/Countries';
-import AdminUsers from './pages/admin/Users';
-import AdminManualServices from './pages/admin/ManualServices';
-import AdminManualRequests from './pages/admin/ManualRequests';
-import AdminSupport from './pages/admin/Support';
+import AdminDashboard from '@/pages/admin/Dashboard';
+import AdminCountries from '@/pages/admin/Countries';
+import Users from '@/pages/admin/Users';
+import Providers from '@/pages/admin/Providers';
+import ProviderBalances from '@/pages/admin/ProviderBalances';
+import SystemSettings from '@/pages/SystemSettings';
+import ManualServices from '@/pages/admin/ManualServices';
+import ManualRequests from '@/pages/admin/ManualRequests';
+import AdminSupport from '@/pages/admin/Support';
+import PrepaidCodes from '@/pages/admin/PrepaidCodes';
+
+// New Page
+import ActiveProviders from '@/pages/dashboard/ActiveProviders';
+
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 function App() {
-  const { isAuthenticated, user, loadingInitial, isAdmin } = useAuth();
-
-  useEffect(() => {
-    // Nothing specific needed here, just keeping component updated with auth state
-  }, [isAuthenticated, isAdmin]);
-
-  // Admin check for protected routes
-  const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-    return isAdmin ? <>{children}</> : <Navigate to="/dashboard" replace />;
-  };
-
-  if (loadingInitial) {
-    return <div className="flex items-center justify-center h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
-    </div>;
-  }
-
   return (
-    <>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-
-        {/* Dashboard Routes */}
-        <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="countries" element={<Countries />} />
-          <Route path="balance" element={<Balance />} />
-          <Route path="orders" element={<MyOrders />} />
-          <Route path="manual-activation" element={<ManualActivation />} />
-          <Route path="settings" element={<SystemSettings />} />
-          <Route path="support" element={<Support />} />
-
-          {/* Admin Routes */}
-          <Route path="admin" element={
-            <AdminRoute>
-              <AdminDashboard />
-            </AdminRoute>
-          } />
-          <Route path="admin/providers" element={
-            <AdminRoute>
-              <ProviderSettings />
-            </AdminRoute>
-          } />
-          <Route path="admin/provider-products" element={
-            <AdminRoute>
-              <ProviderProducts />
-            </AdminRoute>
-          } />
-          <Route path="admin/provider-balances" element={
-            <AdminRoute>
-              <ProviderBalances />
-            </AdminRoute>
-          } />
-          <Route path="admin/countries" element={
-            <AdminRoute>
-              <AdminCountries />
-            </AdminRoute>
-          } />
-          <Route path="admin/users" element={
-            <AdminRoute>
-              <AdminUsers />
-            </AdminRoute>
-          } />
-          <Route path="admin/manual-services" element={
-            <AdminRoute>
-              <AdminManualServices />
-            </AdminRoute>
-          } />
-          <Route path="admin/manual-requests" element={
-            <AdminRoute>
-              <AdminManualRequests />
-            </AdminRoute>
-          } />
-          <Route path="admin/support" element={
-            <AdminRoute>
-              <AdminSupport />
-            </AdminRoute>
-          } />
-        </Route>
-
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <Toaster />
-    </>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light" attribute="class">
+        <div className="app">
+          <Toaster />
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route element={<DashboardLayout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard/orders" element={<MyOrders />} />
+              <Route path="/dashboard/balance" element={<Balance />} />
+              <Route path="/dashboard/profile" element={<Profile />} />
+              <Route path="/dashboard/settings" element={<Profile />} />
+              <Route path="/dashboard/support" element={<Support />} />
+              <Route path="/dashboard/countries" element={<Countries />} />
+              <Route path="/dashboard/services/:countryCode" element={<ManualActivation />} />
+              <Route path="/dashboard/manual-requests" element={<MyManualRequests />} /> {/* Add route */}
+              <Route path="/dashboard/active-providers" element={<ActiveProviders />} />
+              
+              {/* Admin Routes */}
+              <Route path="/dashboard/admin" element={<AdminDashboard />} />
+              <Route path="/dashboard/admin/countries" element={<AdminCountries />} />
+              <Route path="/dashboard/admin/users" element={<Users />} />
+              <Route path="/dashboard/admin/providers" element={<Providers />} />
+              <Route path="/dashboard/admin/providers/balances" element={<ProviderBalances />} />
+              <Route path="/dashboard/admin/settings" element={<SystemSettings />} />
+              <Route path="/dashboard/admin/manual-services" element={<ManualServices />} />
+              <Route path="/dashboard/admin/manual-requests" element={<ManualRequests />} />
+              <Route path="/dashboard/admin/support" element={<AdminSupport />} />
+              <Route path="/dashboard/admin/prepaid-codes" element={<PrepaidCodes />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

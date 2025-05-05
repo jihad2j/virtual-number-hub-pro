@@ -1,94 +1,88 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { api, SupportTicket } from '@/services/api';
-import { MessageSquare, Send } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { api } from '@/services/api';
+import { SupportTicket } from '@/types/SupportTicket';
+import { MessageSquare, Send } from 'lucide-react';
 
 const Support = () => {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
-  const [isLoadingTickets, setIsLoadingTickets] = useState(true);
-  const [replyMessages, setReplyMessages] = useState<{ [ticketId: string]: string }>({});
-  const [replying, setReplying] = useState<{ [ticketId: string]: boolean }>({});
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [replyMessages, setReplyMessages] = useState<Record<string, string>>({});
+  const [replying, setReplying] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    fetchUserTickets();
+    fetchTickets();
   }, []);
 
-  const fetchUserTickets = async () => {
-    setIsLoadingTickets(true);
+  const fetchTickets = async () => {
+    setLoading(true);
     try {
-      const fetchedTickets = await api.getUserSupportTickets();
-      setTickets(fetchedTickets);
+      const data = await api.getUserSupportTickets();
+      setTickets(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Failed to fetch support tickets', error);
-      toast.error('فشل في جلب التذاكر السابقة');
+      console.error('Failed to fetch tickets:', error);
+      toast.error('فشل في جلب التذاكر');
     } finally {
-      setIsLoadingTickets(false);
+      setLoading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!subject || !message) {
-      toast.error('الرجاء إدخال الموضوع والرسالة');
+    if (!subject.trim() || !message.trim()) {
+      toast.error('يرجى ملء جميع الحقول');
       return;
     }
     
-    setIsLoading(true);
+    setSubmitting(true);
     try {
-      const newTicket = await api.createSupportTicket(subject, message);
-      setTickets([newTicket, ...tickets]);
+      await api.createSupportTicket({ 
+        subject: subject.trim(),
+        message: message.trim() 
+      });
+      
+      toast.success('تم إرسال التذكرة بنجاح');
       setSubject('');
       setMessage('');
-      toast.success('تم إرسال رسالتك بنجاح. سيتم الرد عليك قريبًا.');
+      fetchTickets();
     } catch (error) {
-      console.error('Failed to create support ticket', error);
-      toast.error('حدث خطأ أثناء إرسال الرسالة. الرجاء المحاولة مرة أخرى.');
+      console.error('Failed to submit ticket:', error);
+      toast.error('فشل في إرسال التذكرة');
     } finally {
-      setIsLoading(false);
+      setSubmitting(false);
     }
   };
-
+  
   const handleReplyChange = (ticketId: string, value: string) => {
     setReplyMessages(prev => ({ ...prev, [ticketId]: value }));
   };
-
+  
   const handleReplySubmit = async (ticketId: string) => {
-    const replyMessage = replyMessages[ticketId];
-    
-    if (!replyMessage?.trim()) {
-      toast.error('الرجاء إدخال رسالة للرد');
+    if (!replyMessages[ticketId]?.trim()) {
+      toast.error('يرجى كتابة رد أولاً');
       return;
     }
     
     setReplying(prev => ({ ...prev, [ticketId]: true }));
     
     try {
-      const updatedTicket = await api.respondToSupportTicket(ticketId, replyMessage);
-      
-      // تحديث التذكرة في قائمة التذاكر
-      setTickets(prev => 
-        prev.map(ticket => 
-          ticket.id === ticketId ? updatedTicket : ticket
-        )
-      );
-      
-      // مسح رسالة الرد بعد الإرسال الناجح
-      setReplyMessages(prev => ({ ...prev, [ticketId]: '' }));
-      
+      await api.replySupportTicket(ticketId, replyMessages[ticketId]);
       toast.success('تم إرسال الرد بنجاح');
+      setReplyMessages(prev => ({ ...prev, [ticketId]: '' }));
+      fetchTickets(); // إعادة تحميل التذاكر بعد إرسال الرد
     } catch (error) {
-      console.error('Failed to send reply', error);
-      toast.error('حدث خطأ أثناء إرسال الرد');
+      console.error('Failed to send reply:', error);
+      toast.error('فشل في إرسال الرد');
     } finally {
       setReplying(prev => ({ ...prev, [ticketId]: false }));
     }
@@ -129,9 +123,9 @@ const Support = () => {
             <Button 
               type="submit" 
               className="gradient-bg"
-              disabled={isLoading}
+              disabled={submitting}
             >
-              {isLoading ? (
+              {submitting ? (
                 <>جاري الإرسال...</>
               ) : (
                 <>
@@ -144,7 +138,7 @@ const Support = () => {
         </CardContent>
       </Card>
       
-      {isLoadingTickets ? (
+      {loading ? (
         <div className="flex justify-center items-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-500"></div>
         </div>
