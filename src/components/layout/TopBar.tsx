@@ -13,7 +13,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Notifications } from './Notifications';
 import { Input } from '@/components/ui/input';
 
 export const TopBar: React.FC = () => {
@@ -36,7 +35,7 @@ export const TopBar: React.FC = () => {
         </div>
       </div>
       
-      <div className="flex items-center">
+      <div className="flex flex-col items-center">
         <h1 className="text-lg font-bold">تطبيقنا</h1>
         <p className="text-xs text-white/80">مرحباً بك مجدداً</p>
       </div>
