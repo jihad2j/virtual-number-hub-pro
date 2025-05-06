@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DataTable } from '@/components/ui/data-table';
 import { Card } from '@/components/ui/card';
@@ -10,44 +9,31 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
 import { Country } from '@/types/Country';
-import { Provider } from '@/types/Provider';
-import { Checkbox } from '@/components/ui/checkbox';
-
-// Define a type for the country reference in provider.countries
-type CountryRef = string | Country | null;
 
 const Countries = () => {
   const [countries, setCountries] = useState<Country[]>([]);
-  const [providers, setProviders] = useState<Provider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [providerDialogOpen, setProviderDialogOpen] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
-  const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
   const [newCountry, setNewCountry] = useState<Omit<Country, 'id'>>({
     name: '',
     flag: '',
     code: '',
     available: true,
-    services: []
+    services: [] // Add the required services array
   });
 
   useEffect(() => {
-    fetchData();
+    fetchCountries();
   }, []);
 
-  const fetchData = async () => {
+  const fetchCountries = async () => {
     setIsLoading(true);
     try {
-      const [countriesData, providersData] = await Promise.all([
-        api.getAllCountries(),
-        api.getAllProviders()
-      ]);
-      setCountries(countriesData);
-      setProviders(providersData);
+      const data = await api.getAllCountries();
+      setCountries(data);
     } catch (error) {
-      console.error('Failed to fetch data', error);
-      toast.error('فشل في جلب البيانات');
+      console.error('Failed to fetch countries', error);
+      toast.error('فشل في جلب قائمة الدول');
     } finally {
       setIsLoading(false);
     }
@@ -103,59 +89,6 @@ const Countries = () => {
     }
   };
 
-  const openProviderDialog = (country: Country) => {
-    setSelectedCountry(country);
-    // Find providers that have this country in their countries array
-    const countryProviders = providers.filter(provider => 
-      provider.countries?.some((c: CountryRef) => {
-        if (c === null) return false;
-        if (typeof c === 'string') return c === country.id;
-        return (c as Country).id === country.id;
-      })
-    );
-    setSelectedProviders(countryProviders.map(p => p.id));
-    setProviderDialogOpen(true);
-  };
-
-  const handleProviderSelection = async () => {
-    if (!selectedCountry) return;
-    
-    try {
-      // Update each provider's countries array
-      for (const provider of providers) {
-        const hasCountry = selectedProviders.includes(provider.id);
-        const currentCountries = Array.isArray(provider.countries) 
-          ? provider.countries
-              .filter((c: CountryRef): c is (string | Country) => c !== null)
-              .map((c: string | Country) => typeof c === 'string' ? c : c.id)
-          : [];
-        
-        if (hasCountry && !currentCountries.includes(selectedCountry.id)) {
-          // Add country to provider
-          await api.updateProvider({
-            ...provider,
-            countries: [...currentCountries, selectedCountry.id]
-          });
-        } else if (!hasCountry && currentCountries.includes(selectedCountry.id)) {
-          // Remove country from provider
-          await api.updateProvider({
-            ...provider,
-            countries: currentCountries.filter(id => id !== selectedCountry.id)
-          });
-        }
-      }
-      
-      toast.success(`تم تحديث مزودي الخدمة للدولة ${selectedCountry.name} بنجاح`);
-      setProviderDialogOpen(false);
-      // Refresh providers list
-      const updatedProviders = await api.getAllProviders();
-      setProviders(updatedProviders);
-    } catch (error) {
-      console.error('Failed to update provider countries:', error);
-      toast.error('فشل في تحديث مزودي الخدمة للدولة');
-    }
-  };
-
   const columns = [
     {
       accessorKey: 'flag',
@@ -185,19 +118,6 @@ const Countries = () => {
       )
     },
     {
-      id: 'providers',
-      header: 'المزودين',
-      cell: ({ row }) => (
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => openProviderDialog(row.original)}
-        >
-          إدارة المزودين
-        </Button>
-      )
-    },
-    {
       id: 'actions',
       header: 'الإجراءات',
       cell: ({ row }) => (
@@ -224,11 +144,10 @@ const Countries = () => {
           columns={columns} 
           data={countries} 
           loading={isLoading} 
-          onRefresh={fetchData}
+          onRefresh={fetchCountries}
         />
       </Card>
 
-      {/* Dialog for creating new country */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -275,43 +194,6 @@ const Countries = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>إلغاء</Button>
             <Button onClick={handleCreateCountry}>إضافة</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog for managing country providers */}
-      <Dialog open={providerDialogOpen} onOpenChange={setProviderDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>إدارة مزودي الخدمة لـ {selectedCountry?.name}</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <p className="text-sm text-gray-500">حدد مزودي الخدمة الذين يدعمون هذه الدولة:</p>
-            
-            <div className="space-y-4 max-h-80 overflow-y-auto">
-              {providers.map(provider => (
-                <div key={provider.id} className="flex items-center space-x-2">
-                  <Checkbox 
-                    id={`provider-${provider.id}`}
-                    checked={selectedProviders.includes(provider.id)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedProviders([...selectedProviders, provider.id]);
-                      } else {
-                        setSelectedProviders(selectedProviders.filter(id => id !== provider.id));
-                      }
-                    }}
-                  />
-                  <Label htmlFor={`provider-${provider.id}`}>{provider.name}</Label>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setProviderDialogOpen(false)}>إلغاء</Button>
-            <Button onClick={handleProviderSelection}>حفظ</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

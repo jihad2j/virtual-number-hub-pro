@@ -52,12 +52,8 @@ app.use((req, res, next) => {
 // معالج الأخطاء
 app.use((err, req, res, next) => {
   console.error('خطأ في الخادم:', err);
-  
-  // Make sure we use valid HTTP status codes for the response
-  const statusCode = err.statusCode || 500;
-  
-  res.status(statusCode).json({
-    status: 'error', // Always use 'error' to avoid invalid status codes
+  res.status(err.status || 500).json({
+    status: 'error',
     message: err.message || 'حدث خطأ في الخادم',
     error: process.env.NODE_ENV === 'development' ? err : {}
   });

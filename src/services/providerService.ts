@@ -13,13 +13,7 @@ export const providerService = {
    */
   async testConnection(providerId: string): Promise<boolean> {
     try {
-      // Check if providerId is a MongoDB ObjectId (24 hex chars) or a provider code
-      const isObjectId = /^[0-9a-fA-F]{24}$/.test(providerId);
-      const endpoint = isObjectId 
-        ? `/providers/${providerId}/test-connection` 
-        : `/providers/code/${providerId}/test-connection`;
-      
-      const response = await apiClient.get(endpoint);
+      const response = await apiClient.get(`/providers/${providerId}/test-connection`);
       return response.data.connected;
     } catch (error) {
       console.error('فشل اختبار الاتصال بمزود الخدمة:', error);
@@ -33,13 +27,7 @@ export const providerService = {
    * @returns {Promise<{balance: number; currency: string}>} - الرصيد والعملة
    */
   async getBalance(providerId: string): Promise<{ balance: number; currency: string }> {
-    // Check if providerId is a MongoDB ObjectId (24 hex chars) or a provider code
-    const isObjectId = /^[0-9a-fA-F]{24}$/.test(providerId);
-    const endpoint = isObjectId 
-      ? `/providers/${providerId}/balance` 
-      : `/providers/code/${providerId}/balance`;
-      
-    const response = await apiClient.get(endpoint);
+    const response = await apiClient.get(`/providers/${providerId}/balance`);
     return response.data.data;
   },
 
@@ -49,13 +37,7 @@ export const providerService = {
    * @returns {Promise<any[]>} - قائمة الدول المتاحة
    */
   async getCountries(providerId: string): Promise<any[]> {
-    // Check if providerId is a MongoDB ObjectId (24 hex chars) or a provider code
-    const isObjectId = /^[0-9a-fA-F]{24}$/.test(providerId);
-    const endpoint = isObjectId 
-      ? `/providers/${providerId}/countries` 
-      : `/providers/code/${providerId}/countries`;
-      
-    const response = await apiClient.get(endpoint);
+    const response = await apiClient.get(`/providers/${providerId}/countries`);
     return response.data.data;
   },
 
@@ -66,13 +48,7 @@ export const providerService = {
    * @returns {Promise<any[]>} - قائمة الخدمات المتاحة
    */
   async getServices(providerId: string, countryCode: string): Promise<any[]> {
-    // Check if providerId is a MongoDB ObjectId (24 hex chars) or a provider code
-    const isObjectId = /^[0-9a-fA-F]{24}$/.test(providerId);
-    const endpoint = isObjectId 
-      ? `/providers/${providerId}/services/${countryCode}` 
-      : `/providers/code/${providerId}/services/${countryCode}`;
-      
-    const response = await apiClient.get(endpoint);
+    const response = await apiClient.get(`/providers/${providerId}/services/${countryCode}`);
     return response.data.data;
   },
 

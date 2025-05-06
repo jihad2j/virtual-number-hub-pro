@@ -1,13 +1,10 @@
 
-import { Country } from './Country';
-
 export interface Provider {
   id: string;
   name: string;
   code: string;
   description?: string;
-  // Support both string IDs and full Country objects, and allow null values
-  countries: (string | Country | null)[];
+  countries: string[];
   isActive: boolean;
   isDefault?: boolean;
   apiKey: string;

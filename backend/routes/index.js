@@ -12,7 +12,6 @@ const transactionRoutes = require('./transactions');
 const supportRoutes = require('./support');
 const manualServiceRoutes = require('./manualServices');
 const manualRequestRoutes = require('./manualRequests');
-const prepaidCodesRoutes = require('./prepaidCodes');
 const adminRoutes = require('./admin');
 const initRoutes = require('./init');
 
@@ -26,7 +25,6 @@ router.use('/transactions', transactionRoutes);
 router.use('/support', supportRoutes);
 router.use('/manual-services', manualServiceRoutes);
 router.use('/manual-requests', manualRequestRoutes);
-router.use('/prepaid-codes', prepaidCodesRoutes);
 router.use('/admin', adminRoutes);
 router.use('/init', initRoutes);
 

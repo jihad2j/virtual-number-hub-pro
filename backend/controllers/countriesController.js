@@ -1,5 +1,5 @@
+
 const Country = require('../models/Country');
-const Provider = require('../models/Provider');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 
@@ -14,28 +14,9 @@ exports.getAllCountries = catchAsync(async (req, res, next) => {
   });
 });
 
-// الحصول على الدول المتاحة فقط (مع التحقق من توفرها في مزودي الخدمة النشطين)
+// الحصول على الدول المتاحة فقط
 exports.getAvailableCountries = catchAsync(async (req, res, next) => {
-  // Get all active providers
-  const activeProviders = await Provider.find({ isActive: true });
-  
-  // Extract all country IDs from active providers
-  const activeCountryIds = new Set();
-  activeProviders.forEach(provider => {
-    if (Array.isArray(provider.countries)) {
-      provider.countries.forEach(countryId => {
-        // Handle if countryId is an object or a string
-        const id = typeof countryId === 'object' ? countryId.toString() : countryId;
-        activeCountryIds.add(id);
-      });
-    }
-  });
-  
-  // Find countries that are both available and associated with active providers
-  const countries = await Country.find({ 
-    available: true,
-    _id: { $in: Array.from(activeCountryIds) }
-  });
+  const countries = await Country.find({ available: true });
   
   res.status(200).json({
     status: 'success',

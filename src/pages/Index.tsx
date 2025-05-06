@@ -24,7 +24,7 @@ const Index = () => {
     // Add a small delay to ensure auth state is properly loaded
     const timeout = setTimeout(redirectUser, 100);
     
-    // Initialize local data when starting the application
+    // تهيئة البيانات المحلية عند بدء التطبيق
     const initData = async () => {
       try {
         console.log("Initializing local data...");

@@ -7,42 +7,32 @@ const phoneNumberSchema = new mongoose.Schema({
     required: [true, 'رقم الهاتف مطلوب'],
     trim: true
   },
-  providerId: {
+  country: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Country',
+    required: [true, 'الدولة مطلوبة']
+  },
+  provider: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Provider',
     required: [true, 'مزود الخدمة مطلوب']
+  },
+  status: {
+    type: String,
+    enum: ['available', 'sold', 'expired'],
+    default: 'available'
+  },
+  price: {
+    type: Number,
+    required: [true, 'سعر الرقم مطلوب'],
+    min: 0
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
-  countryCode: {
-    type: String,
-    required: [true, 'رمز الدولة مطلوب']
-  },
-  countryName: String,
-  countryId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Country'
-  },
-  service: {
-    type: String,
-    required: [true, 'الخدمة مطلوبة']
-  },
-  status: {
-    type: String,
-    enum: ['active', 'completed', 'cancelled', 'expired'],
-    default: 'active'
-  },
-  providerNumberId: String,
-  price: {
-    type: Number,
-    default: 0
-  },
-  smsCode: String,
   expiresAt: {
-    type: Date,
-    required: [true, 'تاريخ انتهاء الصلاحية مطلوب']
+    type: Date
   }
 }, {
   timestamps: true,
