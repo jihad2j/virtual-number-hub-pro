@@ -1,134 +1,151 @@
 
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '@/services/api';
+import { User } from '@/types/User';
+import { toast } from 'sonner';
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  username: string;
-  role: 'user' | 'admin';
-  balance: number;
-  isActive: boolean;
-  createdAt: string;
-}
-
-export interface AuthContextType {
-  user: AuthUser | null;
+interface AuthContextType {
+  currentUser: User | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
-  loadingInitial: boolean;
-  updateUserData: (userData: Partial<AuthUser>) => Promise<void>;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<User>;
+  logout: () => Promise<void>;
+  register: (username: string, email: string, password: string) => Promise<User>;
+  refreshUserData: () => Promise<User | null>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  currentUser: null,
+  isAuthenticated: false,
+  isAdmin: false,
+  isLoading: true,
+  login: async () => {
+    throw new Error('login not implemented');
+  },
+  logout: async () => {
+    throw new Error('logout not implemented');
+  },
+  register: async () => {
+    throw new Error('register not implemented');
+  },
+  refreshUserData: async () => {
+    throw new Error('refreshUserData not implemented');
+  }
+});
+
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loadingInitial, setLoadingInitial] = useState(true);
-  const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Function to load user from local storage or API
+  const loadUser = async () => {
+    setIsLoading(true);
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setCurrentUser(null);
+      setIsLoading(false);
+      return null;
+    }
+    
+    try {
+      const user = await api.getCurrentUser();
+      setCurrentUser(user);
+      return user;
+    } catch (error) {
+      console.error('Error loading user:', error);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setCurrentUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+    
+    return null;
+  };
+  
+  // Function to refresh user data from API
+  const refreshUserData = async () => {
+    try {
+      const user = await api.getCurrentUser();
+      setCurrentUser(user);
+      return user;
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+      return null;
+    }
+  };
 
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      const token = localStorage.getItem('authToken');
-      if (token) {
-        try {
-          const currentUser = await api.getCurrentUser();
-          setUser(currentUser);
-          setIsAuthenticated(true);
-          setIsAdmin(currentUser.role === 'admin');
-        } catch (error) {
-          console.error('Failed to fetch current user:', error);
-          localStorage.removeItem('authToken');
-          setIsAuthenticated(false);
-          setIsAdmin(false);
-          setUser(null);
-        }
-      }
-      setLoadingInitial(false);
-    };
-
-    checkAuthStatus();
+    loadUser();
   }, []);
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await api.login(email, password);
-      localStorage.setItem('authToken', response.token);
-      setUser(response.user);
-      setIsAuthenticated(true);
-      setIsAdmin(response.user.role === 'admin');
-      navigate('/dashboard');
+      const { token, user } = await api.login(email, password);
+      
+      // Save token and user to localStorage
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      // Update state
+      setCurrentUser(user);
+      return user;
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('Login error:', error);
       throw error;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await api.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear local storage and state
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setCurrentUser(null);
     }
   };
 
   const register = async (username: string, email: string, password: string) => {
     try {
-      const response = await api.register(username, email, password);
-      localStorage.setItem('authToken', response.token);
-      setUser(response.user);
-      setIsAuthenticated(true);
-      setIsAdmin(response.user.role === 'admin');
-      navigate('/dashboard');
+      const { token, user } = await api.register(username, email, password);
+      
+      // Save token and user to localStorage
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      // Update state
+      setCurrentUser(user);
+      return user;
     } catch (error) {
-      console.error('Registration failed:', error);
+      console.error('Register error:', error);
       throw error;
     }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('authToken');
-    setUser(null);
-    setIsAuthenticated(false);
-    setIsAdmin(false);
-    navigate('/login');
-  };
-
-  const updateUserData = async (userData: Partial<AuthUser>) => {
-    if (!user || !user.id) return;
-    
-    try {
-      const updatedUser = await api.updateUser(user.id, userData);
-      setUser({
-        ...user,
-        ...updatedUser,
-      });
-    } catch (error) {
-      console.error('Failed to update user data:', error);
-      throw error;
-    }
-  };
-
-  const value: AuthContextType = {
-    user,
-    isAuthenticated,
-    isAdmin,
-    login,
-    register,
-    logout,
-    loadingInitial,
-    updateUserData,
   };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider
+      value={{
+        currentUser,
+        isAuthenticated: !!currentUser,
+        isAdmin: currentUser?.role === 'admin',
+        isLoading,
+        login,
+        logout,
+        register,
+        refreshUserData
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export default AuthProvider;

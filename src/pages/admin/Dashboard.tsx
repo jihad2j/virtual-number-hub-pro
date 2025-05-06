@@ -3,13 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { api } from '@/services/api';
 import { Users, CreditCard, ShoppingCart, Activity } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { StatCards } from '@/components/admin/dashboard/StatCards';
-import { SalesChart } from '@/components/admin/dashboard/SalesChart';
-import { RecentTransactionsTable } from '@/components/admin/dashboard/RecentTransactionsTable';
-import { DashboardStats, Transaction } from '@/types/Dashboard';
+import { DashboardStatsCards } from '@/components/admin/DashboardStatsCards';
+import { SalesOverviewChart } from '@/components/admin/SalesOverviewChart';
+import { RecentTransactionsTable } from '@/components/admin/RecentTransactionsTable';
+import { Transaction } from '@/types/Transaction';
 
 const AdminDashboard = () => {
-  const [stats, setStats] = useState<DashboardStats[]>([
+  const [stats, setStats] = useState([
     { title: 'إجمالي المستخدمين', value: '0', description: 'مستخدم', icon: <Users className="h-4 w-4 text-muted-foreground" /> },
     { title: 'إجمالي المبيعات', value: '0', description: 'ريال', icon: <CreditCard className="h-4 w-4 text-muted-foreground" /> },
     { title: 'عدد الطلبات', value: '0', description: 'طلب', icon: <ShoppingCart className="h-4 w-4 text-muted-foreground" /> },
@@ -63,20 +63,9 @@ const AdminDashboard = () => {
         setChartData(dashboardData.chartData);
       }
       
-      // Update recent transactions - transform backend data to match our Dashboard Transaction type
+      // Update recent transactions
       if (dashboardData.recentTransactions) {
-        const formattedTransactions = dashboardData.recentTransactions.map((tx: any) => ({
-          id: tx.id,
-          title: tx.username || 'غير معروف',
-          amount: tx.amount,
-          type: tx.type,
-          date: new Date(tx.createdAt).toLocaleString(),
-          icon: <CreditCard className="h-5 w-5 text-white" />,
-          status: tx.status,
-          username: tx.username,
-          createdAt: tx.createdAt
-        }));
-        setRecentTransactions(formattedTransactions);
+        setRecentTransactions(dashboardData.recentTransactions);
       }
     } catch (error) {
       console.error('Failed to fetch dashboard data', error);
@@ -89,12 +78,12 @@ const AdminDashboard = () => {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">لوحة التحكم</h1>
       
-      <StatCards stats={stats} />
-      <SalesChart chartData={chartData} />
+      <DashboardStatsCards stats={stats} />
+      <SalesOverviewChart chartData={chartData} />
       <RecentTransactionsTable 
         transactions={recentTransactions} 
         isLoading={isLoading} 
-        onRefresh={fetchDashboardData} 
+        onRefresh={fetchDashboardData}
       />
     </div>
   );

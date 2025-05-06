@@ -1,53 +1,48 @@
 
 import axios from 'axios';
 
-// API base URL - this should point to your backend Express server
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
+// Create an Axios instance with custom configs
 export const apiClient = axios.create({
-  baseURL: BASE_URL,
+  baseURL: 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json',
   },
+  allowAbsoluteUrls: true,
 });
 
-// Add request interceptor for authentication tokens
+// Add a request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken');
+    // Get token from localStorage
+    const token = localStorage.getItem('token');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
-// Add response interceptor for error handling
+// Add a response interceptor to handle common errors
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
   (error) => {
-    // Handle common errors here
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      console.error('API Error Response:', error.response.data);
+    // Handle unauthorized errors (401)
+    if (error.response && error.response.status === 401) {
+      // Clear token and redirect to login
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       
-      // Handle 401 Unauthorized by redirecting to login
-      if (error.response.status === 401) {
-        localStorage.removeItem('authToken');
+      // Check if we're not already on the login page to avoid redirect loop
+      if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }
-    } else if (error.request) {
-      // The request was made but no response was received
-      console.error('API Request Error:', error.request);
-    } else {
-      // Something happened in setting up the request
-      console.error('API Setup Error:', error.message);
     }
     
     return Promise.reject(error);
   }
 );
-
-export default apiClient;
