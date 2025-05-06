@@ -1,66 +1,35 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { Bell, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { LogOut, User, Settings } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Notifications } from './Notifications';
 
 export const TopBar: React.FC = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const { user } = useAuth();
 
   return (
-    <header className="bg-white border-b border-gray-200 py-3 px-4 flex justify-between items-center">
-      <div className="flex items-center space-x-4">
+    <header className="app-header">
+      <div className="container mx-auto flex items-center justify-between w-full">
+        <div className="flex items-center">
+          <div className="relative">
+            <Bell className="h-6 w-6 text-white" />
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
+              3
+            </span>
+          </div>
+        </div>
         
-      </div>
-      <div className="flex items-center space-x-4">
-        <Notifications />
+        <div className="flex items-center">
+          <h1 className="text-lg font-bold">تطبيقنا</h1>
+          <p className="text-xs opacity-75 mr-1">مرحبا بك، {user?.username || 'مستخدم'}</p>
+        </div>
         
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center space-x-2 relative px-2">
-              <div className="bg-brand-100 text-brand-800 rounded-full w-8 h-8 flex items-center justify-center">
-                <User className="h-4 w-4" />
-              </div>
-              <span className="mr-2">{user?.username || 'مستخدم'}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end">
-            <DropdownMenuLabel>حسابي</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => navigate('/dashboard/profile')}>
-                <User className="mr-2 h-4 w-4" />
-                <span>الملف الشخصي</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/dashboard/settings')}>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>الإعدادات</span>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>تسجيل الخروج</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div>
+          <img 
+            src="/lovable-uploads/4b7ba182-3501-41b5-bc8f-a427d9c05b7d.png" 
+            alt="شعار التطبيق" 
+            className="h-8 w-8 rounded-full object-cover"
+          />
+        </div>
       </div>
     </header>
   );

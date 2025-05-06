@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { formatCurrency } from '@/lib/utils';
-import { Transaction } from '@/types/Transaction';
+import { Transaction } from '@/types/Dashboard';
 
 interface RecentTransactionsTableProps {
   transactions: Transaction[];
@@ -11,10 +11,10 @@ interface RecentTransactionsTableProps {
   onRefresh: () => void;
 }
 
-export const RecentTransactionsTable: React.FC<RecentTransactionsTableProps> = ({ 
-  transactions, 
+export const RecentTransactionsTable: React.FC<RecentTransactionsTableProps> = ({
+  transactions,
   isLoading,
-  onRefresh 
+  onRefresh,
 }) => {
   const transactionColumns = [
     {
@@ -28,12 +28,12 @@ export const RecentTransactionsTable: React.FC<RecentTransactionsTableProps> = (
     {
       accessorKey: 'amount',
       header: 'المبلغ',
-      cell: ({ row }: { row: any }) => formatCurrency(row.original.amount),
+      cell: ({ row }) => formatCurrency(row.original.amount),
     },
     {
       accessorKey: 'type',
       header: 'النوع',
-      cell: ({ row }: { row: any }) => {
+      cell: ({ row }) => {
         const typeMap = {
           deposit: 'إيداع',
           withdrawal: 'سحب',
@@ -49,7 +49,7 @@ export const RecentTransactionsTable: React.FC<RecentTransactionsTableProps> = (
     {
       accessorKey: 'status',
       header: 'الحالة',
-      cell: ({ row }: { row: any }) => {
+      cell: ({ row }) => {
         const statusMap = {
           pending: 'قيد الانتظار',
           completed: 'مكتمل',
@@ -62,7 +62,7 @@ export const RecentTransactionsTable: React.FC<RecentTransactionsTableProps> = (
     {
       accessorKey: 'createdAt',
       header: 'التاريخ',
-      cell: ({ row }: { row: any }) => new Date(row.original.createdAt).toLocaleString('ar-SA'),
+      cell: ({ row }) => new Date(row.original.createdAt).toLocaleString('ar-SA'),
     },
   ];
 
