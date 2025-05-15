@@ -1,3 +1,4 @@
+
 import { apiClient } from '@/services/apiClient';
 import { User } from '@/types/User';
 import { Country } from '@/types/Country';
@@ -8,6 +9,7 @@ import { PrepaidCode } from '@/types/PrepaidCode';
 import { SupportTicket } from '@/types/SupportTicket';
 import { ManualService, ManualRequest, AdminManualRequest } from '@/types/ManualRequest';
 import { providerService } from '@/services/providerService';
+import { ProductVisibility, BulkUpdateProductsRequest } from '@/types/ProductVisibility';
 
 // Re-export types that other components need
 export type { User, Country, Provider, Transaction, PhoneNumber, PrepaidCode, SupportTicket, ManualService, ManualRequest };
@@ -98,8 +100,8 @@ export const api = {
   },
 
   async getAvailableCountries(): Promise<Country[]> {
-    // This is an alias for getAllCountries to fix the type error
-    return this.getAllCountries();
+    const response = await apiClient.get('/countries/available');
+    return response.data.data;
   },
 
   async createCountry(data: Partial<Country>): Promise<Country> {
@@ -132,6 +134,11 @@ export const api = {
     return response.data.data;
   },
 
+  async getAvailableProviders(): Promise<Provider[]> {
+    const response = await apiClient.get('/providers/available');
+    return response.data.data;
+  },
+
   async getProvider(id: string): Promise<Provider> {
     const response = await apiClient.get(`/providers/${id}`);
     return response.data.data;
@@ -144,6 +151,16 @@ export const api = {
 
   async updateProvider(provider: Provider): Promise<Provider> {
     const response = await apiClient.patch(`/providers/${provider.id}`, provider);
+    return response.data.data;
+  },
+
+  async toggleProviderStatus(providerId: string): Promise<Provider> {
+    const response = await apiClient.patch(`/providers/${providerId}/toggle-status`);
+    return response.data.data;
+  },
+  
+  async setDefaultProvider(providerId: string): Promise<Provider> {
+    const response = await apiClient.patch(`/providers/${providerId}/set-default`);
     return response.data.data;
   },
 
@@ -162,6 +179,34 @@ export const api = {
 
   async getProviderServices(providerId: string, countryCode: string): Promise<any[]> {
     return providerService.getServices(providerId, countryCode);
+  },
+
+  // New method for getting all providers' balances
+  async getAllProvidersBalances(): Promise<Array<{
+    id: string;
+    name: string;
+    code: string;
+    balance?: { balance: number; currency: string };
+    error?: string;
+  }>> {
+    const response = await apiClient.get('/providers/admin/all-balances');
+    return response.data.data;
+  },
+
+  // Product Visibility API functions
+  async getProductVisibilitySettings(providerId: string, countryId: string): Promise<ProductVisibility[]> {
+    const response = await apiClient.get(`/product-visibility?providerId=${providerId}&countryId=${countryId}`);
+    return response.data.data;
+  },
+
+  async updateProductVisibilitySettings(data: BulkUpdateProductsRequest): Promise<ProductVisibility[]> {
+    const response = await apiClient.post('/product-visibility/bulk', data);
+    return response.data.data;
+  },
+
+  async getVisibleProducts(countryId: string): Promise<ProductVisibility[]> {
+    const response = await apiClient.get(`/product-visibility/visible?countryId=${countryId}`);
+    return response.data.data;
   },
 
   // Phone Numbers - delegate to providerService for provider-specific actions

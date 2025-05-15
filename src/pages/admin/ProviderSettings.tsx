@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { api } from '@/services/api';
 import { providerService } from '@/services/providerService';
@@ -11,12 +10,31 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Check, Settings, RefreshCcw, X, Star, StarOff, Info } from 'lucide-react';
+import { Check, Settings, RefreshCcw, X, Star, StarOff, Info, Globe } from 'lucide-react';
 import { Provider, ProviderCode, ProviderBalance } from '@/types/Provider';
+import { Country } from '@/types/Country';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 
-const providerDefaults = {
+// Define a type for the country reference in provider.countries
+type CountryRef = string | Country | null;
+
+const providerDefaults: Record<ProviderCode, {
+  name: string;
+  description: string;
+  apiUrl: string;
+  endpoints: {
+    balance?: string;
+    countries?: string;
+    products?: string;
+    purchase?: string;
+    status?: string;
+    cancel?: string;
+  };
+  settings: Record<string, any>;
+}> = {
   '5sim': {
     name: '5SIM',
     description: 'خدمة أرقام افتراضية للاستقبال من جميع أنحاء العالم',
@@ -93,27 +111,35 @@ const providerDefaults = {
 
 const ProviderSettings: React.FC = () => {
   const [providers, setProviders] = useState<Provider[]>([]);
+  const [countries, setCountries] = useState<Country[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [providerBalances, setProviderBalances] = useState<Record<string, ProviderBalance>>({});
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
   const [apiKeyVisible, setApiKeyVisible] = useState<Record<string, boolean>>({});
   const [selectedTab, setSelectedTab] = useState<ProviderCode>('5sim');
+  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
+  const [countryDialogOpen, setCountryDialogOpen] = useState(false);
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
 
   useEffect(() => {
-    fetchProviders();
+    fetchData();
   }, []);
 
-  const fetchProviders = async () => {
+  const fetchData = async () => {
     setIsLoading(true);
     try {
-      const data = await api.getAllProviders();
-      setProviders(data);
+      const [providersData, countriesData] = await Promise.all([
+        api.getAllProviders(),
+        api.getAllCountries()
+      ]);
+      setProviders(providersData);
+      setCountries(countriesData);
       
       // أوتوماتيكياً أنشيء مزودي الخدمة إذا لم يكونوا موجودين
-      await checkAndCreateDefaultProviders(data);
+      await checkAndCreateDefaultProviders(providersData);
     } catch (error) {
-      console.error('Error fetching providers:', error);
-      toast.error('فشل في جلب مزودي الخدمة');
+      console.error('Error fetching data:', error);
+      toast.error('فشل في جلب البيانات');
     } finally {
       setIsLoading(false);
     }
@@ -233,28 +259,69 @@ const ProviderSettings: React.FC = () => {
 
   const handleFieldChange = (
     provider: Provider, 
-    field: keyof Provider | string, 
+    field: string,
     value: any,
-    nestedField?: string, 
+    nestedField?: keyof Provider, 
     nestedSubField?: string
   ) => {
-    const updatedProvider = { ...provider };
+    const updatedProvider = { ...provider } as any;
 
     if (nestedField && nestedSubField) {
       // For deeply nested fields like endpoints.balance
-      updatedProvider[nestedField as keyof Provider][nestedSubField] = value;
+      if (!updatedProvider[nestedField]) {
+        updatedProvider[nestedField] = {};
+      }
+      if (!updatedProvider[nestedField][nestedSubField]) {
+        updatedProvider[nestedField][nestedSubField] = {};
+      }
+      updatedProvider[nestedField][nestedSubField] = value;
     } else if (nestedField) {
       // For nested fields like settings.someField
-      if (!updatedProvider[nestedField as keyof Provider]) {
-        updatedProvider[nestedField as keyof Provider] = {};
+      if (!updatedProvider[nestedField]) {
+        updatedProvider[nestedField] = {};
       }
-      updatedProvider[nestedField as keyof Provider][field] = value;
+      updatedProvider[nestedField][field] = value;
     } else {
       // For top-level fields
-      updatedProvider[field as keyof Provider] = value;
+      updatedProvider[field] = value;
     }
 
     setProviders(prev => prev.map(p => p.id === provider.id ? updatedProvider : p));
+  };
+
+  const openCountryDialog = (provider: Provider) => {
+    setSelectedProvider(provider);
+    // Get ids of countries that are associated with this provider
+    const providerCountryIds = Array.isArray(provider.countries) 
+      ? provider.countries
+          .filter((c: CountryRef): c is (string | Country) => c !== null) // Filter out null values
+          .map((c: string | Country) => typeof c === 'string' ? c : c.id)
+      : [];
+    setSelectedCountries(providerCountryIds);
+    setCountryDialogOpen(true);
+  };
+
+  const handleCountrySelection = async () => {
+    if (!selectedProvider) return;
+    
+    try {
+      // Update provider with selected countries
+      const updatedProvider = {
+        ...selectedProvider,
+        countries: selectedCountries
+      };
+      
+      await api.updateProvider(updatedProvider);
+      
+      // Update providers state
+      setProviders(prev => prev.map(p => p.id === selectedProvider.id ? {...p, countries: selectedCountries} : p));
+      
+      toast.success(`تم تحديث الدول المتاحة للمزود ${selectedProvider.name} بنجاح`);
+      setCountryDialogOpen(false);
+    } catch (error) {
+      console.error('Error updating provider countries:', error);
+      toast.error('فشل في تحديث الدول المتاحة للمزود');
+    }
   };
 
   if (isLoading) {
@@ -269,7 +336,7 @@ const ProviderSettings: React.FC = () => {
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">إعدادات مزودي الخدمة</h1>
-        <Button onClick={fetchProviders}>
+        <Button onClick={fetchData}>
           <RefreshCcw className="ml-2 h-4 w-4" />
           تحديث
         </Button>
@@ -287,6 +354,16 @@ const ProviderSettings: React.FC = () => {
         {['5sim', 'smsactivate', 'getsmscode', 'smsman', 'onlinesims'].map((code) => {
           const provider = getProviderByCode(code);
           if (!provider) return null;
+
+          // Get country objects for this provider
+          const providerCountryIds = Array.isArray(provider.countries) 
+            ? provider.countries
+                .filter((c: CountryRef): c is (string | Country) => c !== null) // Filter out null values
+                .map((c: string | Country) => typeof c === 'string' ? c : c.id)
+            : [];
+          const providerCountries = countries.filter(country => 
+            providerCountryIds.includes(country.id)
+          );
 
           return (
             <TabsContent value={code} key={code}>
@@ -514,6 +591,33 @@ const ProviderSettings: React.FC = () => {
           );
         })}
       </Tabs>
+
+      {/* Country Selection Dialog */}
+      <Dialog open={countryDialogOpen} onOpenChange={setCountryDialogOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>إدارة الدول المتاحة لـ {selectedProvider?.name}</DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4">
+            <p className="text-sm text-gray-500 mb-4">حدد الدول التي يدعمها هذا المزود:</p>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
+              {countries.map(country => (
+                <div key={country.id} className="flex items-center space-x-2 p-2 bg-white border rounded-md">
+                  <span className="mr-2 text-lg">{country.flag}</span>
+                  <span className="text-sm">{country.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCountryDialogOpen(false)}>إلغاء</Button>
+            <Button onClick={handleCountrySelection}>حفظ</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -42,6 +42,7 @@ export const Sidebar: React.FC = () => {
   const adminNavItems = [
     { path: '/dashboard/admin', label: 'لوحة المشرف', icon: ChartBar },
     { path: '/dashboard/admin/providers', label: 'مزودي الخدمة', icon: Server },
+    { path: '/dashboard/admin/provider-products', label: 'منتجات المزودين', icon: ShoppingCart },
     { path: '/dashboard/admin/countries', label: 'إدارة الدول', icon: Globe },
     { path: '/dashboard/admin/users', label: 'المستخدمين', icon: Users },
     { path: '/dashboard/admin/support', label: 'إدارة الدعم الفني', icon: MessageSquare },
@@ -74,7 +75,7 @@ export const Sidebar: React.FC = () => {
       {/* Sidebar */}
       <aside 
         className={cn(
-          "bg-white border-l border-gray-200 w-64 flex-shrink-0 flex flex-col z-50",
+          "bg-sidebar text-sidebar-foreground w-64 flex-shrink-0 flex flex-col z-50",
           "fixed inset-y-0 right-0 md:relative md:translate-x-0 transition-transform duration-300 ease-in-out",
           {
             "translate-x-0": isOpen,
@@ -82,8 +83,8 @@ export const Sidebar: React.FC = () => {
           }
         )}
       >
-        <div className="p-4 border-b">
-          <h1 className="text-xl font-bold text-brand-600 text-center">Virtual Number Hub</h1>
+        <div className="p-4 border-b border-sidebar-border">
+          <h1 className="text-xl font-bold text-sidebar-foreground text-center">Virtual Number Hub</h1>
         </div>
 
         <div className="flex-1 overflow-y-auto py-4">
@@ -97,8 +98,8 @@ export const Sidebar: React.FC = () => {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-md transition-colors",
                     isActive 
-                      ? "bg-brand-50 text-brand-600" 
-                      : "text-gray-700 hover:bg-gray-100"
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" 
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground"
                   )}
                   onClick={() => setIsOpen(false)}
                 >
@@ -111,10 +112,10 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {isAdmin && (
-          <div className="p-4 border-t">
+          <div className="p-4 border-t border-sidebar-border">
             <Button 
               variant="outline" 
-              className="w-full"
+              className="w-full bg-sidebar-accent text-sidebar-accent-foreground border-sidebar-border hover:bg-sidebar-accent/70"
               asChild
             >
               <Link to="/dashboard/settings">

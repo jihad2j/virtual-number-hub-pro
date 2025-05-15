@@ -1,4 +1,3 @@
-
 const express = require('express');
 const providersController = require('../controllers/providersController');
 const authController = require('../controllers/authController');
@@ -13,6 +12,12 @@ router.get('/:id', providersController.getProvider);
 router.use(authController.protect);
 
 // مسارات خاصة بمزودي الخدمة - متاحة للمستخدمين أيضًا
+router.get('/code/:providerCode/test-connection', providersController.testProviderConnectionByCode);
+router.get('/code/:providerCode/balance', providersController.getProviderBalanceByCode);
+router.get('/code/:providerCode/countries', providersController.getProviderCountriesByCode);
+router.get('/code/:providerCode/services/:countryCode', providersController.getProviderServicesByCode);
+
+// Keep the original ID-based routes for backward compatibility
 router.get('/:id/test-connection', providersController.testProviderConnection);
 router.get('/:id/balance', providersController.getProviderBalance);
 router.get('/:id/countries', providersController.getProviderCountries);
