@@ -1,367 +1,160 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/ui/data-table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { api } from "@/services/api";
-import { toast } from "sonner";
-import { User } from "@/types/User";
-import { ColumnDef } from "@tanstack/react-table";
 
-const AdminUsers = () => {
+import React, { useState, useEffect } from 'react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/services/api';
+import { User } from '@/types/User';
+
+export default function Users() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  
-  // Form states
-  const [newUsername, setNewUsername] = useState("");
-  const [newEmail, setNewEmail] = useState("");
-  const [newPassword, setNewPassword] = useState(""); // Added password state
-  const [newRole, setNewRole] = useState<"user" | "admin">("user");
-  const [newIsActive, setNewIsActive] = useState(true);
-  const [newBalance, setNewBalance] = useState(0);
-  
-  // Edit states
-  const [editUsername, setEditUsername] = useState("");
-  const [editEmail, setEditEmail] = useState("");
-  const [editRole, setEditRole] = useState<"user" | "admin">("user");
-  const [editIsActive, setEditIsActive] = useState(true);
-  const [editBalance, setEditBalance] = useState(0);
-  
+  const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [newBalance, setNewBalance] = useState('');
+  const { user: currentUser } = useAuth();
+
   useEffect(() => {
     fetchUsers();
   }, []);
-  
+
   const fetchUsers = async () => {
-    setLoading(true);
     try {
       const data = await api.getAllUsers();
       setUsers(data);
     } catch (error) {
-      console.error("Failed to fetch users:", error);
-      toast.error("فشل في جلب المستخدمين");
+      console.error('Failed to fetch users:', error);
+      toast.error('فشل في تحميل بيانات المستخدمين');
     } finally {
       setLoading(false);
     }
   };
-  
-  const handleCreateUser = async () => {
+
+  const handleOpenUpdateDialog = (user: User) => {
+    setSelectedUser(user);
+    setNewBalance(user.balance.toString());
+    setIsUpdateDialogOpen(true);
+  };
+
+  const handleUpdateBalance = async () => {
+    if (!selectedUser) return;
+
     try {
-      const newUser = await api.createUser({
-        username: newUsername,
-        email: newEmail,
-        password: newPassword, // Added password field
-        role: newRole,
-        isActive: newIsActive,
-        balance: newBalance,
+      // Correcting the function call to use the format expected by the API
+      await api.updateUser({
+        id: selectedUser.id,
+        balance: parseFloat(newBalance)
       });
       
-      setUsers([...users, newUser]);
-      toast.success("تم إنشاء المستخدم بنجاح");
-      resetCreateForm();
-      setIsCreateDialogOpen(false);
+      toast.success('تم تحديث رصيد المستخدم بنجاح');
+      setIsUpdateDialogOpen(false);
+      fetchUsers();
     } catch (error) {
-      console.error("Failed to create user:", error);
-      toast.error("فشل في إنشاء المستخدم");
+      console.error('Failed to update user balance:', error);
+      toast.error('فشل في تحديث رصيد المستخدم');
     }
   };
-  
-  const handleEditUser = async () => {
-    if (!currentUser) return;
-    
-    try {
-      const updatedUserData = {
-        username: editUsername,
-        email: editEmail,
-        role: editRole,
-        isActive: editIsActive,
-        balance: editBalance,
-      };
-      
-      const updatedUser = await api.updateUser(currentUser.id, updatedUserData);
-      
-      setUsers(users.map(user => 
-        user.id === updatedUser.id ? updatedUser : user
-      ));
-      
-      toast.success("تم تحديث المستخدم بنجاح");
-      setIsEditDialogOpen(false);
-    } catch (error) {
-      console.error("Failed to update user:", error);
-      toast.error("فشل في تحديث المستخدم");
-    }
-  };
-  
-  const resetCreateForm = () => {
-    setNewUsername("");
-    setNewEmail("");
-    setNewPassword(""); // Reset password field
-    setNewRole("user");
-    setNewIsActive(true);
-    setNewBalance(0);
-  };
-  
-  const openEditDialog = (user: User) => {
-    setCurrentUser(user);
-    setEditUsername(user.username || "");
-    setEditEmail(user.email);
-    setEditRole(user.role);
-    setEditIsActive(user.isActive);
-    setEditBalance(user.balance);
-    setIsEditDialogOpen(true);
-  };
-  
-  const columns: ColumnDef<User>[] = [
-    {
-      accessorKey: "username",
-      header: "اسم المستخدم",
-    },
-    {
-      accessorKey: "email",
-      header: "البريد الإلكتروني",
-    },
-    {
-      accessorKey: "role",
-      header: "الصلاحية",
-      cell: ({ row }) => {
-        const role = row.original.role;
-        return (
-          <Badge variant={role === "admin" ? "default" : "outline"}>
-            {role === "admin" ? "مدير النظام" : "مستخدم عادي"}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "balance",
-      header: "الرصيد",
-      cell: ({ row }) => {
-        return (
-          <span className="font-medium">{row.original.balance} $</span>
-        );
-      },
-    },
-    {
-      accessorKey: "isActive",
-      header: "الحالة",
-      cell: ({ row }) => {
-        const isActive = row.original.isActive;
-        return (
-          <Badge variant={isActive ? "success" : "destructive"}>
-            {isActive ? "نشط" : "معطل"}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "createdAt",
-      header: "تاريخ التسجيل",
-      cell: ({ row }) => {
-        const date = new Date(row.original.createdAt);
-        return date.toLocaleDateString("ar-SA");
-      },
-    },
-    {
-      id: "actions",
-      header: "الإجراءات",
-      cell: ({ row }) => {
-        return (
-          <Button variant="outline" onClick={() => openEditDialog(row.original)}>
-            تعديل
-          </Button>
-        );
-      },
-    },
-  ];
-  
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">إدارة المستخدمين</h1>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>إضافة مستخدم جديد</Button>
-      </div>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>المستخدمين</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DataTable 
-            columns={columns} 
-            data={users} 
-            loading={loading} 
-            onRefresh={fetchUsers}
-            searchKey="email"
-          />
-        </CardContent>
-      </Card>
-      
-      {/* Create User Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>إضافة مستخدم جديد</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="new-username">اسم المستخدم</Label>
-              <Input 
-                id="new-username"
-                value={newUsername}
-                onChange={(e) => setNewUsername(e.target.value)}
-                placeholder="اسم المستخدم"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="new-email">البريد الإلكتروني</Label>
-              <Input 
-                id="new-email"
-                type="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="example@domain.com"
-              />
-            </div>
-            
-            {/* Add Password Field */}
-            <div className="space-y-2">
-              <Label htmlFor="new-password">كلمة المرور</Label>
-              <Input 
-                id="new-password"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="كلمة المرور"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="new-role">نوع المستخدم</Label>
-              <Select 
-                value={newRole} 
-                onValueChange={(value) => setNewRole(value as "user" | "admin")}
-              >
-                <SelectTrigger id="new-role">
-                  <SelectValue placeholder="اختر نوع المستخدم" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">مستخدم عادي</SelectItem>
-                  <SelectItem value="admin">مدير النظام</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="new-balance">الرصيد</Label>
-              <Input 
-                id="new-balance"
-                type="number"
-                value={newBalance.toString()}
-                onChange={(e) => setNewBalance(Number(e.target.value))}
-                placeholder="0"
-              />
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Switch 
-                id="new-is-active"
-                checked={newIsActive}
-                onCheckedChange={setNewIsActive}
-              />
-              <Label htmlFor="new-is-active">مستخدم نشط</Label>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>إلغاء</Button>
-            <Button onClick={handleCreateUser}>إنشاء المستخدم</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Edit User Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>تعديل المستخدم</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-username">اسم المستخدم</Label>
-              <Input 
-                id="edit-username"
-                value={editUsername}
-                onChange={(e) => setEditUsername(e.target.value)}
-                placeholder="اسم المستخدم"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="edit-email">البريد الإلكتروني</Label>
-              <Input 
-                id="edit-email"
-                type="email"
-                value={editEmail}
-                onChange={(e) => setEditEmail(e.target.value)}
-                placeholder="example@domain.com"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="edit-role">نوع المستخدم</Label>
-              <Select 
-                value={editRole} 
-                onValueChange={(value) => setEditRole(value as "user" | "admin")}
-              >
-                <SelectTrigger id="edit-role">
-                  <SelectValue placeholder="اختر نوع المستخدم" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">مستخدم عادي</SelectItem>
-                  <SelectItem value="admin">مدير النظام</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="edit-balance">الرصيد</Label>
-              <Input 
-                id="edit-balance"
-                type="number"
-                value={editBalance.toString()}
-                onChange={(e) => setEditBalance(Number(e.target.value))}
-                placeholder="0"
-              />
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Switch 
-                id="edit-is-active"
-                checked={editIsActive}
-                onCheckedChange={setEditIsActive}
-              />
-              <Label htmlFor="edit-is-active">مستخدم نشط</Label>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>إلغاء</Button>
-            <Button onClick={handleEditUser}>حفظ التغييرات</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
 
-export default AdminUsers;
+  const getUserStatusBadge = (isActive?: boolean) => {
+    return isActive ? (
+      <Badge className="bg-green-500 hover:bg-green-600">نشط</Badge>
+    ) : (
+      <Badge variant="destructive">غير نشط</Badge>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
+      </div>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>إدارة المستخدمين</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="all" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="all">جميع المستخدمين</TabsTrigger>
+            {/* <TabsTrigger value="active">المستخدمين النشطين</TabsTrigger>
+            <TabsTrigger value="inactive">المستخدمين غير النشطين</TabsTrigger> */}
+          </TabsList>
+          <TabsContent value="all">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>اسم المستخدم</TableHead>
+                  <TableHead>البريد الإلكتروني</TableHead>
+                  <TableHead>الرصيد</TableHead>
+                  <TableHead>الحالة</TableHead>
+                  <TableHead className="text-right">الإجراءات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>{user.username}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.balance}</TableCell>
+                    <TableCell>{getUserStatusBadge(user.isActive)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" onClick={() => handleOpenUpdateDialog(user)}>
+                        تعديل الرصيد
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TabsContent>
+          {/* <TabsContent value="active">
+            <p>This is the active users tab.</p>
+          </TabsContent>
+          <TabsContent value="inactive">
+            <p>This is the inactive users tab.</p>
+          </TabsContent> */}
+        </Tabs>
+      </CardContent>
+
+      {/* Update Balance Dialog */}
+      <Dialog open={isUpdateDialogOpen} onOpenChange={setIsUpdateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>تعديل رصيد المستخدم</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="balance" className="text-right">
+                الرصيد الجديد
+              </Label>
+              <Input
+                type="number"
+                id="balance"
+                value={newBalance}
+                onChange={(e) => setNewBalance(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setIsUpdateDialogOpen(false)}>
+              إلغاء
+            </Button>
+            <Button onClick={handleUpdateBalance}>تحديث الرصيد</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}

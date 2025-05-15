@@ -3,14 +3,14 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-interface SalesChartProps {
+interface SalesOverviewChartProps {
   chartData: Array<{
     name: string;
     sales: number;
   }>;
 }
 
-export const SalesChart: React.FC<SalesChartProps> = ({ chartData }) => {
+export const SalesOverviewChart: React.FC<SalesOverviewChartProps> = ({ chartData }) => {
   return (
     <Card className="mb-6">
       <CardHeader>
