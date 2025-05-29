@@ -7,12 +7,10 @@ export interface AuthUser {
   id: string;
   email: string;
   username: string;
-  name?: string;
   role: 'user' | 'admin';
   balance: number;
   isActive: boolean;
   createdAt: string;
-  avatar?: string;
 }
 
 export interface AuthContextType {
@@ -24,7 +22,6 @@ export interface AuthContextType {
   logout: () => void;
   loadingInitial: boolean;
   updateUserData: (userData: Partial<AuthUser>) => Promise<void>;
-  refreshUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,23 +33,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loadingInitial, setLoadingInitial] = useState(true);
   const navigate = useNavigate();
 
-  const refreshUserData = async () => {
-    try {
-      const currentUser = await api.getCurrentUser();
-      setUser(currentUser);
-      setIsAuthenticated(true);
-      setIsAdmin(currentUser.role === 'admin');
-    } catch (error) {
-      console.error('Failed to refresh user data:', error);
-    }
-  };
-
   useEffect(() => {
     const checkAuthStatus = async () => {
       const token = localStorage.getItem('authToken');
       if (token) {
         try {
-          await refreshUserData();
+          const currentUser = await api.getCurrentUser();
+          setUser(currentUser);
+          setIsAuthenticated(true);
+          setIsAdmin(currentUser.role === 'admin');
         } catch (error) {
           console.error('Failed to fetch current user:', error);
           localStorage.removeItem('authToken');
@@ -127,7 +116,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     loadingInitial,
     updateUserData,
-    refreshUserData,
   };
 
   return (
