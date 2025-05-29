@@ -1,138 +1,115 @@
 
 const User = require('../models/User');
-const Country = require('../models/Country');
-const Provider = require('../models/Provider');
 const ManualService = require('../models/ManualService');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
-const { ObjectId } = require('mongodb');
 
-// Initialize default data
-exports.initData = catchAsync(async (req, res, next) => {
-  // Check if we already have data
-  const userCount = await User.countDocuments();
-  
-  if (userCount === 0) {
-    // Create default admin user
-    const admin = await User.create({
-      username: 'admin',
-      email: 'admin@example.com',
-      password: 'admin123',
-      role: 'admin',
-      balance: 1000,
-      isActive: true
-    });
-    
-    // Create default user
-    const user = await User.create({
-      username: 'user',
-      email: 'user@example.com',
-      password: 'user123',
-      role: 'user',
-      balance: 100,
-      isActive: true
-    });
-    
-    // Create default countries
-    const countries = await Country.insertMany([
-      {
-        name: 'Saudi Arabia',
-        code: 'sa',
-        flag: '🇸🇦',
-        available: true
-      },
-      {
-        name: 'United Arab Emirates',
-        code: 'ae',
-        flag: '🇦🇪',
-        available: true
-      },
-      {
-        name: 'Egypt',
-        code: 'eg',
-        flag: '🇪🇬',
-        available: true
-      }
-    ]);
-    
-    // Create default providers
-    const providers = await Provider.insertMany([
-      {
-        name: '5sim',
-        description: 'مزود خدمة أرقام افتراضية',
-        countries: [countries[0]._id, countries[1]._id],
+// تهيئة البيانات الأساسية للنظام
+exports.initializeApp = catchAsync(async (req, res, next) => {
+  try {
+    // إنشاء مستخدم إداري افتراضي
+    const adminUser = await User.findOne({ email: 'admin@admin.com' });
+    if (!adminUser) {
+      await User.create({
+        username: 'admin',
+        email: 'admin@admin.com',
+        password: 'admin123',
+        role: 'admin',
+        balance: 1000,
         isActive: true
-      },
-      {
-        name: 'SMS Activate',
-        description: 'مزود خدمة أرقام افتراضية',
-        countries: [countries[0]._id, countries[2]._id],
+      });
+      console.log('تم إنشاء المستخدم الإداري: admin@admin.com / admin123');
+    }
+
+    // إنشاء مستخدم تجريبي
+    const testUser = await User.findOne({ email: 'user@user.com' });
+    if (!testUser) {
+      await User.create({
+        username: 'testuser',
+        email: 'user@user.com',
+        password: 'user123',
+        role: 'user',
+        balance: 50,
         isActive: true
-      }
-    ]);
-    
-    // Create default manual services
-    await ManualService.insertMany([
-      {
-        name: 'تفعيل واتساب',
-        description: 'تفعيل رقم واتساب جديد',
-        price: 5,
-        available: true,
-        isActive: true
-      },
-      {
-        name: 'تفعيل تلغرام',
-        description: 'تفعيل حساب تلغرام جديد',
-        price: 3,
-        available: true,
-        isActive: true
-      },
-      {
-        name: 'تفعيل فيسبوك',
-        description: 'تفعيل حساب فيسبوك جديد',
-        price: 7,
-        available: true,
-        isActive: true
-      }
-    ]);
-    
+      });
+      console.log('تم إنشاء المستخدم التجريبي: user@user.com / user123');
+    }
+
+    // إنشاء خدمات التفعيل اليدوي الافتراضية
+    const servicesCount = await ManualService.countDocuments();
+    if (servicesCount === 0) {
+      const defaultServices = [
+        {
+          name: 'تفعيل حساب WhatsApp',
+          description: 'خدمة تفعيل رقم WhatsApp يدوياً خلال 24 ساعة',
+          price: 5,
+          available: true
+        },
+        {
+          name: 'تفعيل حساب Telegram',
+          description: 'خدمة تفعيل رقم Telegram يدوياً خلال 12 ساعة',
+          price: 3,
+          available: true
+        },
+        {
+          name: 'تفعيل حساب Instagram',
+          description: 'خدمة تفعيل رقم Instagram يدوياً خلال 48 ساعة',
+          price: 8,
+          available: true
+        },
+        {
+          name: 'تفعيل حساب Facebook',
+          description: 'خدمة تفعيل رقم Facebook يدوياً خلال 24 ساعة',
+          price: 6,
+          available: true
+        },
+        {
+          name: 'تفعيل حساب Twitter',
+          description: 'خدمة تفعيل رقم Twitter يدوياً خلال 12 ساعة',
+          price: 4,
+          available: true
+        }
+      ];
+
+      await ManualService.insertMany(defaultServices);
+      console.log('تم إنشاء الخدمات اليدوية الافتراضية');
+    }
+
     res.status(200).json({
       status: 'success',
-      message: 'تم تهيئة البيانات الافتراضية بنجاح',
-      data: {
-        users: [admin, user],
-        countries,
-        providers
-      }
+      message: 'تم تهيئة النظام بنجاح'
     });
-  } else {
-    res.status(200).json({
-      status: 'success',
-      message: 'البيانات موجودة بالفعل'
-    });
+
+  } catch (error) {
+    console.error('خطأ في تهيئة النظام:', error);
+    return next(new AppError('فشل في تهيئة النظام', 500));
   }
 });
 
-// Get local data for initialization in the frontend
-exports.getLocalData = catchAsync(async (req, res, next) => {
-  try {
-    // Fetch countries and providers for frontend initialization
-    const [countries, providers, services] = await Promise.all([
-      Country.find({ available: true }),
-      Provider.find({ isActive: true }),
-      ManualService.find({ available: true })
-    ]);
-    
-    res.status(200).json({
+// إنشاء المستخدم الإداري
+exports.createAdmin = catchAsync(async (req, res, next) => {
+  const existingAdmin = await User.findOne({ role: 'admin' });
+  
+  if (existingAdmin) {
+    return res.status(200).json({
       status: 'success',
-      data: {
-        countries,
-        providers,
-        services
-      }
+      message: 'المستخدم الإداري موجود بالفعل',
+      data: { email: existingAdmin.email }
     });
-  } catch (error) {
-    console.error('Error fetching local data:', error);
-    return next(new AppError('Failed to fetch initialization data', 500));
   }
+
+  const admin = await User.create({
+    username: 'admin',
+    email: 'admin@admin.com',
+    password: 'admin123',
+    role: 'admin',
+    balance: 1000,
+    isActive: true
+  });
+
+  res.status(201).json({
+    status: 'success',
+    message: 'تم إنشاء المستخدم الإداري بنجاح',
+    data: { email: admin.email }
+  });
 });

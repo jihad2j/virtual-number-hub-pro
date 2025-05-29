@@ -4,14 +4,15 @@ const manualServicesController = require('../controllers/manualServicesControlle
 const authController = require('../controllers/authController');
 const router = express.Router();
 
-// المسارات العامة
+// المسارات العامة للمستخدمين المسجلين
+router.use(authController.protect);
 router.get('/', manualServicesController.getAllManualServices);
 router.get('/:id', manualServicesController.getManualService);
 
 // المسارات المحمية للمشرفين فقط
-router.use(authController.protect, authController.restrictTo('admin'));
+router.use(authController.restrictTo('admin'));
 router.post('/', manualServicesController.createManualService);
-router.put('/:id', manualServicesController.updateManualService);
+router.patch('/:id', manualServicesController.updateManualService);
 router.delete('/:id', manualServicesController.deleteManualService);
 
 module.exports = router;

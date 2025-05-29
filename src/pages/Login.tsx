@@ -37,6 +37,16 @@ const Login = () => {
     }
   };
 
+  const fillDemoCredentials = (type: 'admin' | 'user') => {
+    if (type === 'admin') {
+      setEmail('admin@admin.com');
+      setPassword('admin123');
+    } else {
+      setEmail('user@user.com');
+      setPassword('user123');
+    }
+  };
+
   return (
     <div dir="rtl" className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md">
@@ -58,6 +68,30 @@ const Login = () => {
                 {error}
               </div>
             )}
+            
+            {/* Demo Credentials */}
+            <div className="mb-4 p-3 bg-blue-50 rounded-md">
+              <p className="text-sm text-blue-700 mb-2">حسابات تجريبية:</p>
+              <div className="flex gap-2 text-xs">
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => fillDemoCredentials('admin')}
+                >
+                  مدير (admin@admin.com)
+                </Button>
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => fillDemoCredentials('user')}
+                >
+                  مستخدم (user@user.com)
+                </Button>
+              </div>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">البريد الإلكتروني</Label>

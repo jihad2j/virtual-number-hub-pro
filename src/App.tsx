@@ -65,6 +65,7 @@ function App() {
             <Route path="/dashboard/support" element={<Support />} />
             <Route path="/dashboard/countries" element={<Countries />} />
             <Route path="/dashboard/services/:countryCode" element={<ManualActivation />} />
+            <Route path="/dashboard/services/manual-activation" element={<ManualActivation />} />
             <Route path="/dashboard/active-providers" element={<ActiveProviders />} />
             <Route path="/dashboard/applications" element={<Applications />} />
             
