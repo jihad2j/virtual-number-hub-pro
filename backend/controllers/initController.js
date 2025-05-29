@@ -5,7 +5,7 @@ const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 
 // تهيئة البيانات الأساسية للنظام
-exports.initializeApp = catchAsync(async (req, res, next) => {
+exports.initData = catchAsync(async (req, res, next) => {
   try {
     // إنشاء مستخدم إداري افتراضي
     const adminUser = await User.findOne({ email: 'admin@admin.com' });
@@ -111,5 +111,17 @@ exports.createAdmin = catchAsync(async (req, res, next) => {
     status: 'success',
     message: 'تم إنشاء المستخدم الإداري بنجاح',
     data: { email: admin.email }
+  });
+});
+
+// إضافة دالة getLocalData
+exports.getLocalData = catchAsync(async (req, res, next) => {
+  res.status(200).json({
+    status: 'success',
+    message: 'البيانات المحلية',
+    data: {
+      initialized: true,
+      timestamp: new Date().toISOString()
+    }
   });
 });

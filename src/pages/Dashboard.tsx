@@ -1,15 +1,16 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardStats } from '@/components/dashboard/DashboardStats';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { ShoppingBag, CreditCard, Settings, Users, PhoneCall, Wrench } from 'lucide-react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
+  const dashboardStats = useDashboardStats();
 
   const userCards = [
     {
@@ -75,7 +76,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <DashboardStats />
+      <DashboardStats {...dashboardStats} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {userCards.map((card, index) => (
