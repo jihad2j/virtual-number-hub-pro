@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import DashboardStats from '@/components/dashboard/DashboardStats';
+import { DashboardStats } from '@/components/dashboard/DashboardStats';
 import { ShoppingBag, CreditCard, Settings, Users, PhoneCall, Wrench } from 'lucide-react';
 
 const Dashboard = () => {

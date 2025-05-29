@@ -1,4 +1,3 @@
-
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 const AppError = require('../utils/appError');
@@ -54,7 +53,7 @@ exports.giftBalance = catchAsync(async (req, res, next) => {
   const senderId = req.user.id;
   
   if (!recipient) {
-    return next(new AppError('يرجى توفير اسم المستخدم أو البريد الإلكتروني للمستلم', 400));
+    return next(new AppError('يرجى توفير معرف المستلم (اسم المستخدم أو البريد الإلكتروني أو المعرف)', 400));
   }
   
   if (!amount || amount <= 0) {
@@ -69,10 +68,20 @@ exports.giftBalance = catchAsync(async (req, res, next) => {
     return next(new AppError('رصيدك غير كافٍ لإتمام هذه العملية', 400));
   }
   
-  // البحث عن المستخدم المستلم (بواسطة اسم المستخدم أو البريد الإلكتروني)
-  const recipientUser = await User.findOne({
-    $or: [{ username: recipient }, { email: recipient }]
-  });
+  // البحث عن المستخدم المستلم (بواسطة اسم المستخدم أو البريد الإلكتروني أو المعرف)
+  let recipientUser;
+  
+  // محاولة البحث بالمعرف أولاً
+  if (recipient.match(/^[0-9a-fA-F]{24}$/)) {
+    recipientUser = await User.findById(recipient);
+  }
+  
+  // إذا لم يتم العثور عليه، البحث باسم المستخدم أو البريد الإلكتروني
+  if (!recipientUser) {
+    recipientUser = await User.findOne({
+      $or: [{ username: recipient }, { email: recipient }]
+    });
+  }
   
   if (!recipientUser) {
     return next(new AppError('لم يتم العثور على المستخدم المستلم', 404));
@@ -116,7 +125,8 @@ exports.giftBalance = catchAsync(async (req, res, next) => {
   
   res.status(201).json({
     status: 'success',
-    data: senderTransaction
+    data: senderTransaction,
+    message: `تم إهداء ${amount}$ بنجاح إلى ${recipientUser.username}`
   });
 });
 
