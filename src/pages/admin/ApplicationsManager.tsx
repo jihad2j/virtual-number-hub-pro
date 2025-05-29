@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -69,9 +68,9 @@ const ApplicationsManager = () => {
     enabled: !!selectedProvider
   });
 
-  // Fetch applications from database
+  // Fetch applications from database (FOR ADMIN)
   const { data: applications = [] } = useQuery({
-    queryKey: ['admin-applications'],
+    queryKey: ['admin-base-applications'],
     queryFn: async (): Promise<Application[]> => {
       const response = await apiClient.get('/applications');
       return response.data.data;
@@ -93,10 +92,11 @@ const ApplicationsManager = () => {
     enabled: !!selectedProvider && !!selectedCountry && !!selectedApplication
   });
 
-  // Fetch user applications
+  // Fetch user applications (FOR ADMIN VIEW)
   const { data: userApplications = [] } = useQuery({
     queryKey: ['admin-user-applications'],
     queryFn: async (): Promise<UserApplication[]> => {
+      // Using admin endpoint to get user applications instead of user endpoint
       const response = await apiClient.get('/applications/user');
       return response.data.data;
     }
