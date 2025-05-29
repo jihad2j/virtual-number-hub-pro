@@ -1,244 +1,245 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { api, SupportTicket } from '@/services/api';
-import { MessageSquare, Send } from 'lucide-react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { MessageSquare, Send, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { supportApi } from '@/services/api/supportApi';
+import type { SupportTicket } from '@/services/api/supportApi';
 
 const Support = () => {
-  const [subject, setSubject] = useState('');
-  const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [tickets, setTickets] = useState<SupportTicket[]>([]);
-  const [isLoadingTickets, setIsLoadingTickets] = useState(true);
-  const [replyMessages, setReplyMessages] = useState<{ [ticketId: string]: string }>({});
-  const [replying, setReplying] = useState<{ [ticketId: string]: boolean }>({});
+  const [newTicket, setNewTicket] = useState({
+    subject: '',
+    message: '',
+    priority: 'medium' as const,
+    category: ''
+  });
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [replyMessage, setReplyMessage] = useState('');
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchUserTickets();
-  }, []);
+  // Fetch user tickets using the correct method name
+  const { data: tickets = [], isLoading } = useQuery({
+    queryKey: ['user-support-tickets'],
+    queryFn: supportApi.getUserTickets
+  });
 
-  const fetchUserTickets = async () => {
-    setIsLoadingTickets(true);
-    try {
-      const fetchedTickets = await api.getUserSupportTickets();
-      setTickets(fetchedTickets);
-    } catch (error) {
-      console.error('Failed to fetch support tickets', error);
-      toast.error('فشل في جلب التذاكر السابقة');
-    } finally {
-      setIsLoadingTickets(false);
+  // Create ticket mutation using the correct method name
+  const createTicketMutation = useMutation({
+    mutationFn: supportApi.createTicket,
+    onSuccess: () => {
+      toast.success('تم إنشاء التذكرة بنجاح');
+      setNewTicket({ subject: '', message: '', priority: 'medium', category: '' });
+      queryClient.invalidateQueries({ queryKey: ['user-support-tickets'] });
+    },
+    onError: () => {
+      toast.error('فشل في إنشاء التذكرة');
     }
-  };
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!subject || !message) {
-      toast.error('الرجاء إدخال الموضوع والرسالة');
-      return;
-    }
-    
-    setIsLoading(true);
-    try {
-      const newTicket = await api.createSupportTicket(subject, message);
-      setTickets([newTicket, ...tickets]);
-      setSubject('');
-      setMessage('');
-      toast.success('تم إرسال رسالتك بنجاح. سيتم الرد عليك قريبًا.');
-    } catch (error) {
-      console.error('Failed to create support ticket', error);
-      toast.error('حدث خطأ أثناء إرسال الرسالة. الرجاء المحاولة مرة أخرى.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleReplyChange = (ticketId: string, value: string) => {
-    setReplyMessages(prev => ({ ...prev, [ticketId]: value }));
-  };
-
-  const handleReplySubmit = async (ticketId: string) => {
-    const replyMessage = replyMessages[ticketId];
-    
-    if (!replyMessage?.trim()) {
-      toast.error('الرجاء إدخال رسالة للرد');
-      return;
-    }
-    
-    setReplying(prev => ({ ...prev, [ticketId]: true }));
-    
-    try {
-      const updatedTicket = await api.respondToSupportTicket(ticketId, replyMessage);
-      
-      // تحديث التذكرة في قائمة التذاكر
-      setTickets(prev => 
-        prev.map(ticket => 
-          ticket.id === ticketId ? updatedTicket : ticket
-        )
-      );
-      
-      // مسح رسالة الرد بعد الإرسال الناجح
-      setReplyMessages(prev => ({ ...prev, [ticketId]: '' }));
-      
+  // Reply to ticket mutation using the correct method name
+  const replyMutation = useMutation({
+    mutationFn: (data: { ticketId: string; message: string }) =>
+      supportApi.replyToTicket(data.ticketId, data.message),
+    onSuccess: () => {
       toast.success('تم إرسال الرد بنجاح');
-    } catch (error) {
-      console.error('Failed to send reply', error);
-      toast.error('حدث خطأ أثناء إرسال الرد');
-    } finally {
-      setReplying(prev => ({ ...prev, [ticketId]: false }));
+      setReplyMessage('');
+      queryClient.invalidateQueries({ queryKey: ['ticket-messages', selectedTicket?.id] });
+    },
+    onError: () => {
+      toast.error('فشل في إرسال الرد');
+    }
+  });
+
+  const handleCreateTicket = () => {
+    if (!newTicket.subject.trim() || !newTicket.message.trim()) {
+      toast.error('يرجى ملء جميع الحقول المطلوبة');
+      return;
+    }
+
+    createTicketMutation.mutate(newTicket);
+  };
+
+  const handleSendReply = () => {
+    if (!selectedTicket || !replyMessage.trim()) {
+      toast.error('يرجى كتابة رد قبل الإرسال');
+      return;
+    }
+
+    replyMutation.mutate({
+      ticketId: selectedTicket.id,
+      message: replyMessage
+    });
+  };
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'pending': return 'destructive';
+      case 'in_progress': return 'default';
+      case 'resolved': return 'secondary';
+      case 'closed': return 'outline';
+      default: return 'default';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'pending': return 'في الانتظار';
+      case 'in_progress': return 'قيد المعالجة';
+      case 'resolved': return 'تم الحل';
+      case 'closed': return 'مغلق';
+      default: return status;
     }
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>التواصل مع الدعم الفني</CardTitle>
-          <CardDescription>إذا كان لديك أي استفسار أو مشكلة، يرجى إرسال رسالة إلينا وسنقوم بالرد عليك في أقرب وقت ممكن</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="subject">الموضوع</Label>
-              <Input
-                id="subject"
-                placeholder="موضوع الرسالة"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="message">الرسالة</Label>
-              <Textarea
-                id="message"
-                placeholder="اكتب رسالتك هنا..."
-                rows={6}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                required
-              />
-            </div>
-            
-            <Button 
-              type="submit" 
-              className="gradient-bg"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>جاري الإرسال...</>
-              ) : (
-                <>
-                  <Send className="ml-2 h-4 w-4" />
-                  إرسال الرسالة
-                </>
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-      
-      {isLoadingTickets ? (
-        <div className="flex justify-center items-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-brand-500"></div>
-        </div>
-      ) : tickets.length > 0 ? (
+    <div className="container mx-auto p-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">الدعم الفني</h1>
+        <p className="text-gray-600">تواصل معنا للحصول على المساعدة</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Create New Ticket */}
         <Card>
           <CardHeader>
-            <CardTitle>رسائلي السابقة</CardTitle>
-            <CardDescription>تواصلك السابق مع فريق الدعم الفني</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              إنشاء تذكرة جديدة
+            </CardTitle>
+            <CardDescription>أنشئ تذكرة دعم فني جديدة</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">الموضوع</label>
+              <Input
+                placeholder="اكتب موضوع التذكرة"
+                value={newTicket.subject}
+                onChange={(e) => setNewTicket({ ...newTicket, subject: e.target.value })}
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-2 block">الأولوية</label>
+              <Select 
+                value={newTicket.priority} 
+                onValueChange={(value: 'low' | 'medium' | 'high') => 
+                  setNewTicket({ ...newTicket, priority: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">منخفض</SelectItem>
+                  <SelectItem value="medium">متوسط</SelectItem>
+                  <SelectItem value="high">عالي</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">الفئة</label>
+              <Input
+                placeholder="فئة المشكلة (اختياري)"
+                value={newTicket.category}
+                onChange={(e) => setNewTicket({ ...newTicket, category: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">الرسالة</label>
+              <Textarea
+                placeholder="اشرح مشكلتك بالتفصيل"
+                value={newTicket.message}
+                onChange={(e) => setNewTicket({ ...newTicket, message: e.target.value })}
+                rows={4}
+              />
+            </div>
+
+            <Button 
+              onClick={handleCreateTicket}
+              disabled={createTicketMutation.isPending}
+              className="w-full"
+            >
+              {createTicketMutation.isPending ? 'جاري الإنشاء...' : 'إنشاء التذكرة'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Existing Tickets */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              تذاكر الدعم الخاصة بك
+            </CardTitle>
+            <CardDescription>عرض وإدارة تذاكر الدعم الفني</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-4">جاري التحميل...</div>
+            ) : tickets.length === 0 ? (
+              <div className="text-center py-4 text-gray-500">لا توجد تذاكر دعم فني</div>
+            ) : (
+              <div className="space-y-3">
+                {tickets.map((ticket) => (
+                  <div
+                    key={ticket.id}
+                    className={`p-3 border rounded-lg cursor-pointer hover:bg-gray-50 ${
+                      selectedTicket?.id === ticket.id ? 'bg-blue-50 border-blue-200' : ''
+                    }`}
+                    onClick={() => setSelectedTicket(ticket)}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-medium text-sm">{ticket.subject}</h3>
+                      <Badge variant={getStatusBadgeVariant(ticket.status)}>
+                        {getStatusText(ticket.status)}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {new Date(ticket.createdAt).toLocaleDateString('ar-SA')}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Selected Ticket Details */}
+      {selectedTicket && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>تفاصيل التذكرة</CardTitle>
+            <CardDescription>{selectedTicket.subject}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {tickets.map(ticket => (
-                <div key={ticket.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-medium">{ticket.subject}</h3>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      ticket.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {ticket.status === 'open' ? 'مفتوح' : 'مغلق'}
-                    </span>
-                  </div>
-                  <p className="text-gray-600 mb-4">{ticket.message}</p>
-                  
-                  {ticket.responses && ticket.responses.length > 0 ? (
-                    <div className="border-t pt-4 mt-4 space-y-4">
-                      {ticket.responses.map((response, idx) => (
-                        <div 
-                          key={response.id || idx} 
-                          className={`p-3 rounded-lg ${
-                            response.fromAdmin 
-                              ? 'bg-brand-50 mr-8' 
-                              : 'bg-gray-50 ml-8'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className={`h-6 w-6 rounded-full flex items-center justify-center ${
-                              response.fromAdmin ? 'bg-brand-200' : 'bg-gray-200'
-                            }`}>
-                              <MessageSquare className="h-3 w-3" />
-                            </div>
-                            <span className="text-sm font-medium">
-                              {response.fromAdmin ? 'فريق الدعم' : 'أنت'}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {new Date(response.createdAt).toLocaleDateString('ar-SA')}
-                            </span>
-                          </div>
-                          <p>{response.message}</p>
-                        </div>
-                      ))}
-
-                      {/* نموذج الرد على التذكرة - يظهر فقط إذا كانت التذكرة مفتوحة */}
-                      {ticket.status === 'open' && (
-                        <div className="mt-4 border-t pt-4">
-                          <div className="space-y-2">
-                            <Label htmlFor={`reply-${ticket.id}`}>الرد على الرسالة</Label>
-                            <Textarea
-                              id={`reply-${ticket.id}`}
-                              placeholder="اكتب ردك هنا..."
-                              rows={3}
-                              value={replyMessages[ticket.id] || ''}
-                              onChange={(e) => handleReplyChange(ticket.id, e.target.value)}
-                            />
-                            <Button
-                              onClick={() => handleReplySubmit(ticket.id)}
-                              disabled={replying[ticket.id] || !replyMessages[ticket.id]?.trim()}
-                              size="sm"
-                              className="gradient-bg"
-                            >
-                              {replying[ticket.id] ? 'جاري الإرسال...' : (
-                                <>
-                                  <Send className="ml-2 h-4 w-4" />
-                                  إرسال الرد
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-500 mt-2">
-                      لم يتم الرد بعد. سيتم الرد عليك قريبًا.
-                    </div>
-                  )}
-                </div>
-              ))}
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm">{selectedTicket.message}</p>
+              </div>
+              
+              <div className="flex gap-2">
+                <Input
+                  placeholder="اكتب ردك هنا..."
+                  value={replyMessage}
+                  onChange={(e) => setReplyMessage(e.target.value)}
+                  className="flex-1"
+                />
+                <Button 
+                  onClick={handleSendReply}
+                  disabled={replyMutation.isPending || !replyMessage.trim()}
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="text-center py-8">
-            <p className="text-gray-500">لا توجد رسائل سابقة</p>
           </CardContent>
         </Card>
       )}
