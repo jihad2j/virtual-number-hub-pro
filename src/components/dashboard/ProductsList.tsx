@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Phone, AlertCircle, Globe } from 'lucide-react';
+import { Phone, AlertCircle, Globe, Package } from 'lucide-react';
 
 export interface Product {
   id: string;
