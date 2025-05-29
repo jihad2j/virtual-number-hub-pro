@@ -14,6 +14,7 @@ const manualServiceRoutes = require('./manualServices');
 const manualRequestRoutes = require('./manualRequests');
 const adminRoutes = require('./admin');
 const initRoutes = require('./init');
+const applicationRoutes = require('./applications');
 
 // Map routes to their respective path
 router.use('/auth', authRoutes);
@@ -27,5 +28,6 @@ router.use('/manual-services', manualServiceRoutes);
 router.use('/manual-requests', manualRequestRoutes);
 router.use('/admin', adminRoutes);
 router.use('/init', initRoutes);
+router.use('/applications', applicationRoutes);
 
 module.exports = router;

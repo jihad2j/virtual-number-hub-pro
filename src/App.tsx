@@ -1,3 +1,4 @@
+
 import React, { lazy, Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
@@ -20,6 +21,7 @@ import Support from '@/pages/Support';
 import Countries from '@/pages/Countries';
 import ManualActivation from '@/pages/ManualActivation';
 import NotFound from '@/pages/NotFound';
+import Applications from '@/pages/Applications';
 
 // Admin Pages
 import AdminDashboard from '@/pages/admin/Dashboard';
@@ -31,6 +33,7 @@ import SystemSettings from '@/pages/SystemSettings';
 import ManualServices from '@/pages/admin/ManualServices';
 import ManualRequests from '@/pages/admin/ManualRequests';
 import AdminSupport from '@/pages/admin/Support';
+import ApplicationsManager from '@/pages/admin/ApplicationsManager';
 
 // New Page
 import ActiveProviders from '@/pages/dashboard/ActiveProviders';
@@ -68,6 +71,7 @@ function App() {
                   <Route path="/dashboard/countries" element={<Countries />} />
                   <Route path="/dashboard/services/:countryCode" element={<ManualActivation />} />
                   <Route path="/dashboard/active-providers" element={<ActiveProviders />} />
+                  <Route path="/dashboard/applications" element={<Applications />} />
                   
                   {/* Admin Routes */}
                   <Route path="/dashboard/admin" element={<AdminDashboard />} />
@@ -79,6 +83,7 @@ function App() {
                   <Route path="/dashboard/admin/manual-services" element={<ManualServices />} />
                   <Route path="/dashboard/admin/manual-requests" element={<ManualRequests />} />
                   <Route path="/dashboard/admin/support" element={<AdminSupport />} />
+                  <Route path="/dashboard/admin/applications" element={<ApplicationsManager />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

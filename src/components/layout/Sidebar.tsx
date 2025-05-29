@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   LayoutDashboard,
@@ -8,6 +9,7 @@ import {
   CircleHelp,
   Server,
   Users,
+  Package,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -112,6 +114,12 @@ export function Sidebar() {
           active={isActive("/dashboard/countries")}
         />
         <NavItem
+          icon={<Package className="ml-2" />}
+          text="التطبيقات"
+          to="/dashboard/applications"
+          active={isActive("/dashboard/applications")}
+        />
+        <NavItem
           icon={<Server className="ml-2" />}
           text="المزودين النشطين"
           to="/dashboard/active-providers"
@@ -156,6 +164,12 @@ export function Sidebar() {
               text="إدارة المزودين"
               to="/dashboard/admin/providers"
               active={isActive("/dashboard/admin/providers")}
+            />
+            <NavItem
+              icon={<Package className="ml-2" />}
+              text="إدارة التطبيقات"
+              to="/dashboard/admin/applications"
+              active={isActive("/dashboard/admin/applications")}
             />
             <NavItem
               icon={<WalletCards className="ml-2" />}
