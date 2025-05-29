@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMobile } from "@/hooks/useMobile";
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -51,20 +50,15 @@ const FooterItem: React.FC<NavItemProps> = ({ icon, text, to, active }) => {
 export function Sidebar() {
   const { pathname } = useLocation();
   const { user } = useAuth();
-  const isMobile = useMobile();
 
-  const userAvatar = user?.avatar || "/img/default-user.jpg";
+  const userAvatar = "/img/default-user.jpg";
 
   const isActive = (path: string) => {
     return pathname === path;
   };
 
   return (
-    <aside
-      className={`fixed inset-y-0 z-10 flex flex-col ${
-        isMobile ? "hidden" : "lg:flex"
-      } w-64 p-3 bg-white border-l border-gray-200 shadow transition-transform duration-300 overflow-auto scrollbar-hidden`}
-    >
+    <aside className="fixed inset-y-0 z-10 flex flex-col lg:flex w-64 p-3 bg-white border-l border-gray-200 shadow transition-transform duration-300 overflow-auto scrollbar-hidden">
       {/* Logo and User Info Section */}
       <div className="flex items-center justify-center h-16">
         <Link to="/" className="flex items-center space-x-2">
@@ -83,7 +77,7 @@ export function Sidebar() {
           <span className="absolute bottom-0 right-0 inline-block w-3 h-3 bg-green-500 border border-white rounded-full"></span>
         </div>
         <div>
-          <h2 className="text-sm font-semibold">{user?.name}</h2>
+          <h2 className="text-sm font-semibold">{user?.username || 'مستخدم'}</h2>
           <p className="text-xs text-gray-500">{user?.email}</p>
         </div>
       </div>
