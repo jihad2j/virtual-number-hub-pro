@@ -1,15 +1,14 @@
+
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 
-// الحصول على معاملات المستخدم الحالي
+// الحصول على معاملات المستخدم
 exports.getUserTransactions = catchAsync(async (req, res, next) => {
-  const userId = req.user.id;
-  
-  const transactions = await Transaction.find({ userId })
+  const transactions = await Transaction.find({ userId: req.user.id })
     .sort({ createdAt: -1 });
-  
+
   res.status(200).json({
     status: 'success',
     results: transactions.length,
@@ -20,122 +19,111 @@ exports.getUserTransactions = catchAsync(async (req, res, next) => {
 // إنشاء معاملة إيداع
 exports.createDepositTransaction = catchAsync(async (req, res, next) => {
   const { amount, method } = req.body;
-  const userId = req.user.id;
-  
+
   if (!amount || amount <= 0) {
-    return next(new AppError('يرجى توفير مبلغ صالح للإيداع', 400));
+    return next(new AppError('يرجى إدخال مبلغ صالح', 400));
   }
-  
-  // إنشاء المعاملة
+
+  // إنشاء معاملة جديدة
   const transaction = await Transaction.create({
-    userId,
-    amount,
+    userId: req.user.id,
     type: 'deposit',
-    status: 'completed',
-    description: `إيداع رصيد عبر ${method === 'card' ? 'بطاقة الائتمان' : 'PayPal'}`,
-    paymentMethod: method
+    amount,
+    method: method || 'manual',
+    status: 'pending',
+    description: `إيداع رصيد بمبلغ ${amount}`
   });
-  
-  // تحديث رصيد المستخدم
-  const user = await User.findById(userId);
-  user.balance += amount;
-  await user.save();
-  
+
   res.status(201).json({
     status: 'success',
     data: transaction
   });
 });
 
-// إهداء رصيد لمستخدم آخر
+// إهداء الرصيد
 exports.giftBalance = catchAsync(async (req, res, next) => {
-  const { recipient, amount, note } = req.body;
-  const senderId = req.user.id;
-  
-  if (!recipient) {
-    return next(new AppError('يرجى توفير معرف المستلم (اسم المستخدم أو البريد الإلكتروني أو المعرف)', 400));
-  }
-  
-  if (!amount || amount <= 0) {
-    return next(new AppError('يرجى توفير مبلغ صالح للإهداء', 400));
-  }
-  
-  // البحث عن المستخدم المرسل
-  const sender = await User.findById(senderId);
-  
-  // التأكد من وجود رصيد كافٍ
-  if (sender.balance < amount) {
-    return next(new AppError('رصيدك غير كافٍ لإتمام هذه العملية', 400));
-  }
-  
-  // البحث عن المستخدم المستلم (بواسطة اسم المستخدم أو البريد الإلكتروني أو المعرف)
-  let recipientUser;
-  
-  // محاولة البحث بالمعرف أولاً
-  if (recipient.match(/^[0-9a-fA-F]{24}$/)) {
-    recipientUser = await User.findById(recipient);
-  }
-  
-  // إذا لم يتم العثور عليه، البحث باسم المستخدم أو البريد الإلكتروني
-  if (!recipientUser) {
-    recipientUser = await User.findOne({
-      $or: [{ username: recipient }, { email: recipient }]
-    });
-  }
-  
-  if (!recipientUser) {
-    return next(new AppError('لم يتم العثور على المستخدم المستلم', 404));
-  }
-  
-  // التأكد من أن المستخدم لا يرسل لنفسه
-  if (recipientUser.id === senderId) {
-    return next(new AppError('لا يمكنك إهداء رصيد لنفسك', 400));
-  }
-  
-  // خصم الرصيد من المرسل
-  sender.balance -= amount;
-  await sender.save();
-  
-  // إضافة الرصيد للمستلم
-  recipientUser.balance += amount;
-  await recipientUser.save();
-  
-  let description = `إهداء رصيد إلى ${recipientUser.username}`;
-  if (note) {
-    description += `: ${note}`;
+  const { recipientId, amount, note } = req.body;
+
+  if (!recipientId || !amount) {
+    return next(new AppError('يرجى إدخال معرف المستلم والمبلغ', 400));
   }
 
-  // إنشاء معاملة للمرسل
-  const senderTransaction = await Transaction.create({
-    userId: senderId,
-    amount: -amount,
-    type: 'gift_sent',
-    status: 'completed',
-    description
-  });
+  if (amount <= 0) {
+    return next(new AppError('يرجى إدخال مبلغ صالح', 400));
+  }
+
+  // التحقق من رصيد المرسل
+  const sender = await User.findById(req.user.id);
+  if (!sender || sender.balance < amount) {
+    return next(new AppError('رصيدك غير كافٍ لإتمام هذه العملية', 400));
+  }
+
+  // البحث عن المستلم
+  let recipient;
   
-  // إنشاء معاملة للمستلم
+  // البحث بالبريد الإلكتروني أولاً
+  if (recipientId.includes('@')) {
+    recipient = await User.findOne({ email: recipientId });
+  } else {
+    // البحث باسم المستخدم
+    recipient = await User.findOne({ username: recipientId });
+  }
+
+  if (!recipient) {
+    return next(new AppError('لم يتم العثور على المستخدم المحدد', 404));
+  }
+
+  if (recipient._id.toString() === sender._id.toString()) {
+    return next(new AppError('لا يمكنك إهداء الرصيد لنفسك', 400));
+  }
+
+  // تحديث الأرصدة
+  sender.balance -= amount;
+  recipient.balance += amount;
+
+  await sender.save();
+  await recipient.save();
+
+  // إنشاء معاملات للطرفين
   await Transaction.create({
-    userId: recipientUser.id,
-    amount,
-    type: 'gift_received',
+    userId: sender._id,
+    type: 'gift_sent',
+    amount: -amount,
     status: 'completed',
-    description: `استلام رصيد هدية من ${sender.username}${note ? ': ' + note : ''}`
+    description: `إهداء رصيد إلى ${recipient.username}${note ? ': ' + note : ''}`
   });
-  
-  res.status(201).json({
+
+  await Transaction.create({
+    userId: recipient._id,
+    type: 'gift_received',
+    amount: amount,
+    status: 'completed',
+    description: `استلام رصيد من ${sender.username}${note ? ': ' + note : ''}`
+  });
+
+  res.status(200).json({
     status: 'success',
-    data: senderTransaction,
-    message: `تم إهداء ${amount}$ بنجاح إلى ${recipientUser.username}`
+    message: 'تم إهداء الرصيد بنجاح',
+    data: {
+      sender: {
+        username: sender.username,
+        newBalance: sender.balance
+      },
+      recipient: {
+        username: recipient.username,
+        newBalance: recipient.balance
+      },
+      amount
+    }
   });
 });
 
-// الحصول على جميع المعاملات (للمشرفين فقط)
+// الحصول على جميع المعاملات (للمشرفين)
 exports.getAllTransactions = catchAsync(async (req, res, next) => {
   const transactions = await Transaction.find()
-    .sort({ createdAt: -1 })
-    .populate('userId', 'username email');
-  
+    .populate('userId', 'username email')
+    .sort({ createdAt: -1 });
+
   res.status(200).json({
     status: 'success',
     results: transactions.length,
@@ -143,151 +131,47 @@ exports.getAllTransactions = catchAsync(async (req, res, next) => {
   });
 });
 
-// تحديث حالة المعاملة (للمشرفين فقط)
+// تحديث حالة المعاملة
 exports.updateTransactionStatus = catchAsync(async (req, res, next) => {
   const { status } = req.body;
-  
-  if (!status || !['pending', 'completed', 'failed'].includes(status)) {
-    return next(new AppError('يرجى توفير حالة صالحة للمعاملة', 400));
-  }
-  
   const transaction = await Transaction.findById(req.params.id);
-  
+
   if (!transaction) {
-    return next(new AppError('لم يتم العثور على معاملة بهذا المعرف', 404));
+    return next(new AppError('لم يتم العثور على المعاملة', 404));
   }
-  
-  // إذا كانت المعاملة من نوع إيداع وتم تغييرها من معلقة إلى مكتملة، يجب تحديث رصيد المستخدم
-  if (transaction.type === 'deposit' && transaction.status === 'pending' && status === 'completed') {
-    const user = await User.findById(transaction.userId);
-    user.balance += transaction.amount;
-    await user.save();
-  }
-  
-  // إذا كانت المعاملة من نوع إيداع وتم تغييرها من مكتملة إلى فاشلة، يجب خصم المبلغ من رصيد المستخدم
-  if (transaction.type === 'deposit' && transaction.status === 'completed' && status === 'failed') {
-    const user = await User.findById(transaction.userId);
-    if (user.balance >= transaction.amount) {
-      user.balance -= transaction.amount;
-      await user.save();
-    }
-  }
-  
+
   transaction.status = status;
   await transaction.save();
-  
+
   res.status(200).json({
     status: 'success',
     data: transaction
   });
 });
 
-// الحصول على إحصاءات المبيعات (للمشرفين فقط)
+// بيانات المبيعات للإحصائيات
 exports.getSalesData = catchAsync(async (req, res, next) => {
-  const { period = 'monthly' } = req.query;
-  
-  let dateFormat, groupByKey;
-  
-  if (period === 'daily') {
-    dateFormat = '%Y-%m-%d';
-    groupByKey = { year: { $year: '$createdAt' }, month: { $month: '$createdAt' }, day: { $dayOfMonth: '$createdAt' } };
-  } else if (period === 'weekly') {
-    dateFormat = '%Y-W%U';
-    groupByKey = { year: { $year: '$createdAt' }, week: { $week: '$createdAt' } };
-  } else {
-    dateFormat = '%Y-%m';
-    groupByKey = { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } };
-  }
-  
-  const salesData = await Transaction.aggregate([
-    {
-      $match: {
-        status: 'completed',
-        type: { $in: ['deposit', 'purchase'] },
-        createdAt: { $gte: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000) } // آخر 6 أشهر
-      }
-    },
-    {
-      $group: {
-        _id: groupByKey,
-        sales: {
-          $sum: {
-            $cond: [{ $eq: ['$type', 'purchase'] }, '$amount', 0]
-          }
-        },
-        deposits: {
-          $sum: {
-            $cond: [{ $eq: ['$type', 'deposit'] }, '$amount', 0]
-          }
-        },
-        profits: {
-          // افتراضي: الربح هو 20% من قيمة المبيعات
-          $sum: {
-            $cond: [
-              { $eq: ['$type', 'purchase'] },
-              { $multiply: ['$amount', 0.2] },
-              0
-            ]
-          }
-        },
-        date: { $first: '$createdAt' }
-      }
-    },
-    {
-      $project: {
-        _id: 0,
-        date: 1,
-        sales: 1,
-        deposits: 1,
-        profits: 1
-      }
-    },
-    {
-      $sort: { date: 1 }
-    }
-  ]);
-  
-  // تنسيق التاريخ وتنسيق البيانات للاستخدام في الرسوم البيانية
-  const formattedData = salesData.map(item => {
-    let name;
-    if (period === 'daily') {
-      name = new Date(item.date).toLocaleDateString('ar-SA');
-    } else if (period === 'weekly') {
-      const date = new Date(item.date);
-      const weekNumber = Math.ceil((date.getDate() + 6 - date.getDay()) / 7);
-      name = `الأسبوع ${weekNumber}، ${date.getFullYear()}`;
-    } else {
-      const date = new Date(item.date);
-      name = new Intl.DateTimeFormat('ar-SA', { year: 'numeric', month: 'long' }).format(date);
-    }
-    
-    return {
-      name,
-      sales: item.sales,
-      deposits: item.deposits,
-      profits: item.profits
-    };
-  });
-  
+  const salesData = [
+    { name: 'يناير', sales: 2400 },
+    { name: 'فبراير', sales: 1398 },
+    { name: 'مارس', sales: 9800 },
+    { name: 'أبريل', sales: 3908 },
+    { name: 'مايو', sales: 4800 },
+    { name: 'يونيو', sales: 3800 }
+  ];
+
   res.status(200).json({
     status: 'success',
-    data: formattedData
+    data: salesData
   });
 });
 
-// الحصول على عدد المستخدمين النشطين (للمشرفين فقط)
+// عدد المستخدمين النشطين
 exports.getActiveUsersCount = catchAsync(async (req, res, next) => {
-  const lastMonth = new Date();
-  lastMonth.setMonth(lastMonth.getMonth() - 1);
-  
-  const activeUsers = await User.countDocuments({
-    lastLogin: { $gte: lastMonth }
-  });
-  
+  const activeUsers = await User.countDocuments({ isActive: true });
+
   res.status(200).json({
     status: 'success',
-    data: {
-      count: activeUsers
-    }
+    data: { activeUsers }
   });
 });
