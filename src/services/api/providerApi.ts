@@ -4,11 +4,6 @@ import { Provider } from '@/types/Provider';
 import { providerService } from '@/services/providerService';
 
 export const providerApi = {
-  async getProviders(): Promise<Provider[]> {
-    const response = await apiClient.get('/providers');
-    return response.data.data;
-  },
-  
   async getAllProviders(): Promise<Provider[]> {
     const response = await apiClient.get('/providers');
     return response.data.data;
@@ -34,10 +29,6 @@ export const providerApi = {
     return response.data.data;
   },
 
-  async deleteProvider(providerId: string): Promise<void> {
-    await apiClient.delete(`/providers/${providerId}`);
-  },
-
   async toggleProviderStatus(providerId: string): Promise<Provider> {
     const response = await apiClient.patch(`/providers/${providerId}/toggle-status`);
     return response.data.data;
@@ -45,11 +36,6 @@ export const providerApi = {
   
   async setDefaultProvider(providerId: string): Promise<Provider> {
     const response = await apiClient.patch(`/providers/${providerId}/set-default`);
-    return response.data.data;
-  },
-
-  async getActiveProviders(): Promise<Provider[]> {
-    const response = await apiClient.get('/providers/active');
     return response.data.data;
   },
 

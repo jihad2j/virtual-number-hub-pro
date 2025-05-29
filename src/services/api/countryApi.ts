@@ -8,11 +8,6 @@ export const countryApi = {
     return response.data.data;
   },
 
-  async getCountries(): Promise<Country[]> {
-    const response = await apiClient.get('/countries');
-    return response.data.data;
-  },
-
   async getAvailableCountries(): Promise<Country[]> {
     const response = await apiClient.get('/countries/available');
     return response.data.data;
@@ -39,11 +34,6 @@ export const countryApi = {
 
   async addCountries(countries: Partial<Country>[]): Promise<Country[]> {
     const response = await apiClient.post('/countries/bulk', { countries });
-    return response.data.data;
-  },
-  
-  async getCountryServices(countryId: string): Promise<any[]> {
-    const response = await apiClient.get(`/countries/${countryId}/services`);
     return response.data.data;
   }
 };

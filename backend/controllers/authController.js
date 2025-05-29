@@ -98,31 +98,27 @@ exports.protect = catchAsync(async (req, res, next) => {
     token = req.headers.authorization.split(' ')[1];
   }
   
-  if (!token || token === 'undefined' || token === 'null') {
+  if (!token) {
     return next(new AppError('أنت غير مسجل الدخول', 401));
   }
   
-  try {
-    // التحقق من صحة التوكن
-    const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
-    
-    // التحقق من وجود المستخدم
-    const currentUser = await User.findById(decoded.id);
-    if (!currentUser) {
-      return next(new AppError('المستخدم المالك لهذا التوكن لم يعد موجودًا', 401));
-    }
-    
-    // التحقق من أن المستخدم نشط
-    if (!currentUser.isActive) {
-      return next(new AppError('هذا الحساب غير نشط حاليًا', 401));
-    }
-    
-    // حفظ المستخدم للطلبات اللاحقة
-    req.user = currentUser;
-    next();
-  } catch (err) {
-    return next(new AppError('خطأ في التحقق من التوكن، يرجى تسجيل الدخول مرة أخرى', 401));
+  // التحقق من صحة التوكن
+  const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+  
+  // التحقق من وجود المستخدم
+  const currentUser = await User.findById(decoded.id);
+  if (!currentUser) {
+    return next(new AppError('المستخدم المالك لهذا التوكن لم يعد موجودًا', 401));
   }
+  
+  // التحقق من أن المستخدم نشط
+  if (!currentUser.isActive) {
+    return next(new AppError('هذا الحساب غير نشط حاليًا', 401));
+  }
+  
+  // حفظ المستخدم للطلبات اللاحقة
+  req.user = currentUser;
+  next();
 });
 
 // تقييد الوصول حسب الدور

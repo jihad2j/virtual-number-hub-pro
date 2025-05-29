@@ -1,20 +1,19 @@
 
 const express = require('express');
-const router = express.Router();
-const auth = require('../middleware/auth');
-const admin = require('../middleware/admin');
 const prepaidCodesController = require('../controllers/prepaidCodesController');
+const authController = require('../controllers/authController');
+const router = express.Router();
 
-// Get all prepaid codes (admin only)
-router.get('/', auth, admin, prepaidCodesController.getAllPrepaidCodes);
+// المسارات المحمية للمستخدمين المسجلين
+router.use(authController.protect);
 
-// Generate prepaid codes (admin only)
-router.post('/generate', auth, admin, prepaidCodesController.generatePrepaidCodes);
+// استخدام كود الشحن متاح لجميع المستخدمين المسجلين
+router.post('/redeem', prepaidCodesController.redeemPrepaidCode);
 
-// Redeem a prepaid code (authenticated user)
-router.post('/redeem', auth, prepaidCodesController.redeemPrepaidCode);
-
-// Delete a prepaid code (admin only)
-router.delete('/:id', auth, admin, prepaidCodesController.deletePrepaidCode);
+// المسارات المحمية للمشرفين فقط
+router.use(authController.restrictTo('admin'));
+router.get('/', prepaidCodesController.getAllPrepaidCodes);
+router.post('/generate', prepaidCodesController.generatePrepaidCodes);
+router.delete('/:id', prepaidCodesController.deletePrepaidCode);
 
 module.exports = router;

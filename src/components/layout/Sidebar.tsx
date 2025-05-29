@@ -55,7 +55,7 @@ export function Sidebar() {
   const isMobile = useMobile();
   const [collapsed, setCollapsed] = useState(false);
 
-  const userAvatar = user?.profilePicture || user?.avatar || "/img/default-user.jpg";
+  const userAvatar = user?.avatar || "/img/default-user.jpg";
 
   const isActive = (path: string) => {
     return pathname === path;
@@ -133,12 +133,6 @@ export function Sidebar() {
             text="المزودين النشطين"
             to="/dashboard/active-providers"
             active={isActive("/dashboard/active-providers")}
-          />
-          <NavItem
-            icon={<ListOrdered className="ml-2" />}
-            text="طلبات التفعيل اليدوي"
-            to="/dashboard/manual-requests"
-            active={isActive("/dashboard/manual-requests")}
           />
           <NavItem
             icon={<CircleHelp className="ml-2" />}
