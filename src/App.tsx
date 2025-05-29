@@ -32,6 +32,7 @@ import ManualServices from '@/pages/admin/ManualServices';
 import ManualRequests from '@/pages/admin/ManualRequests';
 import AdminSupport from '@/pages/admin/Support';
 import ApplicationsManager from '@/pages/admin/ApplicationsManager';
+import AddApplications from '@/pages/admin/AddApplications';
 
 // New Page
 import ActiveProviders from '@/pages/dashboard/ActiveProviders';
@@ -80,6 +81,7 @@ function App() {
             <Route path="/dashboard/admin/manual-requests" element={<ManualRequests />} />
             <Route path="/dashboard/admin/support" element={<AdminSupport />} />
             <Route path="/dashboard/admin/applications" element={<ApplicationsManager />} />
+            <Route path="/dashboard/admin/add-applications" element={<AddApplications />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

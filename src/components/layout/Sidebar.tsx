@@ -12,6 +12,9 @@ import {
   Package,
   ChevronLeft,
   ChevronRight,
+  Wrench,
+  ClipboardList,
+  Plus,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -154,6 +157,13 @@ export function Sidebar() {
           isCollapsed={isCollapsed}
         />
         <NavItem
+          icon={<Wrench className="ml-2 h-5 w-5" />}
+          text="خدمات التفعيل اليدوي"
+          to="/dashboard/services/manual-activation"
+          active={isActive("/dashboard/services/manual-activation")}
+          isCollapsed={isCollapsed}
+        />
+        <NavItem
           icon={<CircleHelp className="ml-2 h-5 w-5" />}
           text="الدعم الفني"
           to="/dashboard/support"
@@ -205,6 +215,34 @@ export function Sidebar() {
               text="إدارة التطبيقات"
               to="/dashboard/admin/applications"
               active={isActive("/dashboard/admin/applications")}
+              isCollapsed={isCollapsed}
+            />
+            <NavItem
+              icon={<Plus className="ml-2 h-5 w-5" />}
+              text="إضافة تطبيقات"
+              to="/dashboard/admin/add-applications"
+              active={isActive("/dashboard/admin/add-applications")}
+              isCollapsed={isCollapsed}
+            />
+            <NavItem
+              icon={<Wrench className="ml-2 h-5 w-5" />}
+              text="إدارة الخدمات اليدوية"
+              to="/dashboard/admin/manual-services"
+              active={isActive("/dashboard/admin/manual-services")}
+              isCollapsed={isCollapsed}
+            />
+            <NavItem
+              icon={<ClipboardList className="ml-2 h-5 w-5" />}
+              text="طلبات التفعيل اليدوي"
+              to="/dashboard/admin/manual-requests"
+              active={isActive("/dashboard/admin/manual-requests")}
+              isCollapsed={isCollapsed}
+            />
+            <NavItem
+              icon={<CircleHelp className="ml-2 h-5 w-5" />}
+              text="إدارة الدعم الفني"
+              to="/dashboard/admin/support"
+              active={isActive("/dashboard/admin/support")}
               isCollapsed={isCollapsed}
             />
             <NavItem
