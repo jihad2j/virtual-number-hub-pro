@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,18 +12,13 @@ import { Plus, Server, MapPin, Package, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/services/apiClient';
 import { Provider } from '@/types/Provider';
+import { applicationApi, BaseApplication } from '@/services/api/applicationApi';
 
 interface Country {
   id: string;
   name: string;
   code: string;
   flag: string;
-}
-
-interface Application {
-  id: string;
-  name: string;
-  description?: string;
 }
 
 interface ServerOption {
@@ -68,13 +64,10 @@ const ApplicationsManager = () => {
     enabled: !!selectedProvider
   });
 
-  // Fetch applications from database (FOR ADMIN)
+  // Fetch applications from database
   const { data: applications = [] } = useQuery({
     queryKey: ['admin-base-applications'],
-    queryFn: async (): Promise<Application[]> => {
-      const response = await apiClient.get('/applications');
-      return response.data.data;
-    }
+    queryFn: applicationApi.getAllBaseApplications
   });
 
   // Fetch servers based on provider, country, and application
@@ -92,11 +85,10 @@ const ApplicationsManager = () => {
     enabled: !!selectedProvider && !!selectedCountry && !!selectedApplication
   });
 
-  // Fetch user applications (FOR ADMIN VIEW)
+  // Fetch user applications
   const { data: userApplications = [] } = useQuery({
     queryKey: ['admin-user-applications'],
     queryFn: async (): Promise<UserApplication[]> => {
-      // Using admin endpoint to get user applications instead of user endpoint
       const response = await apiClient.get('/applications/user');
       return response.data.data;
     }

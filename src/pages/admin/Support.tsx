@@ -4,207 +4,179 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Send, User, Clock, CheckCircle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { MessageSquare, User, Clock, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { api } from '@/services/api';
-import { SupportTicket } from '@/types/SupportTicket';
-
-interface TicketMessage {
-  id: string;
-  message: string;
-  isAdmin: boolean;
-  createdAt: string;
-  senderName: string;
-}
-
-interface TicketWithUser extends SupportTicket {
-  userName?: string;
-  userEmail?: string;
-}
+import { supportApi, SupportTicket, TicketMessage } from '@/services/api/supportApi';
 
 const AdminSupport = () => {
-  const [selectedTicket, setSelectedTicket] = useState<TicketWithUser | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [replyMessage, setReplyMessage] = useState('');
-  const [messages, setMessages] = useState<TicketMessage[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const queryClient = useQueryClient();
 
-  // جلب جميع التذاكر
+  // Fetch all support tickets
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ['admin-support-tickets'],
-    queryFn: async (): Promise<TicketWithUser[]> => {
-      const response = await api.getSupportTickets();
-      
-      // جلب بيانات المستخدمين للتذاكر
-      const ticketsWithUsers = await Promise.all(
-        response.map(async (ticket) => {
-          if (ticket.userId) {
-            try {
-              const userResponse = await api.getUser(ticket.userId);
-              return {
-                ...ticket,
-                userName: userResponse.username,
-                userEmail: userResponse.email
-              };
-            } catch (error) {
-              console.error('Failed to fetch user data:', error);
-              return {
-                ...ticket,
-                userName: 'مستخدم غير معروف',
-                userEmail: 'غير متوفر'
-              };
-            }
-          }
-          return {
-            ...ticket,
-            userName: 'ضيف',
-            userEmail: 'غير متوفر'
-          };
-        })
-      );
-      
-      return ticketsWithUsers;
-    }
+    queryFn: supportApi.getAllSupportTickets
   });
 
-  // جلب رسائل التذكرة
-  const fetchTicketMessages = async (ticketId: string) => {
-    try {
-      const response = await api.getTicketMessages(ticketId);
-      setMessages(response);
-    } catch (error) {
-      console.error('Failed to fetch messages:', error);
-      toast.error('فشل في جلب الرسائل');
-    }
-  };
+  // Fetch messages for selected ticket
+  const { data: messages = [] } = useQuery({
+    queryKey: ['ticket-messages', selectedTicket?.id],
+    queryFn: () => selectedTicket ? supportApi.getTicketMessages(selectedTicket.id) : Promise.resolve([]),
+    enabled: !!selectedTicket
+  });
 
-  // إرسال رد
+  // Reply to ticket mutation
   const replyMutation = useMutation({
-    mutationFn: async (data: { ticketId: string; message: string }) => {
-      return await api.replyToTicket(data.ticketId, data.message);
-    },
+    mutationFn: (data: { ticketId: string; message: string }) =>
+      supportApi.replyToTicket(data.ticketId, data.message),
     onSuccess: () => {
       toast.success('تم إرسال الرد بنجاح');
       setReplyMessage('');
-      if (selectedTicket) {
-        fetchTicketMessages(selectedTicket.id);
-      }
-      queryClient.invalidateQueries({ queryKey: ['admin-support-tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['ticket-messages', selectedTicket?.id] });
     },
     onError: () => {
       toast.error('فشل في إرسال الرد');
     }
   });
 
-  // إغلاق التذكرة
-  const closeMutation = useMutation({
-    mutationFn: async (ticketId: string) => {
-      return await api.updateTicketStatus(ticketId, 'closed');
-    },
+  // Update ticket status mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: (data: { ticketId: string; status: string }) =>
+      supportApi.updateTicketStatus(data.ticketId, data.status),
     onSuccess: () => {
-      toast.success('تم إغلاق التذكرة بنجاح');
-      setSelectedTicket(null);
+      toast.success('تم تحديث حالة التذكرة بنجاح');
       queryClient.invalidateQueries({ queryKey: ['admin-support-tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['ticket-messages', selectedTicket?.id] });
     },
     onError: () => {
-      toast.error('فشل في إغلاق التذكرة');
+      toast.error('فشل في تحديث حالة التذكرة');
     }
   });
 
-  const handleTicketSelect = (ticket: TicketWithUser) => {
-    setSelectedTicket(ticket);
-    fetchTicketMessages(ticket.id);
-  };
+  const handleSendReply = () => {
+    if (!selectedTicket || !replyMessage.trim()) {
+      toast.error('يرجى كتابة رد قبل الإرسال');
+      return;
+    }
 
-  const handleReply = () => {
-    if (!selectedTicket || !replyMessage.trim()) return;
-    
     replyMutation.mutate({
       ticketId: selectedTicket.id,
       message: replyMessage
     });
   };
 
-  const handleCloseTicket = () => {
+  const handleStatusUpdate = (status: string) => {
     if (!selectedTicket) return;
-    closeMutation.mutate(selectedTicket.id);
+
+    updateStatusMutation.mutate({
+      ticketId: selectedTicket.id,
+      status
+    });
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'open': return 'bg-green-100 text-green-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
-      case 'closed': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-blue-100 text-blue-800';
+      case 'pending': return 'destructive';
+      case 'in_progress': return 'default';
+      case 'resolved': return 'secondary';
+      case 'closed': return 'outline';
+      default: return 'default';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'open': return 'مفتوحة';
+      case 'pending': return 'في الانتظار';
       case 'in_progress': return 'قيد المعالجة';
-      case 'closed': return 'مغلقة';
+      case 'resolved': return 'تم الحل';
+      case 'closed': return 'مغلق';
       default: return status;
     }
   };
+
+  const getPriorityText = (priority: string) => {
+    switch (priority) {
+      case 'low': return 'منخفض';
+      case 'medium': return 'متوسط';
+      case 'high': return 'عالي';
+      default: return priority;
+    }
+  };
+
+  const filteredTickets = tickets.filter(ticket => 
+    statusFilter === 'all' || ticket.status === statusFilter
+  );
 
   return (
     <div className="container mx-auto p-6">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">إدارة الدعم الفني</h1>
-        <p className="text-gray-600">إدارة والرد على استفسارات العملاء</p>
+        <p className="text-gray-600">إدارة تذاكر الدعم الفني والرد على العملاء</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* قائمة التذاكر */}
+        {/* Tickets List */}
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                التذاكر ({tickets.length})
-              </CardTitle>
-              <CardDescription>جميع تذاكر الدعم الفني</CardDescription>
+              <div className="flex justify-between items-center">
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  التذاكر
+                </CardTitle>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">الكل</SelectItem>
+                    <SelectItem value="pending">في الانتظار</SelectItem>
+                    <SelectItem value="in_progress">قيد المعالجة</SelectItem>
+                    <SelectItem value="resolved">تم الحل</SelectItem>
+                    <SelectItem value="closed">مغلق</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <CardDescription>قائمة بجميع تذاكر الدعم الفني</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {isLoading ? (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-brand-500 mx-auto"></div>
-                </div>
-              ) : tickets.length === 0 ? (
-                <p className="text-center text-gray-500 py-4">لا توجد تذاكر</p>
+                <div className="p-4 text-center">جاري التحميل...</div>
+              ) : filteredTickets.length === 0 ? (
+                <div className="p-4 text-center text-gray-500">لا توجد تذاكر</div>
               ) : (
-                <div className="space-y-3">
-                  {tickets.map((ticket) => (
+                <div className="max-h-96 overflow-y-auto">
+                  {filteredTickets.map((ticket) => (
                     <div
                       key={ticket.id}
-                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                        selectedTicket?.id === ticket.id
-                          ? 'border-brand-500 bg-brand-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                      className={`p-4 border-b cursor-pointer hover:bg-gray-50 ${
+                        selectedTicket?.id === ticket.id ? 'bg-blue-50' : ''
                       }`}
-                      onClick={() => handleTicketSelect(ticket)}
+                      onClick={() => setSelectedTicket(ticket)}
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-medium text-sm">{ticket.subject}</h4>
-                        <Badge className={`text-xs ${getStatusColor(ticket.status)}`}>
+                        <h3 className="font-medium text-sm truncate">{ticket.subject}</h3>
+                        <Badge variant={getStatusBadgeVariant(ticket.status)} className="text-xs">
                           {getStatusText(ticket.status)}
                         </Badge>
                       </div>
-                      <div className="text-xs text-gray-500 space-y-1">
-                        <div className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          {ticket.userName} (ID: {ticket.userId || 'N/A'})
-                        </div>
-                        <div>{ticket.userEmail}</div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {new Date(ticket.createdAt).toLocaleDateString('ar-EG')}
-                        </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <User className="h-3 w-3" />
+                        <span>{ticket.userName}</span>
+                        <span>•</span>
+                        <span>ID: {ticket.userId}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{new Date(ticket.createdAt).toLocaleDateString('ar-SA')}</span>
+                        <span>•</span>
+                        <span>{getPriorityText(ticket.priority)}</span>
                       </div>
                     </div>
                   ))}
@@ -214,108 +186,91 @@ const AdminSupport = () => {
           </Card>
         </div>
 
-        {/* تفاصيل التذكرة والرسائل */}
+        {/* Ticket Details and Chat */}
         <div className="lg:col-span-2">
           {selectedTicket ? (
-            <Card className="h-full">
+            <Card>
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle>{selectedTicket.subject}</CardTitle>
-                    <CardDescription>
-                      العميل: {selectedTicket.userName} - {selectedTicket.userEmail}
-                      <br />
-                      ID المستخدم: {selectedTicket.userId || 'غير متوفر'}
-                    </CardDescription>
+                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-1">
+                        <User className="h-4 w-4" />
+                        <span>{selectedTicket.userName} (ID: {selectedTicket.userId})</span>
+                      </div>
+                      <Badge variant={getStatusBadgeVariant(selectedTicket.status)}>
+                        {getStatusText(selectedTicket.status)}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Badge className={getStatusColor(selectedTicket.status)}>
-                      {getStatusText(selectedTicket.status)}
-                    </Badge>
-                    {selectedTicket.status !== 'closed' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleCloseTicket}
-                        disabled={closeMutation.isPending}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        إغلاق التذكرة
-                      </Button>
-                    )}
-                  </div>
+                  <Select 
+                    value={selectedTicket.status} 
+                    onValueChange={handleStatusUpdate}
+                    disabled={updateStatusMutation.isPending}
+                  >
+                    <SelectTrigger className="w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">في الانتظار</SelectItem>
+                      <SelectItem value="in_progress">قيد المعالجة</SelectItem>
+                      <SelectItem value="resolved">تم الحل</SelectItem>
+                      <SelectItem value="closed">مغلق</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardHeader>
-              <CardContent className="flex flex-col h-96">
-                {/* الرسائل */}
-                <ScrollArea className="flex-1 mb-4">
-                  <div className="space-y-4">
-                    {/* الرسالة الأولى */}
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium">{selectedTicket.userName}</span>
-                        <span className="text-xs text-gray-500">
-                          {new Date(selectedTicket.createdAt).toLocaleString('ar-EG')}
-                        </span>
-                      </div>
-                      <p className="text-sm">{selectedTicket.message}</p>
-                    </div>
-
-                    {/* الرسائل الإضافية */}
-                    {messages.map((message) => (
+              <CardContent>
+                {/* Messages */}
+                <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex ${message.isAdmin ? 'justify-end' : 'justify-start'}`}
+                    >
                       <div
-                        key={message.id}
-                        className={`p-3 rounded-lg ${
+                        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                           message.isAdmin
-                            ? 'bg-brand-50 ml-8'
-                            : 'bg-gray-50 mr-8'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-200 text-gray-800'
                         }`}
                       >
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-medium">
-                            {message.isAdmin ? 'الإدارة' : message.senderName}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {new Date(message.createdAt).toLocaleString('ar-EG')}
-                          </span>
+                        <div className="text-sm">{message.message}</div>
+                        <div className={`text-xs mt-1 ${
+                          message.isAdmin ? 'text-blue-100' : 'text-gray-500'
+                        }`}>
+                          {message.userName} • {new Date(message.createdAt).toLocaleString('ar-SA')}
                         </div>
-                        <p className="text-sm">{message.message}</p>
                       </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-
-                {/* نموذج الرد */}
-                {selectedTicket.status !== 'closed' && (
-                  <div className="border-t pt-4">
-                    <div className="space-y-3">
-                      <Label htmlFor="reply">الرد على العميل</Label>
-                      <Textarea
-                        id="reply"
-                        value={replyMessage}
-                        onChange={(e) => setReplyMessage(e.target.value)}
-                        placeholder="اكتب ردك هنا..."
-                        rows={3}
-                      />
-                      <Button
-                        onClick={handleReply}
-                        disabled={!replyMessage.trim() || replyMutation.isPending}
-                        className="w-full"
-                      >
-                        <Send className="h-4 w-4 mr-2" />
-                        {replyMutation.isPending ? 'جاري الإرسال...' : 'إرسال الرد'}
-                      </Button>
                     </div>
-                  </div>
-                )}
+                  ))}
+                </div>
+
+                {/* Reply Input */}
+                <div className="space-y-4">
+                  <Textarea
+                    placeholder="اكتب ردك هنا..."
+                    value={replyMessage}
+                    onChange={(e) => setReplyMessage(e.target.value)}
+                    rows={3}
+                  />
+                  <Button 
+                    onClick={handleSendReply}
+                    disabled={replyMutation.isPending || !replyMessage.trim()}
+                    className="w-full"
+                  >
+                    {replyMutation.isPending ? 'جاري الإرسال...' : 'إرسال الرد'}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ) : (
-            <Card className="h-full flex items-center justify-center">
-              <CardContent>
+            <Card>
+              <CardContent className="flex items-center justify-center h-64">
                 <div className="text-center text-gray-500">
-                  <MessageSquare className="h-12 w-12 mx-auto mb-4" />
-                  <p>اختر تذكرة لعرض التفاصيل والرد عليها</p>
+                  <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>اختر تذكرة لعرض التفاصيل والمحادثة</p>
                 </div>
               </CardContent>
             </Card>

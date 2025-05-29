@@ -43,8 +43,7 @@ const ManageApplications = () => {
   // Fetch applications
   const { data: fetchedApplications = [], isLoading } = useQuery({
     queryKey: ['base-applications'],
-    queryFn: applicationApi.getAllBaseApplications,
-    onSuccess: (data) => setApplications(data)
+    queryFn: applicationApi.getAllBaseApplications
   });
 
   React.useEffect(() => {
