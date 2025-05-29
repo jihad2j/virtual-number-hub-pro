@@ -71,9 +71,9 @@ export function Sidebar() {
   };
 
   return (
-    <aside className={`fixed inset-y-0 z-10 flex flex-col bg-white border-l border-gray-200 shadow transition-all duration-300 overflow-auto scrollbar-hidden ${
+    <aside className={`bg-white border-l border-gray-200 shadow transition-all duration-300 overflow-auto scrollbar-hidden ${
       isCollapsed ? 'w-16' : 'w-64'
-    } p-3`}>
+    } p-3 flex flex-col`}>
       {/* Logo and Toggle Button */}
       <div className="flex items-center justify-between h-16 mb-4">
         {!isCollapsed && (
