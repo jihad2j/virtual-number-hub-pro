@@ -1,6 +1,7 @@
-
 const axios = require('axios');
 const { BaseProvider } = require('../providerFactory');
+
+console.log('GetSmsCode Provider: axios loaded successfully');
 
 class GetSmsCodeProvider extends BaseProvider {
   constructor(providerData) {

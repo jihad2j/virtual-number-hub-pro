@@ -1,6 +1,7 @@
-
 const axios = require('axios');
 const { BaseProvider } = require('../providerFactory');
+
+console.log('5SIM Provider: axios loaded successfully');
 
 class FiveSimProvider extends BaseProvider {
   constructor(providerData) {
