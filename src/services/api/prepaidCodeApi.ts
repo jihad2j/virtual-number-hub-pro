@@ -8,17 +8,13 @@ export const prepaidCodeApi = {
     return response.data.data;
   },
 
-  async generatePrepaidCodes(amount: number, count: number = 1, expiryDate?: string): Promise<PrepaidCode[]> {
-    const response = await apiClient.post('/prepaid-codes/generate', { amount, count, expiryDate });
+  async createPrepaidCode(amount: number, expiryDate?: string): Promise<PrepaidCode> {
+    const response = await apiClient.post('/prepaid-codes', { amount, expiryDate });
     return response.data.data;
   },
 
-  async redeemPrepaidCode(code: string): Promise<{ amount: number }> {
+  async redeemPrepaidCode(code: string): Promise<{ success: boolean; amount: number }> {
     const response = await apiClient.post('/prepaid-codes/redeem', { code });
-    return response.data.data;
-  },
-  
-  async deletePrepaidCode(id: string): Promise<void> {
-    await apiClient.delete(`/prepaid-codes/${id}`);
+    return response.data;
   }
 };

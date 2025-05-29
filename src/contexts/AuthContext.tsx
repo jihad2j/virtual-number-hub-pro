@@ -7,11 +7,11 @@ export interface AuthUser {
   id: string;
   email: string;
   username: string;
+  name?: string;
   role: 'user' | 'admin';
   balance: number;
   isActive: boolean;
   createdAt: string;
-  name?: string;
   avatar?: string;
 }
 
@@ -36,15 +36,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loadingInitial, setLoadingInitial] = useState(true);
   const navigate = useNavigate();
 
+  const refreshUserData = async () => {
+    try {
+      const currentUser = await api.getCurrentUser();
+      setUser(currentUser);
+      setIsAuthenticated(true);
+      setIsAdmin(currentUser.role === 'admin');
+    } catch (error) {
+      console.error('Failed to refresh user data:', error);
+    }
+  };
+
   useEffect(() => {
     const checkAuthStatus = async () => {
       const token = localStorage.getItem('authToken');
       if (token) {
         try {
-          const currentUser = await api.getCurrentUser();
-          setUser(currentUser);
-          setIsAuthenticated(true);
-          setIsAdmin(currentUser.role === 'admin');
+          await refreshUserData();
         } catch (error) {
           console.error('Failed to fetch current user:', error);
           localStorage.removeItem('authToken');
@@ -106,18 +114,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     } catch (error) {
       console.error('Failed to update user data:', error);
-      throw error;
-    }
-  };
-  
-  const refreshUserData = async () => {
-    if (!isAuthenticated) return;
-    
-    try {
-      const currentUser = await api.getCurrentUser();
-      setUser(currentUser);
-    } catch (error) {
-      console.error('Failed to refresh user data:', error);
       throw error;
     }
   };

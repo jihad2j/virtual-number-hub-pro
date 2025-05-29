@@ -31,7 +31,6 @@ import SystemSettings from '@/pages/SystemSettings';
 import ManualServices from '@/pages/admin/ManualServices';
 import ManualRequests from '@/pages/admin/ManualRequests';
 import AdminSupport from '@/pages/admin/Support';
-import PrepaidCodes from '@/pages/admin/PrepaidCodes';
 
 // New Page
 import ActiveProviders from '@/pages/dashboard/ActiveProviders';
@@ -78,7 +77,6 @@ function App() {
               <Route path="/dashboard/admin/manual-services" element={<ManualServices />} />
               <Route path="/dashboard/admin/manual-requests" element={<ManualRequests />} />
               <Route path="/dashboard/admin/support" element={<AdminSupport />} />
-              <Route path="/dashboard/admin/prepaid-codes" element={<PrepaidCodes />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
