@@ -6,7 +6,7 @@ const Transaction = require('../models/Transaction');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 
-// الحصول على جميع التطبيقات (للمشرفين)
+// الحصول على جميع التطبيقات الأساسية (للمشرفين)
 exports.getAllApplications = catchAsync(async (req, res, next) => {
   const applications = await Application.find();
   
@@ -14,6 +14,67 @@ exports.getAllApplications = catchAsync(async (req, res, next) => {
     status: 'success',
     results: applications.length,
     data: applications
+  });
+});
+
+// إضافة تطبيق أساسي جديد
+exports.addBaseApplication = catchAsync(async (req, res, next) => {
+  const { name, description } = req.body;
+  
+  if (!name) {
+    return next(new AppError('اسم التطبيق مطلوب', 400));
+  }
+  
+  // التحقق من عدم وجود تطبيق بنفس الاسم
+  const existingApp = await Application.findOne({ name });
+  
+  if (existingApp) {
+    return next(new AppError('تطبيق بهذا الاسم موجود بالفعل', 400));
+  }
+  
+  const newApplication = await Application.create({
+    name,
+    description
+  });
+  
+  res.status(201).json({
+    status: 'success',
+    data: newApplication
+  });
+});
+
+// تحديث تطبيق أساسي
+exports.updateBaseApplication = catchAsync(async (req, res, next) => {
+  const application = await Application.findByIdAndUpdate(
+    req.params.id,
+    req.body,
+    {
+      new: true,
+      runValidators: true
+    }
+  );
+  
+  if (!application) {
+    return next(new AppError('لم يتم العثور على التطبيق المحدد', 404));
+  }
+  
+  res.status(200).json({
+    status: 'success',
+    data: application
+  });
+});
+
+// حذف تطبيق أساسي
+exports.deleteBaseApplication = catchAsync(async (req, res, next) => {
+  const application = await Application.findByIdAndDelete(req.params.id);
+  
+  if (!application) {
+    return next(new AppError('لم يتم العثور على التطبيق المحدد', 404));
+  }
+  
+  res.status(204).json({
+    status: 'success',
+    data: null
   });
 });
 

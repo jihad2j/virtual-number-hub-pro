@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { api } from '@/services/api';
+import { applicationApi, UserApplication } from '@/services/api/applicationApi';
 import { Plus, Package, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from "@/components/ui/badge";
@@ -30,22 +29,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-interface Application {
-  id: string;
-  name: string;
-  providerName: string;
-  countryName: string;
-  serverName: string;
-  price: number;
-  description?: string;
-  isAvailable: boolean;
-}
-
 const AddApplications = () => {
-  const [applications, setApplications] = useState<Application[]>([]);
+  const [applications, setApplications] = useState<UserApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingApp, setEditingApp] = useState<Application | null>(null);
+  const [editingApp, setEditingApp] = useState<UserApplication | null>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -70,7 +58,7 @@ const AddApplications = () => {
   const fetchApplications = async () => {
     setIsLoading(true);
     try {
-      const data = await api.getUserApplications();
+      const data = await applicationApi.getUserApplications();
       setApplications(data);
     } catch (error) {
       console.error('Failed to fetch applications', error);
@@ -91,7 +79,7 @@ const AddApplications = () => {
 
     try {
       if (editingApp) {
-        const updatedApp = await api.updateUserApplication(editingApp.id, {
+        const updatedApp = await applicationApi.updateUserApplication(editingApp.id, {
           name: formData.applicationName,
           providerName: formData.providerName,
           countryName: formData.countryName,
@@ -104,7 +92,7 @@ const AddApplications = () => {
         ));
         toast.success('تم تحديث التطبيق بنجاح');
       } else {
-        const newApp = await api.addUserApplication({
+        const newApp = await applicationApi.addUserApplication({
           applicationName: formData.applicationName,
           providerName: formData.providerName,
           countryName: formData.countryName,
@@ -124,7 +112,7 @@ const AddApplications = () => {
     }
   };
 
-  const handleEdit = (app: Application) => {
+  const handleEdit = (app: UserApplication) => {
     setEditingApp(app);
     setFormData({
       applicationName: app.name,
@@ -139,7 +127,7 @@ const AddApplications = () => {
 
   const handleDelete = async (appId: string) => {
     try {
-      await api.deleteUserApplication(appId);
+      await applicationApi.deleteUserApplication(appId);
       setApplications(applications.filter(app => app.id !== appId));
       toast.success('تم حذف التطبيق بنجاح');
     } catch (error) {

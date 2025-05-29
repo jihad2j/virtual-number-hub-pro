@@ -13,9 +13,16 @@ router.post('/purchase', applicationsController.purchaseApplication);
 
 // المسارات المحمية للمشرفين فقط
 router.use(authController.restrictTo('admin'));
+
+// إدارة التطبيقات الأساسية (الأسماء فقط)
 router.get('/', applicationsController.getAllApplications);
+router.post('/', applicationsController.addBaseApplication);
+router.put('/:id', applicationsController.updateBaseApplication);
+router.delete('/:id', applicationsController.deleteBaseApplication);
+
+// إدارة تطبيقات المستخدمين (مع السيرفرات والأسعار)
 router.post('/user', applicationsController.addUserApplication);
-router.put('/:id', applicationsController.updateUserApplication);
-router.delete('/:id', applicationsController.deleteUserApplication);
+router.put('/user/:id', applicationsController.updateUserApplication);
+router.delete('/user/:id', applicationsController.deleteUserApplication);
 
 module.exports = router;

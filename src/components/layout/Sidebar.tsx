@@ -15,6 +15,7 @@ import {
   Wrench,
   ClipboardList,
   Plus,
+  Settings,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -208,6 +209,13 @@ export function Sidebar() {
               text="إدارة المزودين"
               to="/dashboard/admin/providers"
               active={isActive("/dashboard/admin/providers")}
+              isCollapsed={isCollapsed}
+            />
+            <NavItem
+              icon={<Settings className="ml-2 h-5 w-5" />}
+              text="إدارة أسماء التطبيقات"
+              to="/dashboard/admin/manage-applications"
+              active={isActive("/dashboard/admin/manage-applications")}
               isCollapsed={isCollapsed}
             />
             <NavItem

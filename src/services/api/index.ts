@@ -11,6 +11,7 @@ export * from './supportApi';
 export * from './manualServiceApi';
 export * from './adminApi';
 export * from './initApi';
+export * from './applicationApi';
 
 // Re-export types from the original api.ts
 import { User } from '@/types/User';
@@ -47,6 +48,7 @@ import { supportApi } from './supportApi';
 import { manualServiceApi } from './manualServiceApi';
 import { adminApi } from './adminApi';
 import { initApi } from './initApi';
+import { applicationApi } from './applicationApi';
 
 // Combine all API services into one object for backward compatibility
 export const api = {
@@ -60,5 +62,6 @@ export const api = {
   ...supportApi,
   ...manualServiceApi,
   ...adminApi,
-  ...initApi
+  ...initApi,
+  ...applicationApi
 };

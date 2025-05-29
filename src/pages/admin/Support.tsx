@@ -1,320 +1,322 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { api, SupportTicket } from '@/services/api';
-import { MessageSquare, Mail, User, IdCard } from 'lucide-react';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { MessageSquare, Send, User, Clock, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { api } from '@/services/api';
+import { SupportTicket } from '@/types/SupportTicket';
+
+interface TicketMessage {
+  id: string;
+  message: string;
+  isAdmin: boolean;
+  createdAt: string;
+  senderName: string;
+}
+
+interface TicketWithUser extends SupportTicket {
+  userName?: string;
+  userEmail?: string;
+}
 
 const AdminSupport = () => {
-  const [tickets, setTickets] = useState<SupportTicket[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
-  const [reply, setReply] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTicket, setSelectedTicket] = useState<TicketWithUser | null>(null);
+  const [replyMessage, setReplyMessage] = useState('');
+  const [messages, setMessages] = useState<TicketMessage[]>([]);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchTickets();
-  }, []);
+  // جلب جميع التذاكر
+  const { data: tickets = [], isLoading } = useQuery({
+    queryKey: ['admin-support-tickets'],
+    queryFn: async (): Promise<TicketWithUser[]> => {
+      const response = await api.getSupportTickets();
+      
+      // جلب بيانات المستخدمين للتذاكر
+      const ticketsWithUsers = await Promise.all(
+        response.map(async (ticket) => {
+          if (ticket.userId) {
+            try {
+              const userResponse = await api.getUser(ticket.userId);
+              return {
+                ...ticket,
+                userName: userResponse.username,
+                userEmail: userResponse.email
+              };
+            } catch (error) {
+              console.error('Failed to fetch user data:', error);
+              return {
+                ...ticket,
+                userName: 'مستخدم غير معروف',
+                userEmail: 'غير متوفر'
+              };
+            }
+          }
+          return {
+            ...ticket,
+            userName: 'ضيف',
+            userEmail: 'غير متوفر'
+          };
+        })
+      );
+      
+      return ticketsWithUsers;
+    }
+  });
 
-  const fetchTickets = async () => {
-    setIsLoading(true);
+  // جلب رسائل التذكرة
+  const fetchTicketMessages = async (ticketId: string) => {
     try {
-      const data = await api.getAllSupportTickets();
-      setTickets(data);
+      const response = await api.getTicketMessages(ticketId);
+      setMessages(response);
     } catch (error) {
-      console.error('Failed to fetch support tickets', error);
-      toast.error('فشل في جلب تذاكر الدعم');
-    } finally {
-      setIsLoading(false);
+      console.error('Failed to fetch messages:', error);
+      toast.error('فشل في جلب الرسائل');
     }
   };
 
-  const handleSendReply = async () => {
-    if (!selectedTicket || !reply.trim()) {
-      toast.error('الرجاء كتابة رد');
-      return;
-    }
-
-    try {
-      const updatedTicket = await api.respondToSupportTicket(selectedTicket.id, reply);
-      setTickets(tickets.map(ticket => 
-        ticket.id === updatedTicket.id ? updatedTicket : ticket
-      ));
-      setSelectedTicket(updatedTicket);
-      setReply('');
+  // إرسال رد
+  const replyMutation = useMutation({
+    mutationFn: async (data: { ticketId: string; message: string }) => {
+      return await api.replyToTicket(data.ticketId, data.message);
+    },
+    onSuccess: () => {
       toast.success('تم إرسال الرد بنجاح');
-    } catch (error) {
-      console.error('Failed to send reply', error);
+      setReplyMessage('');
+      if (selectedTicket) {
+        fetchTicketMessages(selectedTicket.id);
+      }
+      queryClient.invalidateQueries({ queryKey: ['admin-support-tickets'] });
+    },
+    onError: () => {
       toast.error('فشل في إرسال الرد');
     }
-  };
+  });
 
-  const handleCloseTicket = async (ticketId: string) => {
-    try {
-      const updatedTicket = await api.closeSupportTicket(ticketId);
-      setTickets(tickets.map(ticket => 
-        ticket.id === updatedTicket.id ? updatedTicket : ticket
-      ));
-      if (selectedTicket?.id === ticketId) {
-        setSelectedTicket(updatedTicket);
-      }
+  // إغلاق التذكرة
+  const closeMutation = useMutation({
+    mutationFn: async (ticketId: string) => {
+      return await api.updateTicketStatus(ticketId, 'closed');
+    },
+    onSuccess: () => {
       toast.success('تم إغلاق التذكرة بنجاح');
-    } catch (error) {
-      console.error('Failed to close ticket', error);
+      setSelectedTicket(null);
+      queryClient.invalidateQueries({ queryKey: ['admin-support-tickets'] });
+    },
+    onError: () => {
       toast.error('فشل في إغلاق التذكرة');
     }
+  });
+
+  const handleTicketSelect = (ticket: TicketWithUser) => {
+    setSelectedTicket(ticket);
+    fetchTicketMessages(ticket.id);
   };
 
-  const filteredTickets = tickets.filter(ticket => 
-    ticket.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ticket.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (ticket.userId && typeof ticket.userId === 'object' && 'username' in ticket.userId && 
-     ticket.userId.username.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const handleReply = () => {
+    if (!selectedTicket || !replyMessage.trim()) return;
+    
+    replyMutation.mutate({
+      ticketId: selectedTicket.id,
+      message: replyMessage
+    });
+  };
 
-  const openTickets = filteredTickets.filter(ticket => ticket.status === 'open');
-  const closedTickets = filteredTickets.filter(ticket => ticket.status === 'closed');
+  const handleCloseTicket = () => {
+    if (!selectedTicket) return;
+    closeMutation.mutate(selectedTicket.id);
+  };
 
-  const getCustomerInfo = (ticket: SupportTicket) => {
-    if (ticket.userId && typeof ticket.userId === 'object') {
-      return {
-        username: ticket.userId.username || 'غير محدد',
-        email: ticket.userId.email || 'غير محدد',
-        id: ticket.userId._id || ticket.userId.id || 'غير محدد'
-      };
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'open': return 'bg-green-100 text-green-800';
+      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
+      case 'closed': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-blue-100 text-blue-800';
     }
-    return {
-      username: 'غير محدد',
-      email: 'غير محدد',
-      id: typeof ticket.userId === 'string' ? ticket.userId : 'غير محدد'
-    };
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'open': return 'مفتوحة';
+      case 'in_progress': return 'قيد المعالجة';
+      case 'closed': return 'مغلقة';
+      default: return status;
+    }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">إدارة الدعم الفني</h1>
-        <Button onClick={fetchTickets}>تحديث</Button>
+    <div className="container mx-auto p-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">إدارة الدعم الفني</h1>
+        <p className="text-gray-600">إدارة والرد على استفسارات العملاء</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* قائمة التذاكر */}
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle>تذاكر الدعم</CardTitle>
-              <div className="mt-2">
-                <Input 
-                  placeholder="بحث في التذاكر أو أسماء العملاء..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                التذاكر ({tickets.length})
+              </CardTitle>
+              <CardDescription>جميع تذاكر الدعم الفني</CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="open">
-                <TabsList className="w-full mb-4">
-                  <TabsTrigger value="open" className="flex-1">تذاكر مفتوحة ({openTickets.length})</TabsTrigger>
-                  <TabsTrigger value="closed" className="flex-1">تذاكر مغلقة ({closedTickets.length})</TabsTrigger>
-                </TabsList>
-                <TabsContent value="open" className="mt-0">
-                  {isLoading ? (
-                    <div className="text-center py-4">جاري التحميل...</div>
-                  ) : openTickets.length === 0 ? (
-                    <div className="text-center py-4 text-gray-500">لا توجد تذاكر مفتوحة</div>
-                  ) : (
-                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                      {openTickets.map(ticket => {
-                        const customerInfo = getCustomerInfo(ticket);
-                        return (
-                          <div 
-                            key={ticket.id}
-                            className={`p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
-                              selectedTicket?.id === ticket.id ? 'bg-brand-50 border-brand-200' : ''
-                            }`}
-                            onClick={() => setSelectedTicket(ticket)}
-                          >
-                            <div className="flex justify-between items-start mb-2">
-                              <h3 className="font-medium text-sm">{ticket.subject}</h3>
-                              <Badge variant="default" className="bg-green-100 text-green-800">مفتوح</Badge>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="flex items-center text-xs text-gray-600">
-                                <User className="h-3 w-3 mr-1" />
-                                <span>{customerInfo.username}</span>
-                              </div>
-                              <div className="flex items-center text-xs text-gray-600">
-                                <IdCard className="h-3 w-3 mr-1" />
-                                <span>ID: {customerInfo.id}</span>
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {new Date(ticket.createdAt).toLocaleDateString('ar-SA')}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+              {isLoading ? (
+                <div className="text-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-brand-500 mx-auto"></div>
+                </div>
+              ) : tickets.length === 0 ? (
+                <p className="text-center text-gray-500 py-4">لا توجد تذاكر</p>
+              ) : (
+                <div className="space-y-3">
+                  {tickets.map((ticket) => (
+                    <div
+                      key={ticket.id}
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                        selectedTicket?.id === ticket.id
+                          ? 'border-brand-500 bg-brand-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => handleTicketSelect(ticket)}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-medium text-sm">{ticket.subject}</h4>
+                        <Badge className={`text-xs ${getStatusColor(ticket.status)}`}>
+                          {getStatusText(ticket.status)}
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-gray-500 space-y-1">
+                        <div className="flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          {ticket.userName} (ID: {ticket.userId || 'N/A'})
+                        </div>
+                        <div>{ticket.userEmail}</div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {new Date(ticket.createdAt).toLocaleDateString('ar-EG')}
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </TabsContent>
-                <TabsContent value="closed" className="mt-0">
-                  {isLoading ? (
-                    <div className="text-center py-4">جاري التحميل...</div>
-                  ) : closedTickets.length === 0 ? (
-                    <div className="text-center py-4 text-gray-500">لا توجد تذاكر مغلقة</div>
-                  ) : (
-                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                      {closedTickets.map(ticket => {
-                        const customerInfo = getCustomerInfo(ticket);
-                        return (
-                          <div 
-                            key={ticket.id}
-                            className={`p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
-                              selectedTicket?.id === ticket.id ? 'bg-gray-100' : ''
-                            }`}
-                            onClick={() => setSelectedTicket(ticket)}
-                          >
-                            <div className="flex justify-between items-start mb-2">
-                              <h3 className="font-medium text-sm">{ticket.subject}</h3>
-                              <Badge variant="secondary">مغلق</Badge>
-                            </div>
-                            <div className="space-y-1">
-                              <div className="flex items-center text-xs text-gray-600">
-                                <User className="h-3 w-3 mr-1" />
-                                <span>{customerInfo.username}</span>
-                              </div>
-                              <div className="flex items-center text-xs text-gray-600">
-                                <IdCard className="h-3 w-3 mr-1" />
-                                <span>ID: {customerInfo.id}</span>
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {new Date(ticket.createdAt).toLocaleDateString('ar-SA')}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
+        {/* تفاصيل التذكرة والرسائل */}
         <div className="lg:col-span-2">
           {selectedTicket ? (
-            <Card>
+            <Card className="h-full">
               <CardHeader>
                 <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <CardTitle className="mb-2">{selectedTicket.subject}</CardTitle>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <User className="h-4 w-4" />
-                        <span>العميل: {getCustomerInfo(selectedTicket).username}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <IdCard className="h-4 w-4" />
-                        <span>ID: {getCustomerInfo(selectedTicket).id}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Mail className="h-4 w-4" />
-                        <span>{getCustomerInfo(selectedTicket).email}</span>
-                      </div>
-                    </div>
+                  <div>
+                    <CardTitle>{selectedTicket.subject}</CardTitle>
+                    <CardDescription>
+                      العميل: {selectedTicket.userName} - {selectedTicket.userEmail}
+                      <br />
+                      ID المستخدم: {selectedTicket.userId || 'غير متوفر'}
+                    </CardDescription>
                   </div>
-                  {selectedTicket.status === 'open' && (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleCloseTicket(selectedTicket.id)}
-                    >
-                      إغلاق التذكرة
-                    </Button>
-                  )}
+                  <div className="flex gap-2">
+                    <Badge className={getStatusColor(selectedTicket.status)}>
+                      {getStatusText(selectedTicket.status)}
+                    </Badge>
+                    {selectedTicket.status !== 'closed' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCloseTicket}
+                        disabled={closeMutation.isPending}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        إغلاق التذكرة
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <CardDescription>
-                  تم الإنشاء: {new Date(selectedTicket.createdAt).toLocaleString('ar-SA')}
-                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Original Message */}
-                  <div className="bg-gray-100 p-4 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <User className="h-4 w-4" />
-                      <span className="font-medium">{getCustomerInfo(selectedTicket).username}</span>
-                    </div>
-                    <p className="text-gray-700">{selectedTicket.message}</p>
-                  </div>
-                  
-                  {/* Responses */}
-                  {selectedTicket.responses.length > 0 && (
-                    <div className="space-y-4 mt-6">
-                      <h4 className="text-sm font-medium">الردود</h4>
-                      {selectedTicket.responses.map((response, index) => (
-                        <div 
-                          key={index}
-                          className={`p-4 rounded-lg ${
-                            response.fromAdmin 
-                              ? 'bg-brand-50 mr-4'
-                              : 'bg-gray-100 ml-4'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className={`h-6 w-6 rounded-full flex items-center justify-center ${
-                              response.fromAdmin ? 'bg-brand-200' : 'bg-gray-300'
-                            }`}>
-                              {response.fromAdmin ? (
-                                <MessageSquare className="h-3 w-3" />
-                              ) : (
-                                <User className="h-3 w-3" />
-                              )}
-                            </div>
-                            <span className="text-sm font-medium">
-                              {response.fromAdmin ? 'فريق الدعم' : getCustomerInfo(selectedTicket).username}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {new Date(response.createdAt).toLocaleString('ar-SA')}
-                            </span>
-                          </div>
-                          <p>{response.message}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Reply Form */}
-                  {selectedTicket.status === 'open' && (
-                    <div className="mt-6 space-y-4">
-                      <h4 className="text-sm font-medium">إضافة رد</h4>
-                      <Textarea
-                        placeholder="اكتب الرد هنا..."
-                        className="min-h-[120px]"
-                        value={reply}
-                        onChange={(e) => setReply(e.target.value)}
-                      />
-                      <div className="flex justify-end">
-                        <Button onClick={handleSendReply}>
-                          <MessageSquare className="h-4 w-4 mr-2" />
-                          إرسال الرد
-                        </Button>
+              <CardContent className="flex flex-col h-96">
+                {/* الرسائل */}
+                <ScrollArea className="flex-1 mb-4">
+                  <div className="space-y-4">
+                    {/* الرسالة الأولى */}
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-medium">{selectedTicket.userName}</span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(selectedTicket.createdAt).toLocaleString('ar-EG')}
+                        </span>
                       </div>
+                      <p className="text-sm">{selectedTicket.message}</p>
                     </div>
-                  )}
-                </div>
+
+                    {/* الرسائل الإضافية */}
+                    {messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`p-3 rounded-lg ${
+                          message.isAdmin
+                            ? 'bg-brand-50 ml-8'
+                            : 'bg-gray-50 mr-8'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium">
+                            {message.isAdmin ? 'الإدارة' : message.senderName}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(message.createdAt).toLocaleString('ar-EG')}
+                          </span>
+                        </div>
+                        <p className="text-sm">{message.message}</p>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+
+                {/* نموذج الرد */}
+                {selectedTicket.status !== 'closed' && (
+                  <div className="border-t pt-4">
+                    <div className="space-y-3">
+                      <Label htmlFor="reply">الرد على العميل</Label>
+                      <Textarea
+                        id="reply"
+                        value={replyMessage}
+                        onChange={(e) => setReplyMessage(e.target.value)}
+                        placeholder="اكتب ردك هنا..."
+                        rows={3}
+                      />
+                      <Button
+                        onClick={handleReply}
+                        disabled={!replyMessage.trim() || replyMutation.isPending}
+                        className="w-full"
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        {replyMutation.isPending ? 'جاري الإرسال...' : 'إرسال الرد'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : (
-            <Card className="flex items-center justify-center h-full">
-              <CardContent className="py-10 text-center">
-                <Mail className="h-12 w-12 mx-auto text-gray-400" />
-                <p className="mt-4 text-gray-500">اختر تذكرة من القائمة لعرض التفاصيل</p>
+            <Card className="h-full flex items-center justify-center">
+              <CardContent>
+                <div className="text-center text-gray-500">
+                  <MessageSquare className="h-12 w-12 mx-auto mb-4" />
+                  <p>اختر تذكرة لعرض التفاصيل والرد عليها</p>
+                </div>
               </CardContent>
             </Card>
           )}
