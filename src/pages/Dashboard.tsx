@@ -3,106 +3,79 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
-import { RefreshCw } from 'lucide-react';
-import { providerService } from '@/services/providerService';
-import { PhoneNumber } from '@/types/PhoneNumber';
+import { RefreshCw, Package } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { apiClient } from '@/services/apiClient';
 
-// Import our new components
-import { DashboardStats } from '@/components/dashboard/DashboardStats';
-import { UserProfileCard, UserProfileData } from '@/components/dashboard/UserProfileCard';
-import { CountrySelector, Country } from '@/components/dashboard/CountrySelector';
-import { ProductsList, Product } from '@/components/dashboard/ProductsList';
-import { PhoneNumberDetails } from '@/components/dashboard/PhoneNumberDetails';
+interface UserApplication {
+  id: string;
+  name: string;
+  providerName: string;
+  countryName: string;
+  serverName: string;
+  price: number;
+  description?: string;
+  isAvailable: boolean;
+}
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  // Provider ID - in a real app this might come from user settings or be configurable
-  const providerId = '5sim'; // This would be the actual ID from the database
-  
   // States
-  const [countries, setCountries] = useState<Country[]>([]);
-  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
-  const [products, setProducts] = useState<Record<string, Product>>({});
+  const [userApplications, setUserApplications] = useState<UserApplication[]>([]);
   const [balance, setBalance] = useState<number | null>(null);
-  const [purchasedNumber, setPurchasedNumber] = useState<PhoneNumber | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfileData | null>(null);
   
   // Loading states
-  const [isLoadingCountries, setIsLoadingCountries] = useState(false);
-  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [isLoadingApplications, setIsLoadingApplications] = useState(false);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Error states
-  const [countriesError, setCountriesError] = useState<string | null>(null);
-  const [productsError, setProductsError] = useState<string | null>(null);
+  const [applicationsError, setApplicationsError] = useState<string | null>(null);
   const [balanceError, setBalanceError] = useState<string | null>(null);
-  const [profileError, setProfileError] = useState<string | null>(null);
 
-  // Fetch countries and balance on mount
+  // Fetch data on mount
   useEffect(() => {
-    fetchCountries();
-    fetchBalance();
-    fetchUserProfile();
+    fetchUserApplications();
+    fetchUserBalance();
   }, []);
 
-  // Fetch countries from provider API via backend
-  const fetchCountries = async () => {
-    setIsLoadingCountries(true);
-    setCountriesError(null);
+  // Fetch available applications for users
+  const fetchUserApplications = async () => {
+    setIsLoadingApplications(true);
+    setApplicationsError(null);
     
     try {
-      const countriesData = await providerService.getCountries(providerId);
-      setCountries(countriesData);
+      const response = await apiClient.get('/applications/user');
+      setUserApplications(response.data.data || []);
     } catch (error) {
-      console.error('Failed to fetch countries', error);
-      setCountriesError('فشل في جلب قائمة الدول، يرجى المحاولة مرة أخرى.');
+      console.error('Failed to fetch user applications', error);
+      setApplicationsError('فشل في جلب قائمة التطبيقات، يرجى المحاولة مرة أخرى.');
       toast({
         title: "خطأ",
-        description: "فشل في جلب قائمة الدول، يرجى المحاولة مرة أخرى.",
+        description: "فشل في جلب قائمة التطبيقات، يرجى المحاولة مرة أخرى.",
         variant: "destructive"
       });
     } finally {
-      setIsLoadingCountries(false);
+      setIsLoadingApplications(false);
     }
   };
 
-  // Fetch balance from provider API via backend
-  const fetchBalance = async () => {
+  // Fetch user balance
+  const fetchUserBalance = async () => {
     setIsLoadingBalance(true);
     setBalanceError(null);
     
     try {
-      const balanceData = await providerService.getBalance(providerId);
-      setBalance(balanceData.balance);
+      // Get user balance from user profile
+      setBalance(user?.balance || 0);
     } catch (error) {
       console.error('Failed to fetch balance', error);
       setBalanceError('فشل في جلب الرصيد، يرجى المحاولة مرة أخرى.');
     } finally {
       setIsLoadingBalance(false);
-    }
-  };
-  
-  // Fetch user profile
-  const fetchUserProfile = async () => {
-    setIsLoadingProfile(true);
-    setProfileError(null);
-    
-    try {
-      const balanceData = await providerService.getBalance(providerId);
-      setUserProfile({
-        balance: balanceData.balance,
-        email: user?.email || ""
-      });
-    } catch (error) {
-      console.error('Failed to fetch user profile', error);
-      setProfileError('فشل في جلب بيانات المستخدم، يرجى المحاولة مرة أخرى.');
-    } finally {
-      setIsLoadingProfile(false);
     }
   };
 
@@ -111,10 +84,8 @@ const Dashboard = () => {
     setIsRefreshing(true);
     try {
       await Promise.all([
-        fetchCountries(),
-        fetchUserProfile(),
-        selectedCountry ? fetchProducts(selectedCountry.iso) : Promise.resolve(),
-        purchasedNumber ? checkNumber(purchasedNumber.id) : Promise.resolve()
+        fetchUserApplications(),
+        fetchUserBalance()
       ]);
       toast({
         title: "تم التحديث",
@@ -132,116 +103,36 @@ const Dashboard = () => {
     }
   };
 
-  // Handle country selection
-  const handleSelectCountry = async (country: Country) => {
-    setSelectedCountry(country);
-    fetchProducts(country.iso);
-  };
-
-  // Fetch products for a specific country
-  const fetchProducts = async (countryCode: string) => {
-    setIsLoadingProducts(true);
-    setProductsError(null);
+  // Purchase application
+  const handlePurchaseApplication = async (application: UserApplication) => {
+    setIsPurchasing(application.id);
     
     try {
-      const productsData = await providerService.getServices(providerId, countryCode);
-      // Convert array to Record<string, Product> format
-      const productsRecord: Record<string, Product> = {};
-      productsData.forEach((product: Product) => {
-        productsRecord[product.id] = product;
+      const response = await apiClient.post('/numbers/purchase', {
+        applicationId: application.id,
+        providerName: application.providerName,
+        countryName: application.countryName,
+        applicationName: application.name,
+        serverName: application.serverName
       });
-      setProducts(productsRecord);
-    } catch (error) {
-      console.error(`Failed to fetch products for ${countryCode}`, error);
-      setProductsError('فشل في جلب قائمة المنتجات، يرجى المحاولة مرة أخرى.');
-      toast({
-        title: "خطأ",
-        description: "فشل في جلب قائمة المنتجات، يرجى المحاولة مرة أخرى.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoadingProducts(false);
-    }
-  };
-
-  // Purchase a phone number
-  const handlePurchaseNumber = async (country: string, product: string) => {
-    setIsPurchasing(product);
-    
-    try {
-      const phoneNumber = await providerService.purchaseNumber(providerId, country, product);
-      setPurchasedNumber(phoneNumber);
+      
       toast({
         title: "تم الشراء بنجاح",
-        description: `تم شراء الرقم ${phoneNumber.number} بنجاح.`,
+        description: `تم شراء ${application.name} بنجاح.`,
         variant: "default"
       });
       
       // Refresh balance after purchase
-      fetchBalance();
-    } catch (error) {
-      console.error('Failed to purchase number', error);
+      fetchUserBalance();
+    } catch (error: any) {
+      console.error('Failed to purchase application', error);
       toast({
         title: "خطأ",
-        description: "فشل في شراء الرقم، يرجى المحاولة مرة أخرى.",
+        description: error.response?.data?.message || "فشل في شراء التطبيق، يرجى المحاولة مرة أخرى.",
         variant: "destructive"
       });
     } finally {
       setIsPurchasing(null);
-    }
-  };
-  
-  // Check number for updates
-  const checkNumber = async (id: string) => {
-    try {
-      const updatedNumber = await providerService.checkNumber(id);
-      setPurchasedNumber(updatedNumber);
-      return updatedNumber;
-    } catch (error) {
-      console.error('Failed to check number status', error);
-      toast({
-        title: "خطأ",
-        description: "فشل في التحقق من حالة الرقم.",
-        variant: "destructive"
-      });
-      throw error;
-    }
-  };
-
-  // Cancel a purchased number
-  const handleCancelNumber = async (id: string) => {
-    try {
-      await providerService.cancelNumber(id);
-      setPurchasedNumber(null);
-      toast({
-        title: "تم الإلغاء",
-        description: "تم إلغاء الرقم بنجاح",
-      });
-      fetchBalance();
-    } catch (error) {
-      toast({
-        title: "خطأ",
-        description: "فشل في إلغاء الرقم",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Update phone number details
-  const handleUpdateNumber = async (id: string) => {
-    try {
-      const updatedNumber = await providerService.checkNumber(id);
-      setPurchasedNumber(updatedNumber);
-      toast({
-        title: "تم التحديث",
-        description: "تم تحديث بيانات الرقم بنجاح",
-      });
-    } catch (error) {
-      toast({
-        title: "خطأ",
-        description: "فشل في تحديث بيانات الرقم",
-        variant: "destructive"
-      });
     }
   };
 
@@ -260,45 +151,93 @@ const Dashboard = () => {
         </Button>
       </div>
 
-      <DashboardStats 
-        balance={balance}
-        countriesCount={countries.length}
-        purchasedNumbersCount={purchasedNumber ? 1 : 0}
-        activePurchasesCount={isPurchasing}
-        isLoadingBalance={isLoadingBalance}
-        isLoadingCountries={isLoadingCountries}
-        balanceError={balanceError}
-        countriesError={countriesError}
-      />
-      
-      <UserProfileCard userProfile={userProfile} />
+      {/* User Balance Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>الرصيد الحالي</CardTitle>
+          <CardDescription>رصيدك المتاح لشراء التطبيقات</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoadingBalance ? (
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-24"></div>
+            </div>
+          ) : balanceError ? (
+            <p className="text-red-500">{balanceError}</p>
+          ) : (
+            <div className="text-2xl font-bold text-green-600">
+              ${balance?.toFixed(2) || '0.00'}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <CountrySelector 
-          countries={countries}
-          selectedCountry={selectedCountry}
-          onSelectCountry={handleSelectCountry}
-          isLoading={isLoadingCountries}
-          error={countriesError}
-          onRetry={fetchCountries}
-        />
-
-        <ProductsList 
-          products={products}
-          selectedCountry={selectedCountry}
-          onPurchase={handlePurchaseNumber}
-          isLoading={isLoadingProducts}
-          error={productsError}
-          onRetry={fetchProducts}
-          isPurchasing={isPurchasing}
-        />
-      </div>
-
-      <PhoneNumberDetails 
-        purchasedNumber={purchasedNumber}
-        onCancel={handleCancelNumber}
-        onUpdate={handleUpdateNumber}
-      />
+      {/* Available Applications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            التطبيقات المتاحة
+          </CardTitle>
+          <CardDescription>اختر التطبيق الذي تريد شراء رقم له</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoadingApplications ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
+            </div>
+          ) : applicationsError ? (
+            <div className="text-center py-12 text-red-500">
+              <p>{applicationsError}</p>
+              <Button 
+                onClick={fetchUserApplications} 
+                className="mt-4"
+              >
+                إعادة المحاولة
+              </Button>
+            </div>
+          ) : userApplications.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <Package className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+              <p>لا توجد تطبيقات متاحة حالياً</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {userApplications.map((app) => (
+                <div key={app.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="space-y-3">
+                    <div>
+                      <h3 className="font-medium text-lg">{app.name}</h3>
+                      {app.description && (
+                        <p className="text-sm text-gray-600">{app.description}</p>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-1 text-sm text-gray-600">
+                      <div>المزود: {app.providerName}</div>
+                      <div>الدولة: {app.countryName}</div>
+                      <div>السيرفر: {app.serverName}</div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center pt-2">
+                      <div className="text-lg font-bold text-brand-600">
+                        ${app.price.toFixed(2)}
+                      </div>
+                      <Button 
+                        onClick={() => handlePurchaseApplication(app)}
+                        disabled={isPurchasing === app.id || !app.isAvailable}
+                        size="sm"
+                      >
+                        {isPurchasing === app.id ? 'جاري الشراء...' : 'شراء الآن'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

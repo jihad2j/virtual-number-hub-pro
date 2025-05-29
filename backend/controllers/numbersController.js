@@ -2,31 +2,72 @@
 const Number = require('../models/Number');
 const Provider = require('../models/Provider');
 const User = require('../models/User');
+const UserApplication = require('../models/UserApplication');
 const Transaction = require('../models/Transaction');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const { ProviderFactory } = require('../services/providerFactory');
 
-// شراء رقم جديد
+// شراء رقم جديد باستخدام النظام الجديد
 exports.purchaseNumber = catchAsync(async (req, res, next) => {
-  const { providerId, countryCode, service } = req.body;
+  const { applicationId, providerName, countryName, applicationName, serverName } = req.body;
   const userId = req.user.id;
   
-  // البحث عن المزود مع استرجاع apiKey
-  const provider = await Provider.findById(providerId).select('+apiKey');
+  // البحث عن التطبيق في قاعدة البيانات
+  let userApplication;
+  if (applicationId) {
+    userApplication = await UserApplication.findById(applicationId);
+  } else {
+    // البحث باستخدام البيانات المرسلة
+    userApplication = await UserApplication.findOne({
+      name: applicationName,
+      providerName,
+      countryName,
+      serverName
+    });
+  }
+  
+  if (!userApplication) {
+    return next(new AppError('لم يتم العثور على التطبيق المحدد', 404));
+  }
+  
+  // البحث عن المزود باستخدام اسم المزود
+  const provider = await Provider.findOne({ name: providerName }).select('+apiKey');
   
   if (!provider) {
     return next(new AppError('لم يتم العثور على مزود الخدمة المحدد', 404));
+  }
+  
+  // التحقق من رصيد المستخدم
+  const user = await User.findById(userId);
+  if (user.balance < userApplication.price) {
+    return next(new AppError('رصيدك غير كافي لشراء هذا التطبيق', 400));
   }
   
   // إنشاء كائن المزود المناسب باستخدام مصنع المزودين
   const providerService = ProviderFactory.createProvider(provider);
   
   try {
+    // الحصول على رمز الدولة من المزود
+    const countries = await providerService.getCountries();
+    const country = countries.find(c => c.name === countryName || c.name.includes(countryName));
+    
+    if (!country) {
+      return next(new AppError('لم يتم العثور على الدولة المحددة لدى المزود', 404));
+    }
+    
+    // الحصول على الخدمات المتاحة للدولة
+    const services = await providerService.getServices(country.code);
+    const service = services.find(s => s.name === serverName || s.id === serverName);
+    
+    if (!service) {
+      return next(new AppError('لم يتم العثور على السيرفر المحدد لدى المزود', 404));
+    }
+    
     // شراء رقم من مزود الخدمة
     const purchaseData = await providerService.purchaseNumber({
-      countryCode,
-      service
+      countryCode: country.code,
+      service: service.id
     });
     
     // إنشاء سجل الرقم في قاعدة البيانات
@@ -34,27 +75,28 @@ exports.purchaseNumber = catchAsync(async (req, res, next) => {
       providerId: provider.id,
       userId,
       number: purchaseData.phone || purchaseData.number,
-      countryCode,
-      service,
+      countryCode: country.code,
+      countryName: countryName,
+      service: applicationName,
       status: 'active',
       providerNumberId: purchaseData.id,
       expiresAt: new Date(Date.now() + 20 * 60 * 1000), // 20 دقيقة من الآن
-      price: purchaseData.price || 0
+      price: userApplication.price
     });
     
     // إنشاء معاملة للمستخدم (خصم من رصيده)
     await Transaction.create({
       userId,
-      amount: -(purchaseData.price || 0),
+      amount: -userApplication.price,
       type: 'purchase',
       status: 'completed',
-      description: `شراء رقم ${newNumber.number} لخدمة ${service}`
+      description: `شراء رقم ${newNumber.number} لتطبيق ${applicationName}`
     });
     
     // تحديث رصيد المستخدم
     await User.findByIdAndUpdate(
       userId,
-      { $inc: { balance: -(purchaseData.price || 0) } }
+      { $inc: { balance: -userApplication.price } }
     );
     
     res.status(201).json({

@@ -1,7 +1,6 @@
 
 import { apiClient } from '@/services/apiClient';
 import { PhoneNumber } from '@/types/PhoneNumber';
-import { providerService } from '@/services/providerService';
 
 export const phoneNumberApi = {
   async getAllPhoneNumbers(): Promise<PhoneNumber[]> {
@@ -14,15 +13,24 @@ export const phoneNumberApi = {
     return response.data.data;
   },
 
-  async purchasePhoneNumber(providerId: string, countryCode: string, service: string): Promise<PhoneNumber> {
-    return providerService.purchaseNumber(providerId, countryCode, service);
+  async purchasePhoneNumber(data: {
+    applicationId: string;
+    providerName: string;
+    countryName: string;
+    applicationName: string;
+    serverName: string;
+  }): Promise<PhoneNumber> {
+    const response = await apiClient.post('/numbers/purchase', data);
+    return response.data.data;
   },
 
   async checkPhoneNumber(id: string): Promise<PhoneNumber> {
-    return providerService.checkNumber(id);
+    const response = await apiClient.get(`/numbers/${id}/check`);
+    return response.data.data;
   },
 
   async cancelPhoneNumber(id: string): Promise<boolean> {
-    return providerService.cancelNumber(id);
+    const response = await apiClient.post(`/numbers/${id}/cancel`);
+    return response.data.success;
   }
 };
