@@ -70,7 +70,7 @@ export default {
 					light: '#E6F3FF',
 					silver: '#E5E7EB',
 					success: '#00A859',
-					warning: '#FF8C00',
+					warning: '#0073E6',
 					error: '#E63946',
 					gray: {
 						50: '#F8FAFC',
