@@ -63,26 +63,27 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				shamcash: {
-					primary: '#1B5E20',
-					secondary: '#2E7D32',
-					accent: '#4CAF50',
-					light: '#E8F5E8',
-					silver: '#F5F5F5',
+				// New Sham Cash inspired color scheme
+				ocean: {
+					primary: '#2196F3',
+					secondary: '#1976D2', 
+					accent: '#03A9F4',
+					light: '#E3F2FD',
+					silver: '#F8F9FA',
 					success: '#4CAF50',
 					warning: '#FF9800',
 					error: '#F44336',
 					gray: {
 						50: '#F8F9FA',
-						100: '#F5F5F5',
-						200: '#EEEEEE',
-						300: '#E0E0E0',
-						400: '#BDBDBD',
-						500: '#9E9E9E',
-						600: '#757575',
-						700: '#616161',
-						800: '#424242',
-						900: '#212121'
+						100: '#F1F3F4',
+						200: '#E8EAED',
+						300: '#DADCE0',
+						400: '#BDC1C6',
+						500: '#9AA0A6',
+						600: '#80868B',
+						700: '#5F6368',
+						800: '#3C4043',
+						900: '#202124'
 					}
 				}
 			},
@@ -127,13 +128,29 @@ export default {
 						opacity: '1',
 						transform: 'translateY(0)'
 					}
+				},
+				'float': {
+					'0%, 100%': {
+						transform: 'translateY(0px)'
+					},
+					'50%': {
+						transform: 'translateY(-10px)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fade-in 0.5s ease-out',
-				'slide-up': 'slide-up 0.3s ease-out'
+				'slide-up': 'slide-up 0.3s ease-out',
+				'float': 'float 3s ease-in-out infinite'
+			},
+			backgroundImage: {
+				'gradient-ocean': 'linear-gradient(135deg, #2196F3 0%, #1976D2 50%, #03A9F4 100%)',
+				'gradient-card': 'linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+			},
+			backdropBlur: {
+				'xs': '2px',
 			}
 		}
 	},
