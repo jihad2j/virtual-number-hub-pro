@@ -50,7 +50,7 @@ const Login = () => {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rajhi-primary via-rajhi-accent to-rajhi-secondary p-4">
+    <div dir="rtl" className="min-h-screen flex items-center justify-center bg-gradient-to-br from-ocean-primary via-ocean-accent to-ocean-secondary p-4">
       <div className="absolute inset-0 bg-pattern opacity-30"></div>
       
       <div className="w-full max-w-md relative z-10">
@@ -60,14 +60,14 @@ const Login = () => {
             <Shield className="h-10 w-10 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-lg">Virtual Number Hub</h1>
-          <p className="text-rajhi-light text-lg drop-shadow">منصة شراء الأرقام الافتراضية الآمنة</p>
+          <p className="text-ocean-light text-lg drop-shadow">منصة شراء الأرقام الافتراضية الآمنة</p>
         </div>
         
         {/* Login Card */}
-        <Card className="rajhi-card border-0 shadow-2xl animate-slide-up">
-          <CardHeader className="bg-gradient-to-r from-rajhi-primary to-rajhi-accent text-white rounded-t-xl">
+        <Card className="ocean-card border-0 shadow-2xl animate-slide-up">
+          <CardHeader className="bg-gradient-to-r from-ocean-primary to-ocean-accent text-white rounded-t-xl">
             <CardTitle className="text-2xl text-center font-bold">تسجيل الدخول</CardTitle>
-            <CardDescription className="text-center text-rajhi-light">
+            <CardDescription className="text-center text-ocean-light">
               أدخل بيانات حسابك للوصول إلى لوحة التحكم الآمنة
             </CardDescription>
           </CardHeader>
@@ -83,15 +83,15 @@ const Login = () => {
             )}
             
             {/* Demo Accounts */}
-            <div className="mb-6 p-4 bg-gradient-to-r from-rajhi-light to-blue-50 rounded-lg border border-rajhi-accent/30">
-              <p className="text-sm text-rajhi-primary mb-3 font-medium">🔐 حسابات تجريبية آمنة:</p>
+            <div className="mb-6 p-4 bg-gradient-to-r from-ocean-light to-blue-50 rounded-lg border border-ocean-accent/30">
+              <p className="text-sm text-ocean-primary mb-3 font-medium">🔐 حسابات تجريبية آمنة:</p>
               <div className="flex gap-2 text-xs">
                 <Button 
                   type="button"
                   variant="outline" 
                   size="sm"
                   onClick={() => fillDemoCredentials('admin')}
-                  className="border-rajhi-accent text-rajhi-primary hover:bg-rajhi-primary hover:text-white transition-all"
+                  className="border-ocean-accent text-ocean-primary hover:bg-ocean-primary hover:text-white transition-all"
                 >
                   👨‍💼 مدير النظام
                 </Button>
@@ -100,7 +100,7 @@ const Login = () => {
                   variant="outline" 
                   size="sm"
                   onClick={() => fillDemoCredentials('user')}
-                  className="border-rajhi-accent text-rajhi-primary hover:bg-rajhi-primary hover:text-white transition-all"
+                  className="border-ocean-accent text-ocean-primary hover:bg-ocean-primary hover:text-white transition-all"
                 >
                   👤 مستخدم عادي
                 </Button>
@@ -110,7 +110,7 @@ const Login = () => {
             {/* Login Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-rajhi-primary font-medium flex items-center gap-2">
+                <Label htmlFor="email" className="text-ocean-primary font-medium flex items-center gap-2">
                   <Mail className="h-4 w-4" />
                   البريد الإلكتروني
                 </Label>
@@ -121,12 +121,12 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="ltr rajhi-input h-12 text-base"
+                  className="ltr ocean-input h-12 text-base"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-rajhi-primary font-medium flex items-center gap-2">
+                <Label htmlFor="password" className="text-ocean-primary font-medium flex items-center gap-2">
                   <Lock className="h-4 w-4" />
                   كلمة المرور
                 </Label>
@@ -138,12 +138,12 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="ltr rajhi-input h-12 text-base pr-12"
+                    className="ltr ocean-input h-12 text-base pr-12"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-rajhi-secondary hover:text-rajhi-primary transition-colors"
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-ocean-secondary hover:text-ocean-primary transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -152,7 +152,7 @@ const Login = () => {
               
               <Button 
                 type="submit" 
-                className="w-full rajhi-button h-12 text-base font-semibold" 
+                className="w-full ocean-button h-12 text-base font-semibold" 
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -167,16 +167,16 @@ const Login = () => {
             </form>
           </CardContent>
           
-          <CardFooter className="flex justify-between p-6 bg-rajhi-light/30 rounded-b-xl">
+          <CardFooter className="flex justify-between p-6 bg-ocean-light/30 rounded-b-xl">
             <Link 
               to="/forgot-password" 
-              className="text-sm text-rajhi-primary hover:text-rajhi-accent transition-colors font-medium"
+              className="text-sm text-ocean-primary hover:text-ocean-accent transition-colors font-medium"
             >
               نسيت كلمة المرور؟
             </Link>
             <Link 
               to="/register" 
-              className="text-sm text-rajhi-primary hover:text-rajhi-accent transition-colors font-medium"
+              className="text-sm text-ocean-primary hover:text-ocean-accent transition-colors font-medium"
             >
               إنشاء حساب جديد
             </Link>
@@ -184,7 +184,7 @@ const Login = () => {
         </Card>
         
         {/* Footer */}
-        <div className="text-center mt-6 text-rajhi-light text-sm">
+        <div className="text-center mt-6 text-ocean-light text-sm">
           <p>© 2024 Virtual Number Hub. جميع الحقوق محفوظة</p>
           <p className="mt-1">منصة آمنة ومرخصة لخدمات الأرقام الافتراضية</p>
         </div>

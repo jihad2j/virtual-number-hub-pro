@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   LayoutDashboard,
@@ -36,7 +37,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon, text, to, active, isCollapsed }
       className={`flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${
         active 
           ? "bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30" 
-          : "text-rajhi-light hover:bg-white/10 hover:text-white"
+          : "text-ocean-light hover:bg-white/10 hover:text-white"
       } ${isCollapsed ? "justify-center" : ""}`}
       title={isCollapsed ? text : undefined}
     >
@@ -45,7 +46,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon, text, to, active, isCollapsed }
       </div>
       {!isCollapsed && <span className="mr-3 font-medium">{text}</span>}
       {active && !isCollapsed && (
-        <div className="mr-auto w-2 h-2 bg-rajhi-silver rounded-full animate-pulse"></div>
+        <div className="mr-auto w-2 h-2 bg-ocean-silver rounded-full animate-pulse"></div>
       )}
     </Link>
   );
@@ -65,7 +66,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className={`bg-gradient-to-b from-rajhi-primary via-rajhi-secondary to-rajhi-primary shadow-2xl transition-all duration-300 overflow-hidden ${
+    <aside className={`bg-gradient-to-b from-ocean-primary via-ocean-secondary to-ocean-primary shadow-2xl transition-all duration-300 overflow-hidden ${
       isCollapsed ? 'w-20' : 'w-72'
     } p-4 flex flex-col relative`}>
       
@@ -80,7 +81,7 @@ export function Sidebar() {
               </div>
               <div>
                 <span className="text-xl font-bold text-white">Virtual Hub</span>
-                <p className="text-xs text-rajhi-light">الأرقام الافتراضية</p>
+                <p className="text-xs text-ocean-light">الأرقام الافتراضية</p>
               </div>
             </Link>
           )}
@@ -98,17 +99,17 @@ export function Sidebar() {
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6 border border-white/20">
             <div className="flex items-center space-x-3">
               <div className="relative">
-                <div className="w-12 h-12 bg-rajhi-silver rounded-full flex items-center justify-center text-rajhi-primary font-bold text-lg">
+                <div className="w-12 h-12 bg-ocean-silver rounded-full flex items-center justify-center text-ocean-primary font-bold text-lg">
                   {user?.username?.charAt(0).toUpperCase() || 'U'}
                 </div>
-                <span className="absolute bottom-0 right-0 inline-block w-3 h-3 bg-rajhi-success border-2 border-white rounded-full"></span>
+                <span className="absolute bottom-0 right-0 inline-block w-3 h-3 bg-ocean-success border-2 border-white rounded-full"></span>
               </div>
               <div className="flex-1">
                 <h2 className="text-sm font-semibold text-white">{user?.username || 'مستخدم'}</h2>
-                <p className="text-xs text-rajhi-light truncate">{user?.email}</p>
+                <p className="text-xs text-ocean-light truncate">{user?.email}</p>
                 <div className="flex items-center gap-1 mt-1">
-                  <div className="w-1 h-1 bg-rajhi-success rounded-full animate-pulse"></div>
-                  <span className="text-xs text-rajhi-success">متصل</span>
+                  <div className="w-1 h-1 bg-ocean-success rounded-full animate-pulse"></div>
+                  <span className="text-xs text-ocean-success">متصل</span>
                 </div>
               </div>
             </div>
@@ -275,7 +276,7 @@ export function Sidebar() {
           
           {!isCollapsed && (
             <div className="mt-4 p-3 bg-white/5 rounded-xl border border-white/10">
-              <div className="text-xs text-rajhi-light text-center">
+              <div className="text-xs text-ocean-light text-center">
                 <p>نسخة 2.0.1</p>
                 <p className="mt-1">Virtual Number Hub Pro</p>
               </div>
