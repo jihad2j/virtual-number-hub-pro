@@ -38,22 +38,22 @@ export const supportApi = {
   },
 
   async getUserTickets(): Promise<SupportTicket[]> {
-    const response = await apiClient.get('/support');
+    const response = await apiClient.get('/support/user');
     return response.data.data;
   },
 
   async getAllSupportTickets(): Promise<SupportTicket[]> {
-    const response = await apiClient.get('/admin/support');
+    const response = await apiClient.get('/support');
     return response.data.data;
   },
 
   async getTicketMessages(ticketId: string): Promise<TicketMessage[]> {
     const response = await apiClient.get(`/support/${ticketId}/messages`);
-    return response.data.data;
+    return response.data.data || [];
   },
 
   async replyToTicket(ticketId: string, message: string): Promise<TicketMessage> {
-    const response = await apiClient.post(`/support/${ticketId}/reply`, { message });
+    const response = await apiClient.post(`/support/${ticketId}/respond`, { message });
     return response.data.data;
   },
 

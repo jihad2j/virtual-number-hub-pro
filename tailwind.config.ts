@@ -63,26 +63,26 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				ocean: {
-					primary: '#1e40af',
-					secondary: '#1e3a8a',
-					accent: '#3b82f6',
-					light: '#dbeafe',
-					silver: '#e5e7eb',
-					success: '#10b981',
-					warning: '#f59e0b',
-					error: '#ef4444',
+				shamcash: {
+					primary: '#1B5E20',
+					secondary: '#2E7D32',
+					accent: '#4CAF50',
+					light: '#E8F5E8',
+					silver: '#F5F5F5',
+					success: '#4CAF50',
+					warning: '#FF9800',
+					error: '#F44336',
 					gray: {
-						50: '#f8fafc',
-						100: '#f1f5f9',
-						200: '#e2e8f0',
-						300: '#cbd5e1',
-						400: '#94a3b8',
-						500: '#64748b',
-						600: '#475569',
-						700: '#334155',
-						800: '#1e293b',
-						900: '#0f172a'
+						50: '#F8F9FA',
+						100: '#F5F5F5',
+						200: '#EEEEEE',
+						300: '#E0E0E0',
+						400: '#BDBDBD',
+						500: '#9E9E9E',
+						600: '#757575',
+						700: '#616161',
+						800: '#424242',
+						900: '#212121'
 					}
 				}
 			},

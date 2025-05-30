@@ -1,50 +1,46 @@
-
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Routes, Route } from 'react-router-dom';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/components/ui/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 
-// Layouts
-import DashboardLayout from '@/components/layout/DashboardLayout';
-
-// Public Pages
+// Pages
 import Index from '@/pages/Index';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
-import NotFound from '@/pages/NotFound';
-
-// Dashboard Pages
 import Dashboard from '@/pages/Dashboard';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 import MyOrders from '@/pages/MyOrders';
 import Balance from '@/pages/Balance';
-import Profile from '@/pages/Profile';
-import Support from '@/pages/Support';
 import Countries from '@/pages/Countries';
-import ManualActivation from '@/pages/ManualActivation';
 import Applications from '@/pages/Applications';
 import ActiveProviders from '@/pages/dashboard/ActiveProviders';
+import ManualActivation from '@/pages/ManualActivation';
+import Support from '@/pages/Support';
+import Profile from '@/pages/Profile';
+import SystemSettings from '@/pages/SystemSettings';
+import NotFound from '@/pages/NotFound';
+import ActivationWaiting from '@/pages/ActivationWaiting';
 
 // Admin Pages
 import AdminDashboard from '@/pages/admin/Dashboard';
+import AdminUsers from '@/pages/admin/Users';
 import AdminCountries from '@/pages/admin/Countries';
-import Users from '@/pages/admin/Users';
-import Providers from '@/pages/admin/Providers';
-import ProviderBalances from '@/pages/admin/ProviderBalances';
-import SystemSettings from '@/pages/SystemSettings';
-import ManualServices from '@/pages/admin/ManualServices';
-import ManualRequests from '@/pages/admin/ManualRequests';
+import AdminProviders from '@/pages/admin/Providers';
+import AdminApplicationsManager from '@/pages/admin/ApplicationsManager';
+import AdminManageApplications from '@/pages/admin/ManageApplications';
+import AdminAddApplications from '@/pages/admin/AddApplications';
+import AdminManualServices from '@/pages/admin/ManualServices';
+import AdminManualRequests from '@/pages/admin/ManualRequests';
 import AdminSupport from '@/pages/admin/Support';
-import ApplicationsManager from '@/pages/admin/ApplicationsManager';
-import AddApplications from '@/pages/admin/AddApplications';
-import ManageApplications from '@/pages/admin/ManageApplications';
+import AdminProviderBalances from '@/pages/admin/ProviderBalances';
 
-// Query Client Configuration
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      retry: 3,
       refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
     },
   },
 });
@@ -52,48 +48,49 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="app">
-        <Toaster />
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          
-          {/* Protected Dashboard Routes */}
-          <Route element={<DashboardLayout />}>
-            {/* User Dashboard */}
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/dashboard/orders" element={<MyOrders />} />
-            <Route path="/dashboard/balance" element={<Balance />} />
-            <Route path="/dashboard/profile" element={<Profile />} />
-            <Route path="/dashboard/settings" element={<Profile />} />
-            <Route path="/dashboard/support" element={<Support />} />
-            <Route path="/dashboard/countries" element={<Countries />} />
-            <Route path="/dashboard/services/:countryCode" element={<ManualActivation />} />
-            <Route path="/dashboard/services/manual-activation" element={<ManualActivation />} />
-            <Route path="/dashboard/active-providers" element={<ActiveProviders />} />
-            <Route path="/dashboard/applications" element={<Applications />} />
-            
-            {/* Admin Dashboard */}
-            <Route path="/dashboard/admin" element={<AdminDashboard />} />
-            <Route path="/dashboard/admin/countries" element={<AdminCountries />} />
-            <Route path="/dashboard/admin/users" element={<Users />} />
-            <Route path="/dashboard/admin/providers" element={<Providers />} />
-            <Route path="/dashboard/admin/providers/balances" element={<ProviderBalances />} />
-            <Route path="/dashboard/admin/settings" element={<SystemSettings />} />
-            <Route path="/dashboard/admin/manual-services" element={<ManualServices />} />
-            <Route path="/dashboard/admin/manual-requests" element={<ManualRequests />} />
-            <Route path="/dashboard/admin/support" element={<AdminSupport />} />
-            <Route path="/dashboard/admin/applications" element={<ApplicationsManager />} />
-            <Route path="/dashboard/admin/add-applications" element={<AddApplications />} />
-            <Route path="/dashboard/admin/manage-applications" element={<ManageApplications />} />
-          </Route>
-          
-          {/* 404 Route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </div>
+      <ThemeProvider>
+        <AuthProvider>
+          <Router>
+            <div className="App">
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                
+                <Route path="/dashboard" element={<DashboardLayout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="orders" element={<MyOrders />} />
+                  <Route path="balance" element={<Balance />} />
+                  <Route path="countries" element={<Countries />} />
+                  <Route path="applications" element={<Applications />} />
+                  <Route path="active-providers" element={<ActiveProviders />} />
+                  <Route path="services/manual-activation" element={<ManualActivation />} />
+                  <Route path="support" element={<Support />} />
+                  <Route path="profile" element={<Profile />} />
+                  <Route path="settings" element={<SystemSettings />} />
+                  <Route path="activation-waiting/:orderId" element={<ActivationWaiting />} />
+                  
+                  {/* Admin Routes */}
+                  <Route path="admin" element={<AdminDashboard />} />
+                  <Route path="admin/users" element={<AdminUsers />} />
+                  <Route path="admin/countries" element={<AdminCountries />} />
+                  <Route path="admin/providers" element={<AdminProviders />} />
+                  <Route path="admin/applications" element={<AdminApplicationsManager />} />
+                  <Route path="admin/manage-applications" element={<AdminManageApplications />} />
+                  <Route path="admin/add-applications" element={<AdminAddApplications />} />
+                  <Route path="admin/manual-services" element={<AdminManualServices />} />
+                  <Route path="admin/manual-requests" element={<AdminManualRequests />} />
+                  <Route path="admin/support" element={<AdminSupport />} />
+                  <Route path="admin/providers/balances" element={<AdminProviderBalances />} />
+                </Route>
+                
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              <Toaster />
+            </div>
+          </Router>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

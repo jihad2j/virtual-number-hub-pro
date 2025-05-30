@@ -8,63 +8,63 @@
 @layer base {
   :root {
     --background: 248 250 252;
-    --foreground: 15 23 42;
+    --foreground: 33 33 33;
     --card: 255 255 255;
-    --card-foreground: 15 23 42;
+    --card-foreground: 33 33 33;
     --popover: 255 255 255;
-    --popover-foreground: 15 23 42;
-    --primary: 30 64 175;
+    --popover-foreground: 33 33 33;
+    --primary: 27 94 32;
     --primary-foreground: 255 255 255;
-    --secondary: 241 245 249;
-    --secondary-foreground: 51 65 85;
-    --muted: 241 245 249;
-    --muted-foreground: 100 116 139;
-    --accent: 59 130 246;
+    --secondary: 245 245 245;
+    --secondary-foreground: 97 97 97;
+    --muted: 245 245 245;
+    --muted-foreground: 158 158 158;
+    --accent: 76 175 80;
     --accent-foreground: 255 255 255;
-    --destructive: 239 68 68;
+    --destructive: 244 67 54;
     --destructive-foreground: 255 255 255;
-    --border: 226 232 240;
-    --input: 226 232 240;
-    --ring: 30 64 175;
+    --border: 224 224 224;
+    --input: 224 224 224;
+    --ring: 27 94 32;
     --radius: 0.75rem;
     --sidebar-background: 255 255 255;
-    --sidebar-foreground: 15 23 42;
-    --sidebar-primary: 30 64 175;
+    --sidebar-foreground: 33 33 33;
+    --sidebar-primary: 27 94 32;
     --sidebar-primary-foreground: 255 255 255;
-    --sidebar-accent: 241 245 249;
-    --sidebar-accent-foreground: 51 65 85;
-    --sidebar-border: 226 232 240;
-    --sidebar-ring: 30 64 175;
+    --sidebar-accent: 245 245 245;
+    --sidebar-accent-foreground: 97 97 97;
+    --sidebar-border: 224 224 224;
+    --sidebar-ring: 27 94 32;
   }
 
   .dark {
-    --background: 15 23 42;
+    --background: 33 33 33;
     --foreground: 248 250 252;
-    --card: 30 41 59;
+    --card: 66 66 66;
     --card-foreground: 248 250 252;
-    --popover: 30 41 59;
+    --popover: 66 66 66;
     --popover-foreground: 248 250 252;
-    --primary: 59 130 246;
+    --primary: 76 175 80;
     --primary-foreground: 255 255 255;
-    --secondary: 51 65 85;
+    --secondary: 97 97 97;
     --secondary-foreground: 248 250 252;
-    --muted: 51 65 85;
-    --muted-foreground: 148 163 184;
-    --accent: 59 130 246;
+    --muted: 97 97 97;
+    --muted-foreground: 189 189 189;
+    --accent: 76 175 80;
     --accent-foreground: 255 255 255;
-    --destructive: 239 68 68;
+    --destructive: 244 67 54;
     --destructive-foreground: 255 255 255;
-    --border: 51 65 85;
-    --input: 51 65 85;
-    --ring: 59 130 246;
-    --sidebar-background: 30 41 59;
+    --border: 97 97 97;
+    --input: 97 97 97;
+    --ring: 76 175 80;
+    --sidebar-background: 66 66 66;
     --sidebar-foreground: 248 250 252;
-    --sidebar-primary: 59 130 246;
+    --sidebar-primary: 76 175 80;
     --sidebar-primary-foreground: 255 255 255;
-    --sidebar-accent: 51 65 85;
+    --sidebar-accent: 97 97 97;
     --sidebar-accent-foreground: 248 250 252;
-    --sidebar-border: 51 65 85;
-    --sidebar-ring: 59 130 246;
+    --sidebar-border: 97 97 97;
+    --sidebar-ring: 76 175 80;
   }
 }
 
@@ -74,7 +74,7 @@
   }
 
   body {
-    @apply bg-gradient-to-br from-ocean-light via-white to-ocean-primary/5 text-foreground min-h-screen;
+    @apply bg-gradient-to-br from-shamcash-light via-white to-shamcash-primary/5 text-foreground min-h-screen;
     font-family: 'Cairo', sans-serif;
   }
 
@@ -89,20 +89,20 @@
 }
 
 @layer components {
-  .ocean-gradient {
-    @apply bg-gradient-to-r from-ocean-primary via-ocean-accent to-ocean-primary;
+  .shamcash-gradient {
+    @apply bg-gradient-to-r from-shamcash-primary via-shamcash-accent to-shamcash-primary;
   }
   
-  .ocean-card {
-    @apply bg-white/90 backdrop-blur-sm border border-ocean-accent/30 shadow-xl rounded-xl;
+  .shamcash-card {
+    @apply bg-white/90 backdrop-blur-sm border border-shamcash-accent/30 shadow-xl rounded-xl;
   }
   
-  .ocean-button {
-    @apply bg-gradient-to-r from-ocean-primary to-ocean-accent hover:from-ocean-accent hover:to-ocean-primary text-white font-medium transition-all duration-300 shadow-lg hover:shadow-xl;
+  .shamcash-button {
+    @apply bg-gradient-to-r from-shamcash-primary to-shamcash-accent hover:from-shamcash-accent hover:to-shamcash-primary text-white font-medium transition-all duration-300 shadow-lg hover:shadow-xl;
   }
   
-  .ocean-input {
-    @apply border-ocean-accent/50 focus:border-ocean-primary focus:ring-2 focus:ring-ocean-primary/20 rounded-lg;
+  .shamcash-input {
+    @apply border-shamcash-accent/50 focus:border-shamcash-primary focus:ring-2 focus:ring-shamcash-primary/20 rounded-lg;
   }
 
   .bg-pattern {
@@ -123,15 +123,15 @@
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-ocean-light/20;
+  @apply bg-shamcash-light/20;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-ocean-primary/60 rounded-full;
+  @apply bg-shamcash-primary/60 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-ocean-primary;
+  @apply bg-shamcash-primary;
 }
 
 @keyframes shimmer {
