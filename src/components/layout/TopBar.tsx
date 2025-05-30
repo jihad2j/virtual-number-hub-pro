@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LogOut, User, Settings, Bell, Search } from 'lucide-react';
+import { LogOut, User, Settings } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +13,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Notifications } from './Notifications';
 
 export const TopBar: React.FC = () => {
@@ -35,21 +34,13 @@ export const TopBar: React.FC = () => {
   return (
     <header className="bg-white/95 backdrop-blur-md border-b border-rajhi-accent/20 py-4 px-6 flex justify-between items-center shadow-lg">
       <div className="flex items-center space-x-4">
-        <div className="hidden md:flex items-center bg-rajhi-light/30 rounded-full px-4 py-2 border border-rajhi-accent/30">
-          <Search className="h-4 w-4 text-rajhi-secondary ml-2" />
-          <Input 
-            placeholder="البحث السريع..." 
-            className="border-0 bg-transparent focus:ring-0 text-sm w-64"
-          />
-        </div>
-      </div>
-      
-      <div className="flex items-center space-x-4">
         <div className="hidden md:block text-right">
           <p className="text-sm text-rajhi-secondary">{getCurrentGreeting()}</p>
           <p className="text-lg font-semibold text-rajhi-primary">{user?.username || 'مستخدم'}</p>
         </div>
-        
+      </div>
+      
+      <div className="flex items-center space-x-4">        
         <div className="flex items-center gap-3">
           <Notifications />
           
