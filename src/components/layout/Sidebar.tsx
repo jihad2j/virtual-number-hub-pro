@@ -72,8 +72,6 @@ export function Sidebar() {
   const { user } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const userAvatar = "/img/default-user.jpg";
-
   const isActive = (path: string) => {
     return pathname === path;
   };
@@ -88,7 +86,7 @@ export function Sidebar() {
     } p-4 flex flex-col relative`}>
       
       {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.03"%3E%3Cpath d="M20 20c0-11.046-8.954-20-20-20v20h20z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-50"></div>
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\"40\" height=\"40\" viewBox=\"0 0 40 40\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.03\"%3E%3Cpath d=\"M20 20c0-11.046-8.954-20-20-20v20h20z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-50"></div>
       
       <div className="relative z-10">
         {/* Logo and Toggle */}
