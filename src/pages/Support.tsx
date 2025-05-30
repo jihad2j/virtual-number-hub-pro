@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,20 +16,18 @@ const Support = () => {
   const [newTicket, setNewTicket] = useState({
     subject: '',
     message: '',
-    priority: 'medium' as const,
+    priority: 'medium' as 'low' | 'medium' | 'high',
     category: ''
   });
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [replyMessage, setReplyMessage] = useState('');
   const queryClient = useQueryClient();
 
-  // Fetch user tickets using the correct method name
   const { data: tickets = [], isLoading } = useQuery({
     queryKey: ['user-support-tickets'],
     queryFn: supportApi.getUserTickets
   });
 
-  // Create ticket mutation using the correct method name
   const createTicketMutation = useMutation({
     mutationFn: supportApi.createTicket,
     onSuccess: () => {
@@ -41,7 +40,6 @@ const Support = () => {
     }
   });
 
-  // Reply to ticket mutation using the correct method name
   const replyMutation = useMutation({
     mutationFn: (data: { ticketId: string; message: string }) =>
       supportApi.replyToTicket(data.ticketId, data.message),
@@ -97,41 +95,41 @@ const Support = () => {
   };
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6 bg-gradient-to-br from-rajhi-primary via-rajhi-primary/10 to-white min-h-screen">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">الدعم الفني</h1>
-        <p className="text-gray-600">تواصل معنا للحصول على المساعدة</p>
+        <h1 className="text-3xl font-bold mb-2 text-rajhi-primary">الدعم الفني</h1>
+        <p className="text-rajhi-secondary">تواصل معنا للحصول على المساعدة</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Create New Ticket */}
-        <Card>
-          <CardHeader>
+        <Card className="border-rajhi-accent shadow-xl bg-white/90 backdrop-blur-sm">
+          <CardHeader className="bg-gradient-to-r from-rajhi-primary to-rajhi-accent text-white rounded-t-lg">
             <CardTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
               إنشاء تذكرة جديدة
             </CardTitle>
-            <CardDescription>أنشئ تذكرة دعم فني جديدة</CardDescription>
+            <CardDescription className="text-rajhi-light">أنشئ تذكرة دعم فني جديدة</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-6">
             <div>
-              <label className="text-sm font-medium mb-2 block">الموضوع</label>
+              <label className="text-sm font-medium mb-2 block text-rajhi-primary">الموضوع</label>
               <Input
                 placeholder="اكتب موضوع التذكرة"
                 value={newTicket.subject}
                 onChange={(e) => setNewTicket({ ...newTicket, subject: e.target.value })}
+                className="border-rajhi-accent focus:border-rajhi-primary"
               />
             </div>
             
             <div>
-              <label className="text-sm font-medium mb-2 block">الأولوية</label>
+              <label className="text-sm font-medium mb-2 block text-rajhi-primary">الأولوية</label>
               <Select 
                 value={newTicket.priority} 
                 onValueChange={(value: 'low' | 'medium' | 'high') => 
                   setNewTicket({ ...newTicket, priority: value })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger className="border-rajhi-accent focus:border-rajhi-primary">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -143,65 +141,66 @@ const Support = () => {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">الفئة</label>
+              <label className="text-sm font-medium mb-2 block text-rajhi-primary">الفئة</label>
               <Input
                 placeholder="فئة المشكلة (اختياري)"
                 value={newTicket.category}
                 onChange={(e) => setNewTicket({ ...newTicket, category: e.target.value })}
+                className="border-rajhi-accent focus:border-rajhi-primary"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">الرسالة</label>
+              <label className="text-sm font-medium mb-2 block text-rajhi-primary">الرسالة</label>
               <Textarea
                 placeholder="اشرح مشكلتك بالتفصيل"
                 value={newTicket.message}
                 onChange={(e) => setNewTicket({ ...newTicket, message: e.target.value })}
                 rows={4}
+                className="border-rajhi-accent focus:border-rajhi-primary"
               />
             </div>
 
             <Button 
               onClick={handleCreateTicket}
               disabled={createTicketMutation.isPending}
-              className="w-full"
+              className="w-full bg-gradient-to-r from-rajhi-primary to-rajhi-accent hover:from-rajhi-accent hover:to-rajhi-primary text-white"
             >
               {createTicketMutation.isPending ? 'جاري الإنشاء...' : 'إنشاء التذكرة'}
             </Button>
           </CardContent>
         </Card>
 
-        {/* Existing Tickets */}
-        <Card>
-          <CardHeader>
+        <Card className="border-rajhi-accent shadow-xl bg-white/90 backdrop-blur-sm">
+          <CardHeader className="bg-gradient-to-r from-rajhi-primary to-rajhi-accent text-white rounded-t-lg">
             <CardTitle className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5" />
               تذاكر الدعم الخاصة بك
             </CardTitle>
-            <CardDescription>عرض وإدارة تذاكر الدعم الفني</CardDescription>
+            <CardDescription className="text-rajhi-light">عرض وإدارة تذاكر الدعم الفني</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             {isLoading ? (
               <div className="text-center py-4">جاري التحميل...</div>
             ) : tickets.length === 0 ? (
-              <div className="text-center py-4 text-gray-500">لا توجد تذاكر دعم فني</div>
+              <div className="text-center py-4 text-rajhi-secondary">لا توجد تذاكر دعم فني</div>
             ) : (
               <div className="space-y-3">
                 {tickets.map((ticket) => (
                   <div
                     key={ticket.id}
-                    className={`p-3 border rounded-lg cursor-pointer hover:bg-gray-50 ${
-                      selectedTicket?.id === ticket.id ? 'bg-blue-50 border-blue-200' : ''
+                    className={`p-3 border rounded-lg cursor-pointer hover:bg-rajhi-light/10 transition-colors ${
+                      selectedTicket?.id === ticket.id ? 'bg-rajhi-primary/10 border-rajhi-primary' : 'border-rajhi-accent'
                     }`}
                     onClick={() => setSelectedTicket(ticket)}
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-medium text-sm">{ticket.subject}</h3>
+                      <h3 className="font-medium text-sm text-rajhi-primary">{ticket.subject}</h3>
                       <Badge variant={getStatusBadgeVariant(ticket.status)}>
                         {getStatusText(ticket.status)}
                       </Badge>
                     </div>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-rajhi-secondary">
                       {new Date(ticket.createdAt).toLocaleDateString('ar-SA')}
                     </p>
                   </div>
@@ -212,17 +211,16 @@ const Support = () => {
         </Card>
       </div>
 
-      {/* Selected Ticket Details */}
       {selectedTicket && (
-        <Card className="mt-6">
-          <CardHeader>
+        <Card className="mt-6 border-rajhi-accent shadow-xl bg-white/90 backdrop-blur-sm">
+          <CardHeader className="bg-gradient-to-r from-rajhi-primary to-rajhi-accent text-white rounded-t-lg">
             <CardTitle>تفاصيل التذكرة</CardTitle>
-            <CardDescription>{selectedTicket.subject}</CardDescription>
+            <CardDescription className="text-rajhi-light">{selectedTicket.subject}</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             <div className="space-y-4">
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm">{selectedTicket.message}</p>
+              <div className="p-3 bg-rajhi-light/5 rounded-lg border border-rajhi-accent">
+                <p className="text-sm text-rajhi-primary">{selectedTicket.message}</p>
               </div>
               
               <div className="flex gap-2">
@@ -230,11 +228,12 @@ const Support = () => {
                   placeholder="اكتب ردك هنا..."
                   value={replyMessage}
                   onChange={(e) => setReplyMessage(e.target.value)}
-                  className="flex-1"
+                  className="flex-1 border-rajhi-accent focus:border-rajhi-primary"
                 />
                 <Button 
                   onClick={handleSendReply}
                   disabled={replyMutation.isPending || !replyMessage.trim()}
+                  className="bg-gradient-to-r from-rajhi-primary to-rajhi-accent hover:from-rajhi-accent hover:to-rajhi-primary text-white"
                 >
                   <Send className="h-4 w-4" />
                 </Button>

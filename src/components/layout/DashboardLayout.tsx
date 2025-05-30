@@ -11,8 +11,14 @@ export const DashboardLayout: React.FC = () => {
 
   if (loadingInitial) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-500"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rajhi-primary via-rajhi-accent to-rajhi-secondary">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-white border-t-transparent mx-auto mb-4"></div>
+          <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6 text-white">
+            <h3 className="text-lg font-semibold mb-2">Virtual Number Hub</h3>
+            <p className="text-rajhi-light">جاري تحميل لوحة التحكم الآمنة...</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -22,12 +28,14 @@ export const DashboardLayout: React.FC = () => {
   }
 
   return (
-    <div dir="rtl" className="min-h-screen bg-gray-50 flex">
+    <div dir="rtl" className="min-h-screen bg-gradient-to-br from-rajhi-light via-white to-rajhi-primary/5 flex overflow-hidden">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 pb-20">
-          <Outlet />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto pb-20 md:pb-6">
+          <div className="animate-fade-in">
+            <Outlet />
+          </div>
         </main>
         <BottomNav />
       </div>

@@ -10,26 +10,54 @@ export const BottomNav = () => {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-      <div className="flex justify-around items-center h-16">
-        <Link to="/dashboard" className={`flex flex-col items-center space-y-1 ${isActive('/dashboard') ? 'text-brand-600' : 'text-gray-600'}`}>
-          <Home size={24} />
-          <span className="text-xs">الرئيسية</span>
+    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-rajhi-accent/20 z-50 md:hidden">
+      <div className="flex justify-around items-center h-16 px-2">
+        <Link 
+          to="/dashboard" 
+          className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-xl transition-all duration-300 ${
+            isActive('/dashboard') 
+              ? 'text-white bg-gradient-to-r from-rajhi-primary to-rajhi-accent shadow-lg transform scale-105' 
+              : 'text-rajhi-secondary hover:text-rajhi-primary'
+          }`}
+        >
+          <Home size={20} />
+          <span className="text-xs font-medium">الرئيسية</span>
         </Link>
         
-        <Link to="/dashboard/orders" className={`flex flex-col items-center space-y-1 ${isActive('/dashboard/orders') ? 'text-brand-600' : 'text-gray-600'}`}>
-          <ListOrdered size={24} />
-          <span className="text-xs">طلباتي</span>
+        <Link 
+          to="/dashboard/orders" 
+          className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-xl transition-all duration-300 ${
+            isActive('/dashboard/orders') 
+              ? 'text-white bg-gradient-to-r from-rajhi-primary to-rajhi-accent shadow-lg transform scale-105' 
+              : 'text-rajhi-secondary hover:text-rajhi-primary'
+          }`}
+        >
+          <ListOrdered size={20} />
+          <span className="text-xs font-medium">طلباتي</span>
         </Link>
         
-        <Link to="/dashboard/balance" className={`flex flex-col items-center space-y-1 ${isActive('/dashboard/balance') ? 'text-brand-600' : 'text-gray-600'}`}>
-          <WalletCards size={24} />
-          <span className="text-xs">رصيدي</span>
+        <Link 
+          to="/dashboard/balance" 
+          className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-xl transition-all duration-300 ${
+            isActive('/dashboard/balance') 
+              ? 'text-white bg-gradient-to-r from-rajhi-primary to-rajhi-accent shadow-lg transform scale-105' 
+              : 'text-rajhi-secondary hover:text-rajhi-primary'
+          }`}
+        >
+          <WalletCards size={20} />
+          <span className="text-xs font-medium">رصيدي</span>
         </Link>
         
-        <Link to="/dashboard/settings" className={`flex flex-col items-center space-y-1 ${isActive('/dashboard/settings') ? 'text-brand-600' : 'text-gray-600'}`}>
-          <UserCog size={24} />
-          <span className="text-xs">الإعدادات</span>
+        <Link 
+          to="/dashboard/settings" 
+          className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-xl transition-all duration-300 ${
+            isActive('/dashboard/settings') 
+              ? 'text-white bg-gradient-to-r from-rajhi-primary to-rajhi-accent shadow-lg transform scale-105' 
+              : 'text-rajhi-secondary hover:text-rajhi-primary'
+          }`}
+        >
+          <UserCog size={20} />
+          <span className="text-xs font-medium">الإعدادات</span>
         </Link>
       </div>
     </div>
