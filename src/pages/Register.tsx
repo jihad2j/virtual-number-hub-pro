@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
+import { Shield, Mail, Lock, User } from 'lucide-react';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -40,29 +41,44 @@ const Register = () => {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-brand-600">Virtual Number Hub</h1>
-          <p className="text-gray-600 mt-2">منصة شراء الأرقام الافتراضية</p>
+    <div dir="rtl" className="min-h-screen flex items-center justify-center bg-gradient-to-br from-ocean-primary via-ocean-accent to-ocean-secondary p-4">
+      <div className="absolute inset-0 bg-pattern opacity-30"></div>
+      
+      <div className="w-full max-w-md relative z-10">
+        {/* Header Section */}
+        <div className="text-center mb-8 animate-fade-in">
+          <div className="bg-white/20 backdrop-blur-sm rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 shadow-xl">
+            <Shield className="h-10 w-10 text-white" />
+          </div>
+          <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-lg">Virtual Number Hub</h1>
+          <p className="text-ocean-light text-lg drop-shadow">منصة شراء الأرقام الافتراضية الآمنة</p>
         </div>
         
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">إنشاء حساب جديد</CardTitle>
-            <CardDescription className="text-center">
-              أدخل بياناتك لإنشاء حساب جديد
+        {/* Register Card */}
+        <Card className="ocean-card border-0 shadow-2xl animate-slide-up">
+          <CardHeader className="bg-gradient-to-r from-ocean-primary to-ocean-accent text-white rounded-t-xl">
+            <CardTitle className="text-2xl text-center font-bold">إنشاء حساب جديد</CardTitle>
+            <CardDescription className="text-center text-ocean-light">
+              أدخل بياناتك لإنشاء حساب جديد آمن
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          
+          <CardContent className="p-6">
             {error && (
-              <div className="bg-red-50 text-red-500 p-3 rounded-md mb-4 text-sm">
-                {error}
+              <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 animate-fade-in">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  {error}
+                </div>
               </div>
             )}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="name">الاسم الكامل</Label>
+                <Label htmlFor="name" className="text-ocean-primary font-medium flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  الاسم الكامل
+                </Label>
                 <Input 
                   id="name"
                   type="text" 
@@ -70,10 +86,15 @@ const Register = () => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
+                  className="ocean-input h-12 text-base"
                 />
               </div>
+              
               <div className="space-y-2">
-                <Label htmlFor="email">البريد الإلكتروني</Label>
+                <Label htmlFor="email" className="text-ocean-primary font-medium flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  البريد الإلكتروني
+                </Label>
                 <Input 
                   id="email"
                   type="email" 
@@ -81,11 +102,15 @@ const Register = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="ltr"
+                  className="ltr ocean-input h-12 text-base"
                 />
               </div>
+              
               <div className="space-y-2">
-                <Label htmlFor="password">كلمة المرور</Label>
+                <Label htmlFor="password" className="text-ocean-primary font-medium flex items-center gap-2">
+                  <Lock className="h-4 w-4" />
+                  كلمة المرور
+                </Label>
                 <Input 
                   id="password"
                   type="password" 
@@ -93,11 +118,15 @@ const Register = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="ltr"
+                  className="ltr ocean-input h-12 text-base"
                 />
               </div>
+              
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">تأكيد كلمة المرور</Label>
+                <Label htmlFor="confirmPassword" className="text-ocean-primary font-medium flex items-center gap-2">
+                  <Lock className="h-4 w-4" />
+                  تأكيد كلمة المرور
+                </Label>
                 <Input 
                   id="confirmPassword"
                   type="password" 
@@ -105,27 +134,42 @@ const Register = () => {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  className="ltr"
+                  className="ltr ocean-input h-12 text-base"
                 />
               </div>
+              
               <Button 
                 type="submit" 
-                className="w-full gradient-bg" 
+                className="w-full ocean-button h-12 text-base font-semibold" 
                 disabled={isLoading}
               >
-                {isLoading ? 'جاري التحميل...' : 'إنشاء الحساب'}
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    جاري إنشاء الحساب...
+                  </div>
+                ) : (
+                  'إنشاء الحساب الآن'
+                )}
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="justify-center">
+          
+          <CardFooter className="flex justify-center p-6 bg-ocean-light/30 rounded-b-xl">
             <div className="text-sm">
               لديك حساب بالفعل؟{' '}
-              <Link to="/login" className="text-brand-500 hover:text-brand-600">
+              <Link to="/login" className="text-ocean-primary hover:text-ocean-accent transition-colors font-medium">
                 تسجيل الدخول
               </Link>
             </div>
           </CardFooter>
         </Card>
+        
+        {/* Footer */}
+        <div className="text-center mt-6 text-ocean-light text-sm">
+          <p>© 2024 Virtual Number Hub. جميع الحقوق محفوظة</p>
+          <p className="mt-1">منصة آمنة ومرخصة لخدمات الأرقام الافتراضية</p>
+        </div>
       </div>
     </div>
   );
