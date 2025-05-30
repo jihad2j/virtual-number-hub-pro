@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   LayoutDashboard,
@@ -46,7 +45,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon, text, to, active, isCollapsed }
       </div>
       {!isCollapsed && <span className="mr-3 font-medium">{text}</span>}
       {active && !isCollapsed && (
-        <div className="mr-auto w-2 h-2 bg-rajhi-gold rounded-full animate-pulse"></div>
+        <div className="mr-auto w-2 h-2 bg-rajhi-silver rounded-full animate-pulse"></div>
       )}
     </Link>
   );
@@ -66,14 +65,13 @@ export function Sidebar() {
   };
 
   return (
-    <aside className={`rajhi-sidebar shadow-2xl transition-all duration-300 overflow-hidden ${
+    <aside className={`bg-gradient-to-b from-rajhi-primary via-rajhi-secondary to-rajhi-primary shadow-2xl transition-all duration-300 overflow-hidden ${
       isCollapsed ? 'w-20' : 'w-72'
     } p-4 flex flex-col relative`}>
       
       <div className="absolute inset-0 bg-pattern opacity-50"></div>
       
       <div className="relative z-10">
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           {!isCollapsed && (
             <Link to="/" className="flex items-center space-x-3">
@@ -96,12 +94,11 @@ export function Sidebar() {
           </Button>
         </div>
 
-        {/* User Profile */}
         {!isCollapsed && (
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6 border border-white/20">
             <div className="flex items-center space-x-3">
               <div className="relative">
-                <div className="w-12 h-12 bg-rajhi-gold rounded-full flex items-center justify-center text-rajhi-primary font-bold text-lg">
+                <div className="w-12 h-12 bg-rajhi-silver rounded-full flex items-center justify-center text-rajhi-primary font-bold text-lg">
                   {user?.username?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 <span className="absolute bottom-0 right-0 inline-block w-3 h-3 bg-rajhi-success border-2 border-white rounded-full"></span>
@@ -118,7 +115,6 @@ export function Sidebar() {
           </div>
         )}
 
-        {/* Navigation */}
         <nav className="flex-1 space-y-2">
           <NavItem
             icon={<LayoutDashboard className="h-5 w-5" />}
@@ -177,7 +173,6 @@ export function Sidebar() {
             isCollapsed={isCollapsed}
           />
 
-          {/* Admin Section */}
           {user?.role === "admin" && (
             <>
               {!isCollapsed && (
@@ -269,7 +264,6 @@ export function Sidebar() {
           )}
         </nav>
 
-        {/* Footer */}
         <div className="mt-auto pt-4 border-t border-white/20">
           <NavItem
             icon={<UserCog className="h-5 w-5" />}

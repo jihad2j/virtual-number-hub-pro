@@ -89,7 +89,6 @@
 }
 
 @layer components {
-  /* Simplified Rajhi Components */
   .rajhi-gradient {
     @apply bg-gradient-to-r from-rajhi-primary via-rajhi-accent to-rajhi-primary;
   }
@@ -105,17 +104,11 @@
   .rajhi-input {
     @apply border-rajhi-accent/50 focus:border-rajhi-primary focus:ring-2 focus:ring-rajhi-primary/20 rounded-lg;
   }
-  
-  .rajhi-sidebar {
-    @apply bg-gradient-to-b from-rajhi-primary via-rajhi-secondary to-rajhi-primary;
-  }
 
-  /* Background Patterns */
   .bg-pattern {
     background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M20 20c0-11.046-8.954-20-20-20v20h20z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
   }
   
-  /* Hover Effects */
   .card-hover {
     @apply transition-all duration-300 hover:shadow-2xl hover:-translate-y-1;
   }
@@ -125,7 +118,6 @@
   }
 }
 
-/* Scrollbar Styling */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -142,7 +134,6 @@
   @apply bg-rajhi-primary;
 }
 
-/* Loading Animation */
 @keyframes shimmer {
   0% {
     background-position: -200px 0;
