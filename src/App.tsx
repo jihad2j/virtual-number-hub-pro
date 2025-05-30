@@ -1,9 +1,11 @@
+
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/components/ui/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Pages
 import Index from '@/pages/Index';
@@ -47,51 +49,53 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
           <Router>
-            <div className="App">
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                
-                <Route path="/dashboard" element={<DashboardLayout />}>
-                  <Route index element={<Dashboard />} />
-                  <Route path="orders" element={<MyOrders />} />
-                  <Route path="balance" element={<Balance />} />
-                  <Route path="countries" element={<Countries />} />
-                  <Route path="applications" element={<Applications />} />
-                  <Route path="active-providers" element={<ActiveProviders />} />
-                  <Route path="services/manual-activation" element={<ManualActivation />} />
-                  <Route path="support" element={<Support />} />
-                  <Route path="profile" element={<Profile />} />
-                  <Route path="settings" element={<SystemSettings />} />
-                  <Route path="activation-waiting/:orderId" element={<ActivationWaiting />} />
+            <AuthProvider>
+              <div className="App">
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
                   
-                  {/* Admin Routes */}
-                  <Route path="admin" element={<AdminDashboard />} />
-                  <Route path="admin/users" element={<AdminUsers />} />
-                  <Route path="admin/countries" element={<AdminCountries />} />
-                  <Route path="admin/providers" element={<AdminProviders />} />
-                  <Route path="admin/applications" element={<AdminApplicationsManager />} />
-                  <Route path="admin/manage-applications" element={<AdminManageApplications />} />
-                  <Route path="admin/add-applications" element={<AdminAddApplications />} />
-                  <Route path="admin/manual-services" element={<AdminManualServices />} />
-                  <Route path="admin/manual-requests" element={<AdminManualRequests />} />
-                  <Route path="admin/support" element={<AdminSupport />} />
-                  <Route path="admin/providers/balances" element={<AdminProviderBalances />} />
-                </Route>
-                
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-              <Toaster />
-            </div>
+                  <Route path="/dashboard" element={<DashboardLayout />}>
+                    <Route index element={<Dashboard />} />
+                    <Route path="orders" element={<MyOrders />} />
+                    <Route path="balance" element={<Balance />} />
+                    <Route path="countries" element={<Countries />} />
+                    <Route path="applications" element={<Applications />} />
+                    <Route path="active-providers" element={<ActiveProviders />} />
+                    <Route path="services/manual-activation" element={<ManualActivation />} />
+                    <Route path="support" element={<Support />} />
+                    <Route path="profile" element={<Profile />} />
+                    <Route path="settings" element={<SystemSettings />} />
+                    <Route path="activation-waiting/:orderId" element={<ActivationWaiting />} />
+                    
+                    {/* Admin Routes */}
+                    <Route path="admin" element={<AdminDashboard />} />
+                    <Route path="admin/users" element={<AdminUsers />} />
+                    <Route path="admin/countries" element={<AdminCountries />} />
+                    <Route path="admin/providers" element={<AdminProviders />} />
+                    <Route path="admin/applications" element={<AdminApplicationsManager />} />
+                    <Route path="admin/manage-applications" element={<AdminManageApplications />} />
+                    <Route path="admin/add-applications" element={<AdminAddApplications />} />
+                    <Route path="admin/manual-services" element={<AdminManualServices />} />
+                    <Route path="admin/manual-requests" element={<AdminManualRequests />} />
+                    <Route path="admin/support" element={<AdminSupport />} />
+                    <Route path="admin/providers/balances" element={<AdminProviderBalances />} />
+                  </Route>
+                  
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+                <Toaster />
+              </div>
+            </AuthProvider>
           </Router>
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
