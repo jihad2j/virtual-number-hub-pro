@@ -52,21 +52,6 @@ const NavItem: React.FC<NavItemProps> = ({ icon, text, to, active, isCollapsed }
   );
 };
 
-const FooterItem: React.FC<NavItemProps> = ({ icon, text, to, active, isCollapsed }) => {
-  return (
-    <Link
-      to={to}
-      className={`flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 text-rajhi-light hover:bg-white/10 hover:text-white ${
-        isCollapsed ? "justify-center" : ""
-      }`}
-      title={isCollapsed ? text : undefined}
-    >
-      {icon}
-      {!isCollapsed && <span className="mr-3">{text}</span>}
-    </Link>
-  );
-};
-
 export function Sidebar() {
   const { pathname } = useLocation();
   const { user } = useAuth();
@@ -85,11 +70,10 @@ export function Sidebar() {
       isCollapsed ? 'w-20' : 'w-72'
     } p-4 flex flex-col relative`}>
       
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\"40\" height=\"40\" viewBox=\"0 0 40 40\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.03\"%3E%3Cpath d=\"M20 20c0-11.046-8.954-20-20-20v20h20z\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-50"></div>
+      <div className="absolute inset-0 bg-pattern opacity-50"></div>
       
       <div className="relative z-10">
-        {/* Logo and Toggle */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           {!isCollapsed && (
             <Link to="/" className="flex items-center space-x-3">
@@ -287,7 +271,7 @@ export function Sidebar() {
 
         {/* Footer */}
         <div className="mt-auto pt-4 border-t border-white/20">
-          <FooterItem
+          <NavItem
             icon={<UserCog className="h-5 w-5" />}
             text="إعدادات الحساب"
             to="/dashboard/settings"

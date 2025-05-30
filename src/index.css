@@ -9,34 +9,24 @@
   :root {
     --background: 248 250 252;
     --foreground: 15 23 42;
-
     --card: 255 255 255;
     --card-foreground: 15 23 42;
-
     --popover: 255 255 255;
     --popover-foreground: 15 23 42;
-
     --primary: 0 83 159;
     --primary-foreground: 255 255 255;
-
     --secondary: 241 245 249;
     --secondary-foreground: 51 65 85;
-
     --muted: 241 245 249;
     --muted-foreground: 100 116 139;
-
     --accent: 0 115 230;
     --accent-foreground: 255 255 255;
-
     --destructive: 230 57 70;
     --destructive-foreground: 255 255 255;
-
     --border: 226 232 240;
     --input: 226 232 240;
     --ring: 0 83 159;
-
     --radius: 0.75rem;
-
     --sidebar-background: 255 255 255;
     --sidebar-foreground: 15 23 42;
     --sidebar-primary: 0 83 159;
@@ -50,32 +40,23 @@
   .dark {
     --background: 15 23 42;
     --foreground: 248 250 252;
-
     --card: 30 41 59;
     --card-foreground: 248 250 252;
-
     --popover: 30 41 59;
     --popover-foreground: 248 250 252;
-
     --primary: 0 115 230;
     --primary-foreground: 255 255 255;
-
     --secondary: 51 65 85;
     --secondary-foreground: 248 250 252;
-
     --muted: 51 65 85;
     --muted-foreground: 148 163 184;
-
     --accent: 0 115 230;
     --accent-foreground: 255 255 255;
-
     --destructive: 230 57 70;
     --destructive-foreground: 255 255 255;
-
     --border: 51 65 85;
     --input: 51 65 85;
     --ring: 0 115 230;
-    
     --sidebar-background: 30 41 59;
     --sidebar-foreground: 248 250 252;
     --sidebar-primary: 0 115 230;
@@ -108,6 +89,7 @@
 }
 
 @layer components {
+  /* Simplified Rajhi Components */
   .rajhi-gradient {
     @apply bg-gradient-to-r from-rajhi-primary via-rajhi-accent to-rajhi-primary;
   }
@@ -124,16 +106,22 @@
     @apply border-rajhi-accent/50 focus:border-rajhi-primary focus:ring-2 focus:ring-rajhi-primary/20 rounded-lg;
   }
   
+  .rajhi-sidebar {
+    @apply bg-gradient-to-b from-rajhi-primary via-rajhi-secondary to-rajhi-primary;
+  }
+
+  /* Background Patterns */
+  .bg-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M20 20c0-11.046-8.954-20-20-20v20h20z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+  
+  /* Hover Effects */
   .card-hover {
     @apply transition-all duration-300 hover:shadow-2xl hover:-translate-y-1;
   }
   
   .glass-effect {
     @apply bg-white/80 backdrop-blur-md border border-white/20;
-  }
-  
-  .rajhi-sidebar {
-    @apply bg-gradient-to-b from-rajhi-primary via-rajhi-secondary to-rajhi-primary;
   }
 }
 

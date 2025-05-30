@@ -1,5 +1,5 @@
 
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
@@ -7,10 +7,13 @@ import { Toaster } from '@/components/ui/sonner';
 // Layouts
 import DashboardLayout from '@/components/layout/DashboardLayout';
 
-// Pages
+// Public Pages
 import Index from '@/pages/Index';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
+import NotFound from '@/pages/NotFound';
+
+// Dashboard Pages
 import Dashboard from '@/pages/Dashboard';
 import MyOrders from '@/pages/MyOrders';
 import Balance from '@/pages/Balance';
@@ -18,8 +21,8 @@ import Profile from '@/pages/Profile';
 import Support from '@/pages/Support';
 import Countries from '@/pages/Countries';
 import ManualActivation from '@/pages/ManualActivation';
-import NotFound from '@/pages/NotFound';
 import Applications from '@/pages/Applications';
+import ActiveProviders from '@/pages/dashboard/ActiveProviders';
 
 // Admin Pages
 import AdminDashboard from '@/pages/admin/Dashboard';
@@ -35,10 +38,7 @@ import ApplicationsManager from '@/pages/admin/ApplicationsManager';
 import AddApplications from '@/pages/admin/AddApplications';
 import ManageApplications from '@/pages/admin/ManageApplications';
 
-// New Page
-import ActiveProviders from '@/pages/dashboard/ActiveProviders';
-
-// Create a client
+// Query Client Configuration
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -55,10 +55,14 @@ function App() {
       <div className="app">
         <Toaster />
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          
+          {/* Protected Dashboard Routes */}
           <Route element={<DashboardLayout />}>
+            {/* User Dashboard */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/orders" element={<MyOrders />} />
             <Route path="/dashboard/balance" element={<Balance />} />
@@ -71,7 +75,7 @@ function App() {
             <Route path="/dashboard/active-providers" element={<ActiveProviders />} />
             <Route path="/dashboard/applications" element={<Applications />} />
             
-            {/* Admin Routes */}
+            {/* Admin Dashboard */}
             <Route path="/dashboard/admin" element={<AdminDashboard />} />
             <Route path="/dashboard/admin/countries" element={<AdminCountries />} />
             <Route path="/dashboard/admin/users" element={<Users />} />
@@ -85,6 +89,8 @@ function App() {
             <Route path="/dashboard/admin/add-applications" element={<AddApplications />} />
             <Route path="/dashboard/admin/manage-applications" element={<ManageApplications />} />
           </Route>
+          
+          {/* 404 Route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>

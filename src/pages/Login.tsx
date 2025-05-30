@@ -51,9 +51,10 @@ const Login = () => {
 
   return (
     <div dir="rtl" className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rajhi-primary via-rajhi-accent to-rajhi-secondary p-4">
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.05\"%3E%3Ccircle cx=\"7\" cy=\"7\" r=\"7\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
+      <div className="absolute inset-0 bg-pattern opacity-30"></div>
       
       <div className="w-full max-w-md relative z-10">
+        {/* Header Section */}
         <div className="text-center mb-8 animate-fade-in">
           <div className="bg-white/20 backdrop-blur-sm rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 shadow-xl">
             <Shield className="h-10 w-10 text-white" />
@@ -62,6 +63,7 @@ const Login = () => {
           <p className="text-rajhi-light text-lg drop-shadow">منصة شراء الأرقام الافتراضية الآمنة</p>
         </div>
         
+        {/* Login Card */}
         <Card className="rajhi-card border-0 shadow-2xl animate-slide-up">
           <CardHeader className="bg-gradient-to-r from-rajhi-primary to-rajhi-accent text-white rounded-t-xl">
             <CardTitle className="text-2xl text-center font-bold">تسجيل الدخول</CardTitle>
@@ -69,6 +71,7 @@ const Login = () => {
               أدخل بيانات حسابك للوصول إلى لوحة التحكم الآمنة
             </CardDescription>
           </CardHeader>
+          
           <CardContent className="p-6">
             {error && (
               <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 animate-fade-in">
@@ -79,6 +82,7 @@ const Login = () => {
               </div>
             )}
             
+            {/* Demo Accounts */}
             <div className="mb-6 p-4 bg-gradient-to-r from-rajhi-light to-blue-50 rounded-lg border border-rajhi-accent/30">
               <p className="text-sm text-rajhi-primary mb-3 font-medium">🔐 حسابات تجريبية آمنة:</p>
               <div className="flex gap-2 text-xs">
@@ -103,6 +107,7 @@ const Login = () => {
               </div>
             </div>
 
+            {/* Login Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-rajhi-primary font-medium flex items-center gap-2">
@@ -161,6 +166,7 @@ const Login = () => {
               </Button>
             </form>
           </CardContent>
+          
           <CardFooter className="flex justify-between p-6 bg-rajhi-light/30 rounded-b-xl">
             <Link 
               to="/forgot-password" 
@@ -177,6 +183,7 @@ const Login = () => {
           </CardFooter>
         </Card>
         
+        {/* Footer */}
         <div className="text-center mt-6 text-rajhi-light text-sm">
           <p>© 2024 Virtual Number Hub. جميع الحقوق محفوظة</p>
           <p className="mt-1">منصة آمنة ومرخصة لخدمات الأرقام الافتراضية</p>
