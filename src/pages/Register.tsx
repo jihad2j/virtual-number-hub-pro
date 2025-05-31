@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
-import { Shield, Mail, Lock, User, Sparkles, UserPlus } from 'lucide-react';
+import { Shield, Mail, Lock, User } from 'lucide-react';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -41,149 +41,134 @@ const Register = () => {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen modern-gradient bg-pattern-modern p-4 flex items-center justify-center">
-      <div className="w-full max-w-md relative">
-        {/* Floating particles effect */}
-        <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-          <div className="absolute top-16 left-8 w-2 h-2 bg-white/30 rounded-full animate-pulse"></div>
-          <div className="absolute top-32 right-12 w-3 h-3 bg-purple-primary/40 rounded-full animate-bounce delay-300"></div>
-          <div className="absolute bottom-40 left-20 w-1 h-1 bg-emerald-primary/50 rounded-full animate-ping delay-500"></div>
-          <div className="absolute bottom-24 right-6 w-2 h-2 bg-white/40 rounded-full animate-pulse delay-700"></div>
-        </div>
-
-        {/* Modern Logo Section */}
-        <div className="text-center mb-10 animate-fade-in">
-          <div className="relative mx-auto mb-8">
-            <div className="w-28 h-28 mx-auto relative">
-              <div className="absolute inset-0 glass-card glow-effect">
-                <div className="w-full h-full flex items-center justify-center">
-                  <div className="relative">
-                    <div className="w-16 h-16 bg-gradient-to-br from-purple-primary/60 to-emerald-primary/60 rounded-2xl transform rotate-12 absolute"></div>
-                    <div className="w-12 h-12 bg-gradient-to-br from-white/40 to-purple-primary/40 rounded-xl transform -rotate-12 relative z-10"></div>
-                    <UserPlus className="absolute top-1 right-1 w-6 h-6 text-white/80" />
-                  </div>
-                </div>
-              </div>
-            </div>
+    <div dir="rtl" className="min-h-screen flex items-center justify-center bg-gradient-to-br from-ocean-primary via-ocean-accent to-ocean-secondary p-4">
+      <div className="absolute inset-0 bg-pattern opacity-30"></div>
+      
+      <div className="w-full max-w-md relative z-10">
+        {/* Header Section */}
+        <div className="text-center mb-8 animate-fade-in">
+          <div className="bg-white/20 backdrop-blur-sm rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4 shadow-xl">
+            <Shield className="h-10 w-10 text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-3 drop-shadow-2xl text-gradient">انضم إلينا</h1>
-          <p className="text-white/90 text-xl drop-shadow-lg font-medium">إنشاء حساب جديد في شام كاش</p>
+          <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-lg">Virtual Number Hub</h1>
+          <p className="text-ocean-light text-lg drop-shadow">منصة شراء الأرقام الافتراضية الآمنة</p>
         </div>
         
-        {/* Modern Register Card */}
-        <div className="border-gradient">
-          <Card className="glass-card border-0 shadow-2xl animate-slide-up overflow-hidden">
-            <CardContent className="p-10">
-              {error && (
-                <div className="mb-8 p-5 bg-red-500/20 backdrop-blur-sm text-white rounded-2xl border border-red-400/30 animate-fade-in">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 bg-red-400 rounded-full animate-pulse"></div>
-                    <span className="font-medium">{error}</span>
-                  </div>
+        {/* Register Card */}
+        <Card className="ocean-card border-0 shadow-2xl animate-slide-up">
+          <CardHeader className="bg-gradient-to-r from-ocean-primary to-ocean-accent text-white rounded-t-xl">
+            <CardTitle className="text-2xl text-center font-bold">إنشاء حساب جديد</CardTitle>
+            <CardDescription className="text-center text-ocean-light">
+              أدخل بياناتك لإنشاء حساب جديد آمن
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="p-6">
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200 animate-fade-in">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  {error}
                 </div>
-              )}
-              
-              <form onSubmit={handleSubmit} className="space-y-8">
-                <div className="space-y-4">
-                  <Label htmlFor="name" className="text-white/90 font-semibold flex items-center gap-3 text-lg">
-                    <User className="h-5 w-5 text-purple-primary" />
-                    الاسم الكامل
-                  </Label>
-                  <Input 
-                    id="name"
-                    type="text" 
-                    placeholder="أدخل اسمك الكامل" 
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    className="modern-input h-16 text-lg rounded-2xl backdrop-blur-md"
-                  />
-                </div>
-                
-                <div className="space-y-4">
-                  <Label htmlFor="email" className="text-white/90 font-semibold flex items-center gap-3 text-lg">
-                    <Mail className="h-5 w-5 text-emerald-primary" />
-                    البريد الإلكتروني
-                  </Label>
-                  <Input 
-                    id="email"
-                    type="email" 
-                    placeholder="أدخل بريدك الإلكتروني" 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="ltr modern-input h-16 text-lg rounded-2xl backdrop-blur-md"
-                  />
-                </div>
-                
-                <div className="space-y-4">
-                  <Label htmlFor="password" className="text-white/90 font-semibold flex items-center gap-3 text-lg">
-                    <Lock className="h-5 w-5 text-purple-primary" />
-                    كلمة المرور
-                  </Label>
-                  <Input 
-                    id="password"
-                    type="password" 
-                    placeholder="أدخل كلمة المرور"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="ltr modern-input h-16 text-lg rounded-2xl backdrop-blur-md"
-                  />
-                </div>
-                
-                <div className="space-y-4">
-                  <Label htmlFor="confirmPassword" className="text-white/90 font-semibold flex items-center gap-3 text-lg">
-                    <Lock className="h-5 w-5 text-emerald-primary" />
-                    تأكيد كلمة المرور
-                  </Label>
-                  <Input 
-                    id="confirmPassword"
-                    type="password" 
-                    placeholder="أعد إدخال كلمة المرور"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    className="ltr modern-input h-16 text-lg rounded-2xl backdrop-blur-md"
-                  />
-                </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full modern-button h-16 text-lg font-bold rounded-2xl backdrop-blur-sm border border-white/20 transition-all duration-300 hover:scale-105 shadow-2xl glow-effect" 
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>جاري إنشاء الحساب...</span>
-                    </div>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <Sparkles className="w-5 h-5" />
-                      إنشاء الحساب
-                    </span>
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-            
-            <CardFooter className="flex justify-center p-10 pt-0">
-              <div className="text-white/80 text-base">
-                لديك حساب بالفعل؟{' '}
-                <Link to="/login" className="text-white hover:text-white/80 transition-colors font-semibold hover:underline">
-                  تسجيل الدخول
-                </Link>
               </div>
-            </CardFooter>
-          </Card>
-        </div>
+            )}
+            
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-ocean-primary font-medium flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  الاسم الكامل
+                </Label>
+                <Input 
+                  id="name"
+                  type="text" 
+                  placeholder="محمد أحمد" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="ocean-input h-12 text-base"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-ocean-primary font-medium flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  البريد الإلكتروني
+                </Label>
+                <Input 
+                  id="email"
+                  type="email" 
+                  placeholder="your@email.com" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="ltr ocean-input h-12 text-base"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-ocean-primary font-medium flex items-center gap-2">
+                  <Lock className="h-4 w-4" />
+                  كلمة المرور
+                </Label>
+                <Input 
+                  id="password"
+                  type="password" 
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="ltr ocean-input h-12 text-base"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-ocean-primary font-medium flex items-center gap-2">
+                  <Lock className="h-4 w-4" />
+                  تأكيد كلمة المرور
+                </Label>
+                <Input 
+                  id="confirmPassword"
+                  type="password" 
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  className="ltr ocean-input h-12 text-base"
+                />
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full ocean-button h-12 text-base font-semibold" 
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    جاري إنشاء الحساب...
+                  </div>
+                ) : (
+                  'إنشاء الحساب الآن'
+                )}
+              </Button>
+            </form>
+          </CardContent>
+          
+          <CardFooter className="flex justify-center p-6 bg-ocean-light/30 rounded-b-xl">
+            <div className="text-sm">
+              لديك حساب بالفعل؟{' '}
+              <Link to="/login" className="text-ocean-primary hover:text-ocean-accent transition-colors font-medium">
+                تسجيل الدخول
+              </Link>
+            </div>
+          </CardFooter>
+        </Card>
         
-        {/* Modern Footer */}
-        <div className="text-center mt-10 text-white/70 text-base space-y-2">
-          <p className="font-semibold">POWERED BY</p>
-          <p className="font-bold text-white/90 text-xl text-gradient">Sham Cash ©</p>
-          <p className="font-medium">V 2.0.0 - Modern Edition</p>
+        {/* Footer */}
+        <div className="text-center mt-6 text-ocean-light text-sm">
+          <p>© 2024 Virtual Number Hub. جميع الحقوق محفوظة</p>
+          <p className="mt-1">منصة آمنة ومرخصة لخدمات الأرقام الافتراضية</p>
         </div>
       </div>
     </div>
