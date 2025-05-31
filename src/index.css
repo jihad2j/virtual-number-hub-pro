@@ -106,7 +106,7 @@
   }
 
   .floating-card {
-    @apply glass-card hover:bg-white/15 transition-all duration-500 hover:shadow-3xl hover:-translate-y-2 hover:scale-105;
+    @apply glass-card hover:bg-white/15 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 hover:scale-105;
   }
 
   .glow-effect {
