@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Shield, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Shield, Mail, Lock, Eye, EyeOff, Sparkles, User, Crown } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -50,147 +50,164 @@ const Login = () => {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-gradient-ocean bg-pattern-ocean p-4 flex items-center justify-center">
+    <div dir="rtl" className="min-h-screen modern-gradient bg-pattern-modern p-4 flex items-center justify-center">
       <div className="w-full max-w-md relative">
-        {/* Logo Section - Inspired by the geometric logo in the images */}
-        <div className="text-center mb-8 animate-fade-in">
-          <div className="relative mx-auto mb-6">
-            <div className="w-24 h-24 mx-auto relative">
-              {/* Geometric logo inspired by the uploaded images */}
-              <div className="absolute inset-0 bg-white/20 backdrop-blur-sm rounded-3xl shadow-2xl animate-float">
+        {/* Floating particles effect */}
+        <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+          <div className="absolute top-10 left-10 w-2 h-2 bg-white/30 rounded-full animate-pulse"></div>
+          <div className="absolute top-20 right-20 w-3 h-3 bg-purple-primary/40 rounded-full animate-bounce delay-300"></div>
+          <div className="absolute bottom-32 left-16 w-1 h-1 bg-emerald-primary/50 rounded-full animate-ping delay-500"></div>
+          <div className="absolute bottom-20 right-8 w-2 h-2 bg-white/40 rounded-full animate-pulse delay-700"></div>
+        </div>
+
+        {/* Modern Logo Section */}
+        <div className="text-center mb-10 animate-fade-in">
+          <div className="relative mx-auto mb-8">
+            <div className="w-28 h-28 mx-auto relative">
+              <div className="absolute inset-0 glass-card glow-effect">
                 <div className="w-full h-full flex items-center justify-center">
                   <div className="relative">
-                    {/* Main geometric shape */}
-                    <div className="w-12 h-12 bg-gradient-to-br from-white/40 to-white/20 rounded-lg transform rotate-45"></div>
-                    <div className="absolute top-1 left-1 w-8 h-8 bg-gradient-to-br from-ocean-accent/60 to-ocean-primary/60 rounded-md transform rotate-45"></div>
-                    <div className="absolute top-2 left-2 w-4 h-4 bg-white/80 rounded-sm transform rotate-45"></div>
+                    {/* Modern geometric logo */}
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-primary/60 to-emerald-primary/60 rounded-2xl transform rotate-12 absolute"></div>
+                    <div className="w-12 h-12 bg-gradient-to-br from-white/40 to-purple-primary/40 rounded-xl transform -rotate-12 relative z-10"></div>
+                    <Sparkles className="absolute top-1 right-1 w-6 h-6 text-white/80" />
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">تسجيل الدخول</h1>
-          <p className="text-white/80 text-lg drop-shadow">منصة شام كاش للخدمات المالية</p>
+          <h1 className="text-4xl font-bold text-white mb-3 drop-shadow-2xl text-gradient">مرحباً بك</h1>
+          <p className="text-white/90 text-xl drop-shadow-lg font-medium">منصة شام كاش الحديثة</p>
         </div>
         
-        {/* Login Card */}
-        <Card className="glass-card border-0 shadow-2xl animate-slide-up overflow-hidden">
-          <CardContent className="p-8">
-            {error && (
-              <div className="mb-6 p-4 bg-red-500/20 backdrop-blur-sm text-white rounded-xl border border-red-400/30 animate-fade-in">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-                  {error}
-                </div>
-              </div>
-            )}
-            
-            {/* Demo Accounts */}
-            <div className="mb-8 p-6 glass-morphism rounded-2xl">
-              <p className="text-white/90 mb-4 font-medium text-center">🔐 حسابات تجريبية:</p>
-              <div className="flex gap-3 justify-center">
-                <Button 
-                  type="button"
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => fillDemoCredentials('admin')}
-                  className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2"
-                >
-                  👨‍💼 مدير
-                </Button>
-                <Button 
-                  type="button"
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => fillDemoCredentials('user')}
-                  className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2"
-                >
-                  👤 مستخدم
-                </Button>
-              </div>
-            </div>
-
-            {/* Login Form */}
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-3">
-                <Label htmlFor="email" className="text-white/90 font-medium flex items-center gap-2 text-base">
-                  <Mail className="h-4 w-4" />
-                  البريد الإلكتروني
-                </Label>
-                <Input 
-                  id="email"
-                  type="email" 
-                  placeholder="بريدك الإلكتروني" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="ltr ocean-input h-14 text-base rounded-xl"
-                />
-              </div>
-              
-              <div className="space-y-3">
-                <Label htmlFor="password" className="text-white/90 font-medium flex items-center gap-2 text-base">
-                  <Lock className="h-4 w-4" />
-                  كلمة المرور
-                </Label>
-                <div className="relative">
-                  <Input 
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="كلمة المرور"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="ltr ocean-input h-14 text-base pr-14 rounded-xl"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                  </button>
-                </div>
-              </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full bg-white/20 hover:bg-white/30 text-white h-14 text-base font-semibold rounded-xl backdrop-blur-sm border border-white/30 transition-all duration-300 hover:scale-105 shadow-xl" 
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    جاري تسجيل الدخول...
+        {/* Modern Login Card */}
+        <div className="border-gradient">
+          <Card className="glass-card border-0 shadow-2xl animate-slide-up overflow-hidden">
+            <CardContent className="p-10">
+              {error && (
+                <div className="mb-8 p-5 bg-red-500/20 backdrop-blur-sm text-white rounded-2xl border border-red-400/30 animate-fade-in">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-red-400 rounded-full animate-pulse"></div>
+                    <span className="font-medium">{error}</span>
                   </div>
-                ) : (
-                  'تسجيل الدخول'
-                )}
-              </Button>
-            </form>
-          </CardContent>
-          
-          <CardFooter className="flex justify-between p-8 pt-0">
-            <Link 
-              to="/forgot-password" 
-              className="text-white/80 hover:text-white transition-colors font-medium text-sm"
-            >
-              نسيت كلمة المرور؟
-            </Link>
-            <Link 
-              to="/register" 
-              className="text-white/80 hover:text-white transition-colors font-medium text-sm"
-            >
-              إنشاء حساب جديد
-            </Link>
-          </CardFooter>
-        </Card>
+                </div>
+              )}
+              
+              {/* Demo Accounts with modern design */}
+              <div className="mb-10 p-8 glass-card rounded-3xl shimmer-effect">
+                <p className="text-white/90 mb-6 font-semibold text-center text-lg flex items-center justify-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  حسابات تجريبية
+                </p>
+                <div className="flex gap-4 justify-center">
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    size="lg"
+                    onClick={() => fillDemoCredentials('admin')}
+                    className="modern-button flex items-center gap-2 px-6 py-3 text-base font-semibold"
+                  >
+                    <Crown className="w-5 h-5" />
+                    مدير
+                  </Button>
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    size="lg"
+                    onClick={() => fillDemoCredentials('user')}
+                    className="modern-button flex items-center gap-2 px-6 py-3 text-base font-semibold"
+                  >
+                    <User className="w-5 h-5" />
+                    مستخدم
+                  </Button>
+                </div>
+              </div>
+
+              {/* Modern Login Form */}
+              <form onSubmit={handleSubmit} className="space-y-8">
+                <div className="space-y-4">
+                  <Label htmlFor="email" className="text-white/90 font-semibold flex items-center gap-3 text-lg">
+                    <Mail className="h-5 w-5 text-purple-primary" />
+                    البريد الإلكتروني
+                  </Label>
+                  <Input 
+                    id="email"
+                    type="email" 
+                    placeholder="أدخل بريدك الإلكتروني" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="ltr modern-input h-16 text-lg rounded-2xl backdrop-blur-md"
+                  />
+                </div>
+                
+                <div className="space-y-4">
+                  <Label htmlFor="password" className="text-white/90 font-semibold flex items-center gap-3 text-lg">
+                    <Lock className="h-5 w-5 text-emerald-primary" />
+                    كلمة المرور
+                  </Label>
+                  <div className="relative">
+                    <Input 
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="أدخل كلمة المرور"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="ltr modern-input h-16 text-lg pr-16 rounded-2xl backdrop-blur-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute left-5 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white transition-colors duration-300"
+                    >
+                      {showPassword ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
+                    </button>
+                  </div>
+                </div>
+                
+                <Button 
+                  type="submit" 
+                  className="w-full modern-button h-16 text-lg font-bold rounded-2xl backdrop-blur-sm border border-white/20 transition-all duration-300 hover:scale-105 shadow-2xl glow-effect" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>جاري تسجيل الدخول...</span>
+                    </div>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Sparkles className="w-5 h-5" />
+                      تسجيل الدخول
+                    </span>
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+            
+            <CardFooter className="flex justify-between p-10 pt-0">
+              <Link 
+                to="/forgot-password" 
+                className="text-white/80 hover:text-white transition-colors font-semibold text-base hover:underline"
+              >
+                نسيت كلمة المرور؟
+              </Link>
+              <Link 
+                to="/register" 
+                className="text-white/80 hover:text-white transition-colors font-semibold text-base hover:underline"
+              >
+                إنشاء حساب جديد
+              </Link>
+            </CardFooter>
+          </Card>
+        </div>
         
-        {/* Footer */}
-        <div className="text-center mt-8 text-white/60 text-sm space-y-1">
-          <p>POWERED BY</p>
-          <p className="font-semibold text-white/80">Sham Cash ©</p>
-          <p>V 2.0.0</p>
+        {/* Modern Footer */}
+        <div className="text-center mt-10 text-white/70 text-base space-y-2">
+          <p className="font-semibold">POWERED BY</p>
+          <p className="font-bold text-white/90 text-xl text-gradient">Sham Cash ©</p>
+          <p className="font-medium">V 2.0.0 - Modern Edition</p>
         </div>
       </div>
     </div>
