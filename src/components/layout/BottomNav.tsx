@@ -10,14 +10,14 @@ export const BottomNav = () => {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-ocean-accent/20 z-50 md:hidden">
+    <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 z-50 md:hidden">
       <div className="flex justify-around items-center h-16 px-2">
         <Link 
           to="/dashboard" 
           className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-xl transition-all duration-300 ${
             isActive('/dashboard') 
-              ? 'text-white bg-gradient-to-r from-ocean-primary to-ocean-accent shadow-lg transform scale-105' 
-              : 'text-ocean-secondary hover:text-ocean-primary'
+              ? 'text-white bg-orange-500 shadow-lg transform scale-105' 
+              : 'text-gray-600 hover:text-orange-500'
           }`}
         >
           <Home size={20} />
@@ -28,8 +28,8 @@ export const BottomNav = () => {
           to="/dashboard/orders" 
           className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-xl transition-all duration-300 ${
             isActive('/dashboard/orders') 
-              ? 'text-white bg-gradient-to-r from-ocean-primary to-ocean-accent shadow-lg transform scale-105' 
-              : 'text-ocean-secondary hover:text-ocean-primary'
+              ? 'text-white bg-blue-500 shadow-lg transform scale-105' 
+              : 'text-gray-600 hover:text-blue-500'
           }`}
         >
           <ListOrdered size={20} />
@@ -40,8 +40,8 @@ export const BottomNav = () => {
           to="/dashboard/balance" 
           className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-xl transition-all duration-300 ${
             isActive('/dashboard/balance') 
-              ? 'text-white bg-gradient-to-r from-ocean-primary to-ocean-accent shadow-lg transform scale-105' 
-              : 'text-ocean-secondary hover:text-ocean-primary'
+              ? 'text-white bg-orange-500 shadow-lg transform scale-105' 
+              : 'text-gray-600 hover:text-orange-500'
           }`}
         >
           <WalletCards size={20} />
@@ -52,8 +52,8 @@ export const BottomNav = () => {
           to="/dashboard/settings" 
           className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-xl transition-all duration-300 ${
             isActive('/dashboard/settings') 
-              ? 'text-white bg-gradient-to-r from-ocean-primary to-ocean-accent shadow-lg transform scale-105' 
-              : 'text-ocean-secondary hover:text-ocean-primary'
+              ? 'text-white bg-blue-500 shadow-lg transform scale-105' 
+              : 'text-gray-600 hover:text-blue-500'
           }`}
         >
           <UserCog size={20} />
