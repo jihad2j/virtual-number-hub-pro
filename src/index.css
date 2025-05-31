@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
@@ -73,7 +74,7 @@
   }
 
   body {
-    @apply bg-gradient-silver text-foreground min-h-screen;
+    @apply bg-slate-50 text-foreground min-h-screen;
     font-family: 'Poppins', sans-serif;
   }
 
@@ -89,43 +90,43 @@
 
 @layer components {
   .silver-gradient {
-    @apply bg-gradient-silver;
+    @apply bg-slate-50;
   }
   
   .glass-card {
-    @apply bg-white/20 backdrop-blur-xl border border-white/30 shadow-2xl rounded-3xl;
+    @apply bg-white/95 backdrop-blur-sm border border-gray-200 shadow-lg rounded-2xl;
   }
   
   .colorful-button {
-    @apply bg-gradient-orange-blue hover:bg-gradient-blue-green text-white font-semibold transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 rounded-2xl;
+    @apply bg-orange-500 hover:bg-orange-600 text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 rounded-xl;
   }
   
   .orange-button {
-    @apply bg-gradient-to-r from-orange-primary to-orange-secondary hover:from-orange-secondary hover:to-orange-accent text-white font-semibold transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 rounded-2xl;
+    @apply bg-orange-500 hover:bg-orange-600 text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 rounded-xl;
   }
   
   .blue-button {
-    @apply bg-gradient-to-r from-blue-primary to-blue-secondary hover:from-blue-secondary hover:to-blue-accent text-white font-semibold transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 rounded-2xl;
+    @apply bg-blue-500 hover:bg-blue-600 text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 rounded-xl;
   }
   
   .purple-button {
-    @apply bg-gradient-to-r from-purple-primary to-purple-secondary hover:from-purple-secondary hover:to-purple-accent text-white font-semibold transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 rounded-2xl;
+    @apply bg-purple-500 hover:bg-purple-600 text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 rounded-xl;
   }
   
   .pink-button {
-    @apply bg-gradient-to-r from-pink-primary to-pink-secondary hover:from-pink-secondary hover:to-pink-accent text-white font-semibold transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 rounded-2xl;
+    @apply bg-pink-500 hover:bg-pink-600 text-white font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 rounded-xl;
   }
   
   .colorful-input {
-    @apply border-white/30 bg-white/15 backdrop-blur-sm focus:border-orange-primary/50 focus:ring-2 focus:ring-blue-primary/20 rounded-2xl text-white placeholder-white/70;
+    @apply border-gray-300 bg-white/90 backdrop-blur-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-xl text-gray-900 placeholder-gray-500;
   }
 
   .floating-card {
-    @apply glass-card hover:bg-white/25 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 hover:scale-105;
+    @apply glass-card hover:bg-white transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
   }
 
   .rainbow-glow {
-    @apply animate-rainbow-glow;
+    @apply shadow-lg;
   }
 
   .bounce-effect {
@@ -133,7 +134,7 @@
   }
 
   .pulse-rainbow {
-    @apply animate-pulse-rainbow;
+    @apply animate-pulse;
   }
 }
 
@@ -142,64 +143,60 @@
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-white/10 rounded-full;
+  @apply bg-gray-100 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gradient-orange-blue rounded-full;
+  @apply bg-orange-400 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gradient-blue-green;
+  @apply bg-orange-500;
 }
 
 .bg-pattern-silver {
+  background-color: #f8fafc;
   background-image: 
-    radial-gradient(circle at 20% 30%, rgba(156, 163, 175, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(107, 114, 128, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 50% 20%, rgba(75, 85, 99, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 30% 80%, rgba(209, 213, 219, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 70% 40%, rgba(156, 163, 175, 0.08) 0%, transparent 50%);
+    radial-gradient(circle at 25% 25%, rgba(156, 163, 175, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(107, 114, 128, 0.08) 0%, transparent 50%);
 }
 
 .text-gradient-orange {
-  @apply bg-gradient-to-r from-orange-primary to-orange-secondary bg-clip-text text-transparent;
+  @apply text-orange-500;
 }
 
 .text-gradient-blue {
-  @apply bg-gradient-to-r from-blue-primary to-blue-secondary bg-clip-text text-transparent;
+  @apply text-blue-500;
 }
 
 .text-gradient-colorful {
-  @apply bg-gradient-rainbow bg-clip-text text-transparent;
+  @apply bg-gradient-to-r from-orange-500 to-blue-500 bg-clip-text text-transparent;
 }
 
 .border-gradient-colorful {
-  background: linear-gradient(135deg, rgba(255, 140, 66, 0.4), rgba(66, 133, 244, 0.4), rgba(236, 72, 153, 0.3));
-  border-radius: 1.5rem;
-  padding: 2px;
+  @apply border-2 border-gray-200 rounded-2xl;
 }
 
 .border-gradient-colorful > * {
-  @apply bg-white/15 backdrop-blur-xl rounded-3xl;
+  @apply bg-white/95 backdrop-blur-sm rounded-2xl;
 }
 
 .card-orange {
-  @apply bg-gradient-to-br from-orange-primary/20 to-orange-secondary/10 backdrop-blur-xl border border-orange-primary/30;
+  @apply bg-orange-50 border border-orange-200;
 }
 
 .card-blue {
-  @apply bg-gradient-to-br from-blue-primary/20 to-blue-secondary/10 backdrop-blur-xl border border-blue-primary/30;
+  @apply bg-blue-50 border border-blue-200;
 }
 
 .card-purple {
-  @apply bg-gradient-to-br from-purple-primary/20 to-purple-secondary/10 backdrop-blur-xl border border-purple-primary/30;
+  @apply bg-purple-50 border border-purple-200;
 }
 
 .card-pink {
-  @apply bg-gradient-to-br from-pink-primary/20 to-pink-secondary/10 backdrop-blur-xl border border-pink-primary/30;
+  @apply bg-pink-50 border border-pink-200;
 }
 
 .card-green {
-  @apply bg-gradient-to-br from-green-primary/20 to-green-secondary/10 backdrop-blur-xl border border-green-primary/30;
+  @apply bg-green-50 border border-green-200;
 }
