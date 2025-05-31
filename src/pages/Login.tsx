@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,7 +49,7 @@ const Login = () => {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen colorful-gradient bg-pattern-colorful p-4 flex items-center justify-center">
+    <div dir="rtl" className="min-h-screen silver-gradient bg-pattern-silver p-4 flex items-center justify-center">
       <div className="w-full max-w-md relative">
         {/* Floating particles effect */}
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none">

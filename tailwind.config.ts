@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -63,7 +62,18 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Colorful theme inspired by the image
+				silver: {
+					50: '#f8fafc',
+					100: '#f1f5f9',
+					200: '#e2e8f0',
+					300: '#cbd5e1',
+					400: '#94a3b8',
+					500: '#64748b',
+					600: '#475569',
+					700: '#334155',
+					800: '#1e293b',
+					900: '#0f172a',
+				},
 				orange: {
 					primary: '#FF8C42',
 					secondary: '#FF6B1A', 
@@ -196,6 +206,7 @@ export default {
 				'pulse-rainbow': 'pulse-rainbow 4s ease-in-out infinite'
 			},
 			backgroundImage: {
+				'gradient-silver': 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 25%, #cbd5e1 50%, #94a3b8 75%, #64748b 100%)',
 				'gradient-colorful': 'linear-gradient(135deg, #FF8C42 0%, #4285F4 25%, #EC4899 50%, #10B981 75%, #F59E0B 100%)',
 				'gradient-orange-blue': 'linear-gradient(135deg, #FF8C42 0%, #4285F4 100%)',
 				'gradient-purple-pink': 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
