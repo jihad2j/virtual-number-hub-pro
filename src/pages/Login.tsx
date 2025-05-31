@@ -50,13 +50,13 @@ const Login = () => {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen modern-gradient bg-pattern-modern p-4 flex items-center justify-center">
+    <div dir="rtl" className="min-h-screen colorful-gradient bg-pattern-colorful p-4 flex items-center justify-center">
       <div className="w-full max-w-md relative">
         {/* Floating particles effect */}
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
           <div className="absolute top-10 left-10 w-2 h-2 bg-white/30 rounded-full animate-pulse"></div>
-          <div className="absolute top-20 right-20 w-3 h-3 bg-purple-primary/40 rounded-full animate-bounce delay-300"></div>
-          <div className="absolute bottom-32 left-16 w-1 h-1 bg-emerald-primary/50 rounded-full animate-ping delay-500"></div>
+          <div className="absolute top-20 right-20 w-3 h-3 bg-orange-primary/40 rounded-full animate-bounce delay-300"></div>
+          <div className="absolute bottom-32 left-16 w-1 h-1 bg-blue-primary/50 rounded-full animate-ping delay-500"></div>
           <div className="absolute bottom-20 right-8 w-2 h-2 bg-white/40 rounded-full animate-pulse delay-700"></div>
         </div>
 
@@ -64,24 +64,24 @@ const Login = () => {
         <div className="text-center mb-10 animate-fade-in">
           <div className="relative mx-auto mb-8">
             <div className="w-28 h-28 mx-auto relative">
-              <div className="absolute inset-0 glass-card glow-effect">
+              <div className="absolute inset-0 glass-card rainbow-glow">
                 <div className="w-full h-full flex items-center justify-center">
                   <div className="relative">
                     {/* Modern geometric logo */}
-                    <div className="w-16 h-16 bg-gradient-to-br from-purple-primary/60 to-emerald-primary/60 rounded-2xl transform rotate-12 absolute"></div>
-                    <div className="w-12 h-12 bg-gradient-to-br from-white/40 to-purple-primary/40 rounded-xl transform -rotate-12 relative z-10"></div>
+                    <div className="w-16 h-16 bg-gradient-orange-blue rounded-2xl transform rotate-12 absolute"></div>
+                    <div className="w-12 h-12 bg-white/40 rounded-xl transform -rotate-12 relative z-10"></div>
                     <Sparkles className="absolute top-1 right-1 w-6 h-6 text-white/80" />
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-3 drop-shadow-2xl text-gradient">مرحباً بك</h1>
-          <p className="text-white/90 text-xl drop-shadow-lg font-medium">منصة شام كاش الحديثة</p>
+          <h1 className="text-4xl font-bold text-white mb-3 drop-shadow-2xl text-gradient-colorful">مرحباً بك</h1>
+          <p className="text-white/90 text-xl drop-shadow-lg font-medium">منصة شام كاش الملونة</p>
         </div>
         
         {/* Modern Login Card */}
-        <div className="border-gradient">
+        <div className="border-gradient-colorful">
           <Card className="glass-card border-0 shadow-2xl animate-slide-up overflow-hidden">
             <CardContent className="p-10">
               {error && (
@@ -93,8 +93,8 @@ const Login = () => {
                 </div>
               )}
               
-              {/* Demo Accounts with modern design */}
-              <div className="mb-10 p-8 glass-card rounded-3xl shimmer-effect">
+              {/* Demo Accounts with colorful design */}
+              <div className="mb-10 p-8 glass-card rounded-3xl rainbow-glow">
                 <p className="text-white/90 mb-6 font-semibold text-center text-lg flex items-center justify-center gap-2">
                   <Shield className="w-5 h-5" />
                   حسابات تجريبية
@@ -105,7 +105,7 @@ const Login = () => {
                     variant="outline" 
                     size="lg"
                     onClick={() => fillDemoCredentials('admin')}
-                    className="modern-button flex items-center gap-2 px-6 py-3 text-base font-semibold"
+                    className="orange-button flex items-center gap-2 px-6 py-3 text-base font-semibold"
                   >
                     <Crown className="w-5 h-5" />
                     مدير
@@ -115,7 +115,7 @@ const Login = () => {
                     variant="outline" 
                     size="lg"
                     onClick={() => fillDemoCredentials('user')}
-                    className="modern-button flex items-center gap-2 px-6 py-3 text-base font-semibold"
+                    className="blue-button flex items-center gap-2 px-6 py-3 text-base font-semibold"
                   >
                     <User className="w-5 h-5" />
                     مستخدم
@@ -123,11 +123,11 @@ const Login = () => {
                 </div>
               </div>
 
-              {/* Modern Login Form */}
+              {/* Colorful Login Form */}
               <form onSubmit={handleSubmit} className="space-y-8">
                 <div className="space-y-4">
                   <Label htmlFor="email" className="text-white/90 font-semibold flex items-center gap-3 text-lg">
-                    <Mail className="h-5 w-5 text-purple-primary" />
+                    <Mail className="h-5 w-5 text-orange-primary" />
                     البريد الإلكتروني
                   </Label>
                   <Input 
@@ -137,13 +137,13 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="ltr modern-input h-16 text-lg rounded-2xl backdrop-blur-md"
+                    className="ltr colorful-input h-16 text-lg rounded-2xl backdrop-blur-md"
                   />
                 </div>
                 
                 <div className="space-y-4">
                   <Label htmlFor="password" className="text-white/90 font-semibold flex items-center gap-3 text-lg">
-                    <Lock className="h-5 w-5 text-emerald-primary" />
+                    <Lock className="h-5 w-5 text-blue-primary" />
                     كلمة المرور
                   </Label>
                   <div className="relative">
@@ -154,7 +154,7 @@ const Login = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      className="ltr modern-input h-16 text-lg pr-16 rounded-2xl backdrop-blur-md"
+                      className="ltr colorful-input h-16 text-lg pr-16 rounded-2xl backdrop-blur-md"
                     />
                     <button
                       type="button"
@@ -168,7 +168,7 @@ const Login = () => {
                 
                 <Button 
                   type="submit" 
-                  className="w-full modern-button h-16 text-lg font-bold rounded-2xl backdrop-blur-sm border border-white/20 transition-all duration-300 hover:scale-105 shadow-2xl glow-effect" 
+                  className="w-full colorful-button h-16 text-lg font-bold rounded-2xl backdrop-blur-sm border border-white/20 transition-all duration-300 hover:scale-105 shadow-2xl rainbow-glow" 
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -203,11 +203,11 @@ const Login = () => {
           </Card>
         </div>
         
-        {/* Modern Footer */}
+        {/* Colorful Footer */}
         <div className="text-center mt-10 text-white/70 text-base space-y-2">
           <p className="font-semibold">POWERED BY</p>
-          <p className="font-bold text-white/90 text-xl text-gradient">Sham Cash ©</p>
-          <p className="font-medium">V 2.0.0 - Modern Edition</p>
+          <p className="font-bold text-white/90 text-xl text-gradient-colorful">Sham Cash ©</p>
+          <p className="font-medium">V 2.0.0 - Colorful Edition</p>
         </div>
       </div>
     </div>
